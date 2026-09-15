@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = [
+    "poker_protocol",
+    "poker-protocol-core",
+    "poker-protocol-proofs",
+    "poker-protocol-abi",
+    "poker-protocol-bg",
+]
+# poker_protocol_lean/ is a Lean 4 (Lake) project, not a Cargo member.
