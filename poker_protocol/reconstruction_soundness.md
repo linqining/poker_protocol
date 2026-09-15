@@ -242,8 +242,11 @@ reconstruction 证明**自身无法**建立、必须由外部保证的事实：
 5. 认证的 prior state（§4.1）与跨玩家 disjointness（§4.2）；
 6. 曲线实现：素数阶子群成员检查与规范解码。
 
-基础假设：BLS12-381 G1 上的离散对数困难性（Σ 协议知识可靠性）、ROM、
-DDH（ElGamal 语义安全，ZK/隐私侧）。
+基础假设按具体曲线实例化：当前 native precompile dispatch 使用 Stark 曲线与
+Poseidon transcript 域；仓库中仍有历史 BLS12-381/通用曲线回归测试。对所选
+素数阶群分别假设离散对数困难性（Σ 协议知识可靠性）、ROM 和 DDH（ElGamal
+语义安全/隐私）。不能仅依据历史类型名
+`NativeBls12381ReconstructionV3Verifier` 把当前生产路径描述为 BLS12-381。
 
 ---
 
