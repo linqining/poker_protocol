@@ -11,11 +11,7 @@ import PokerProtocolLean.Shuffle.ShuffleHVZK
 import PokerProtocolLean.Shuffle.ShuffleSoundness
 import PokerProtocolLean.Shuffle.ShuffleAttackCorollaries
 import PokerProtocolLean.SwapOut.SwapOutCardProof
-import PokerProtocolLean.Reconstruct.ReconstructionDLEQ
 import PokerProtocolLean.Reconstruct.ReconstructProof
-import PokerProtocolLean.Reconstruct.ReconstructionV3SlotOr
-import PokerProtocolLean.Reconstruct.ReconstructionV3Security
-import PokerProtocolLean.Reconstruct.ReconstructDoubleApplication
 import PokerProtocolLean.Forking.GeneralizedSchnorrForking
 import PokerProtocolLean.GameHops.KJLowDegree
 import PokerProtocolLean.Sanity.ShuffleSanity

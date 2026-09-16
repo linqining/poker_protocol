@@ -49,7 +49,7 @@ texas / client-wasm
 | Join / mask | `RemaskProof`, `DLEqProof<RemaskKind>` |
 | Leave | `LeaveProof`, `DLEqProof<LeaveKind>` |
 | Card reveal | `RevealTokenProof` |
-| Expel / reconstruction | `ReconstructProof`, `ReconstructionDLEQProof`, `ChaumPedersenDLEQProof` |
+| Reconstruction | `ReconstructProof` |
 | Hand replacement | `SwapOutCardProof` |
 
 All entries above are defined in `poker-protocol-proofs`. The old

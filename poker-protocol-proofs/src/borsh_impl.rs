@@ -16,10 +16,8 @@ type BlsScalar = StarkScalar;
 use crate::dleq_proof::{DLEqProof, LeaveKind, RemaskKind};
 use crate::generalized_schnorr_proof::GeneralizedSchnorrProof;
 use crate::reconstruction::{
-    ChaumPedersenDLEQProof, CrossKeyNegationProof, OrderedEncryptionProof, ReconstructProof,
-    ReconstructProofV3, ReconstructionDLEQProof, ReconstructionV3Statement,
-    SlotContributionOrProof, SwapOutCardProof, RECONSTRUCTION_PROOF_VERSION,
-    RECONSTRUCTION_V3_PROOF_VERSION,
+    CrossKeyNegationProof, ReconstructProof, ReconstructionStatement, SlotContributionOrProof,
+    RECONSTRUCTION_PROOF_VERSION,
 };
 use crate::reveal_token_proof::RevealTokenProof;
 use crate::shuffle_proof::ZKShuffleProof;
@@ -266,88 +264,6 @@ impl BorshDeserialize for RevealTokenProof<StarkCurve> {
     }
 }
 
-// ============================================================
-// ChaumPedersenDLEQProof<StarkCurve>
-// ============================================================
-
-impl BorshSerialize for ChaumPedersenDLEQProof<StarkCurve> {
-    fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        write_stark_point(&self.commitment_a, w)?;
-        write_stark_point(&self.commitment_b, w)?;
-        write_stark_scalar(&self.response, w)?;
-        Ok(())
-    }
-}
-
-impl BorshDeserialize for ChaumPedersenDLEQProof<StarkCurve> {
-    fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
-        let commitment_a = read_stark_point(r)?;
-        let commitment_b = read_stark_point(r)?;
-        let response = read_stark_scalar(r)?;
-        Ok(Self {
-            commitment_a,
-            commitment_b,
-            response,
-        })
-    }
-}
-
-// ============================================================
-// ReconstructionDLEQProof<StarkCurve>
-// ============================================================
-
-impl BorshSerialize for ReconstructionDLEQProof<StarkCurve> {
-    fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        write_stark_point(&self.commitment, w)?;
-        write_stark_scalar(&self.response, w)?;
-        write_stark_scalar(&self.nonce, w)?;
-        Ok(())
-    }
-}
-
-impl BorshDeserialize for ReconstructionDLEQProof<StarkCurve> {
-    fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
-        let commitment = read_stark_point(r)?;
-        let response = read_stark_scalar(r)?;
-        let nonce = read_stark_scalar(r)?;
-        Ok(Self {
-            commitment,
-            response,
-            nonce,
-        })
-    }
-}
-
-// ============================================================
-// SwapOutCardProof<StarkCurve>
-// ============================================================
-
-impl BorshSerialize for SwapOutCardProof<StarkCurve> {
-    fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        BorshSerialize::serialize(&self.user_readable_card, w)?;
-        BorshSerialize::serialize(&self.swap_out_card, w)?;
-        BorshSerialize::serialize(&self.chaum_pedersen_proof, w)?;
-        Ok(())
-    }
-}
-
-impl BorshDeserialize for SwapOutCardProof<StarkCurve> {
-    fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
-        let user_readable_card = BorshDeserialize::deserialize_reader(r)?;
-        let swap_out_card = BorshDeserialize::deserialize_reader(r)?;
-        let chaum_pedersen_proof = BorshDeserialize::deserialize_reader(r)?;
-        Ok(Self {
-            user_readable_card,
-            swap_out_card,
-            chaum_pedersen_proof,
-        })
-    }
-}
-
-// ============================================================
-// ReconstructProof<StarkCurve>
-// ============================================================
-
 fn write_reconstruction_len<W: borsh::io::Write>(
     len: usize,
     min: usize,
@@ -380,117 +296,8 @@ fn read_reconstruction_len<R: borsh::io::Read>(r: &mut R, min: usize) -> borsh::
     }
     Ok(len)
 }
-
-impl BorshSerialize for OrderedEncryptionProof<StarkCurve> {
-    fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        let n = self.responses.len();
-        if self.commitment_g.len() != n || self.commitment_pk.len() != n {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                "mismatched ordered encryption proof lengths",
-            ));
-        }
-        write_reconstruction_len(n, 2, w)?;
-        for point in &self.commitment_g {
-            write_stark_point(point, w)?;
-        }
-        for point in &self.commitment_pk {
-            write_stark_point(point, w)?;
-        }
-        for response in &self.responses {
-            write_stark_scalar(response, w)?;
-        }
-        Ok(())
-    }
-}
-
-impl BorshDeserialize for OrderedEncryptionProof<StarkCurve> {
-    fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
-        let n = read_reconstruction_len(r, 2)?;
-        let commitment_g = (0..n).map(|_| read_stark_point(r)).collect::<Result<_, _>>()?;
-        let commitment_pk = (0..n).map(|_| read_stark_point(r)).collect::<Result<_, _>>()?;
-        let responses = (0..n).map(|_| read_stark_scalar(r)).collect::<Result<_, _>>()?;
-        Ok(Self {
-            commitment_g,
-            commitment_pk,
-            responses,
-        })
-    }
-}
-
-impl BorshSerialize for ReconstructProof<StarkCurve> {
-    fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        w.write_all(&[RECONSTRUCTION_PROOF_VERSION])?;
-        write_reconstruction_len(self.swap_out_cards_proofs.len(), 1, w)?;
-        for p in &self.swap_out_cards_proofs {
-            BorshSerialize::serialize(p, w)?;
-        }
-        write_reconstruction_len(self.padded_swap_cards.len(), 2, w)?;
-        for ciphertext in &self.padded_swap_cards {
-            BorshSerialize::serialize(ciphertext, w)?;
-        }
-        BorshSerialize::serialize(&self.padded_swap_shuffle_proof, w)?;
-        BorshSerialize::serialize(&self.ordered_encryption_proof, w)?;
-        Ok(())
-    }
-}
-
-impl BorshDeserialize for ReconstructProof<StarkCurve> {
-    fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
-        let mut version = [0u8; 1];
-        r.read_exact(&mut version)?;
-        if version[0] != RECONSTRUCTION_PROOF_VERSION {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                "unsupported reconstruction proof version",
-            ));
-        }
-        let swap_len = read_reconstruction_len(r, 1)?;
-        let swap_out_cards_proofs = (0..swap_len)
-            .map(|_| BorshDeserialize::deserialize_reader(r))
-            .collect::<Result<Vec<_>, _>>()?;
-        let n = read_reconstruction_len(r, 2)?;
-        if swap_len > n {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                "more swap cards than reconstruction slots",
-            ));
-        }
-        let padded_swap_cards = (0..n)
-            .map(|_| BorshDeserialize::deserialize_reader(r))
-            .collect::<Result<Vec<ElGamalCiphertextGeneric<StarkCurve>>, _>>()?;
-        let padded_swap_shuffle_proof =
-            BayerGrothShuffleProof::<StarkCurve>::deserialize_reader(r)?;
-        if padded_swap_shuffle_proof
-            .multi_exponentiation
-            .alpha_response
-            .len()
-            != n
-        {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                "Bayer-Groth proof length does not match reconstruction deck",
-            ));
-        }
-        let ordered_encryption_proof =
-            OrderedEncryptionProof::<StarkCurve>::deserialize_reader(r)?;
-        if ordered_encryption_proof.responses.len() != n {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                "ordered proof length does not match reconstruction deck",
-            ));
-        }
-        Ok(Self {
-            swap_out_cards_proofs,
-            padded_swap_cards,
-            padded_swap_shuffle_proof,
-            ordered_encryption_proof,
-        })
-    }
-}
-
 // ============================================================
-// Reconstruction V3 statement and proof package
+// Reconstruction statement and proof package
 // ============================================================
 
 impl BorshSerialize for CrossKeyNegationProof<StarkCurve> {
@@ -544,15 +351,15 @@ impl BorshDeserialize for SlotContributionOrProof<StarkCurve> {
     }
 }
 
-impl BorshSerialize for ReconstructionV3Statement<StarkCurve> {
+impl BorshSerialize for ReconstructionStatement<StarkCurve> {
     fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
-        if self.version != RECONSTRUCTION_V3_PROOF_VERSION
+        if self.version != RECONSTRUCTION_PROOF_VERSION
             || self.cards.len() != self.contributions.len()
             || self.user_readable_cards.len() > self.cards.len()
         {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "invalid reconstruction V3 statement shape",
+                "invalid reconstruction statement shape",
             ));
         }
         w.write_all(&[self.version])?;
@@ -579,14 +386,14 @@ impl BorshSerialize for ReconstructionV3Statement<StarkCurve> {
     }
 }
 
-impl BorshDeserialize for ReconstructionV3Statement<StarkCurve> {
+impl BorshDeserialize for ReconstructionStatement<StarkCurve> {
     fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
         let mut version = [0u8; 1];
         r.read_exact(&mut version)?;
-        if version[0] != RECONSTRUCTION_V3_PROOF_VERSION {
+        if version[0] != RECONSTRUCTION_PROOF_VERSION {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "unsupported reconstruction V3 statement version",
+                "unsupported reconstruction statement version",
             ));
         }
         let mut context_digest = [0u8; 32];
@@ -600,7 +407,9 @@ impl BorshDeserialize for ReconstructionV3Statement<StarkCurve> {
         let owner_pk = read_stark_point(r)?;
 
         let n = read_reconstruction_len(r, 2)?;
-        let cards = (0..n).map(|_| read_stark_point(r)).collect::<Result<_, _>>()?;
+        let cards = (0..n)
+            .map(|_| read_stark_point(r))
+            .collect::<Result<_, _>>()?;
         let k = read_reconstruction_len(r, 1)?;
         if k > n {
             return Err(borsh::io::Error::new(
@@ -628,24 +437,24 @@ impl BorshDeserialize for ReconstructionV3Statement<StarkCurve> {
         statement.validate().map_err(|_| {
             borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "invalid reconstruction V3 statement",
+                "invalid reconstruction statement",
             )
         })?;
         Ok(statement)
     }
 }
 
-impl BorshSerialize for ReconstructProofV3<StarkCurve> {
+impl BorshSerialize for ReconstructProof<StarkCurve> {
     fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
         let k = self.negative_contributions.len();
         let n = self.slot_membership_proofs.len();
         if self.cross_key_proofs.len() != k || k == 0 || k > n {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "invalid reconstruction V3 proof shape",
+                "invalid reconstruction proof shape",
             ));
         }
-        w.write_all(&[RECONSTRUCTION_V3_PROOF_VERSION])?;
+        w.write_all(&[RECONSTRUCTION_PROOF_VERSION])?;
         write_reconstruction_len(k, 1, w)?;
         for ciphertext in &self.negative_contributions {
             BorshSerialize::serialize(ciphertext, w)?;
@@ -662,14 +471,14 @@ impl BorshSerialize for ReconstructProofV3<StarkCurve> {
     }
 }
 
-impl BorshDeserialize for ReconstructProofV3<StarkCurve> {
+impl BorshDeserialize for ReconstructProof<StarkCurve> {
     fn deserialize_reader<R: borsh::io::Read>(r: &mut R) -> borsh::io::Result<Self> {
         let mut version = [0u8; 1];
         r.read_exact(&mut version)?;
-        if version[0] != RECONSTRUCTION_V3_PROOF_VERSION {
+        if version[0] != RECONSTRUCTION_PROOF_VERSION {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "unsupported reconstruction V3 proof version",
+                "unsupported reconstruction proof version",
             ));
         }
         let k = read_reconstruction_len(r, 1)?;
@@ -692,7 +501,7 @@ impl BorshDeserialize for ReconstructProofV3<StarkCurve> {
         {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "reconstruction V3 proof vector lengths disagree",
+                "reconstruction proof vector lengths disagree",
             ));
         }
         let slot_membership_proofs = (0..n)
@@ -715,9 +524,10 @@ impl BorshDeserialize for ReconstructProofV3<StarkCurve> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::reconstruction::reconstruct_deck;
     use crate::transcript_ext::{CryptoTranscript, FiatShamirTranscript};
-    use poker_protocol_core::{Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric, STARK_POINT_COMPRESSED_LEN};
+    use poker_protocol_core::{
+        Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric, STARK_POINT_COMPRESSED_LEN,
+    };
     use rand_core::OsRng;
 
     #[test]
@@ -778,15 +588,10 @@ mod tests {
         let public_key = <StarkCurve as Curve>::base_g() * secret_key;
         let input: Vec<_> = (0..n)
             .map(|i| {
-                let message = <StarkCurve as Curve>::hash_to_curve(
-                    format!("borsh/bg12/card/{i}").as_bytes(),
-                );
+                let message =
+                    <StarkCurve as Curve>::hash_to_curve(format!("borsh/bg12/card/{i}").as_bytes());
                 let randomness = <BlsScalar as CurveScalar>::random(&mut OsRng);
-                ElGamalCiphertextGeneric::<StarkCurve>::encrypt(
-                    &message,
-                    &public_key,
-                    &randomness,
-                )
+                ElGamalCiphertextGeneric::<StarkCurve>::encrypt(&message, &public_key, &randomness)
             })
             .collect();
         let permutation = vec![3, 0, 7, 1, 6, 2, 5, 4];
@@ -828,81 +633,11 @@ mod tests {
     }
 
     #[test]
-    fn reconstruction_v2_borsh_roundtrip_and_verify() {
+    fn reconstruction_statement_and_proof_borsh_roundtrip() {
         let cards = (0..8)
             .map(|i| {
                 <StarkCurve as Curve>::hash_to_curve(
                     format!("borsh/reconstruction/card/{i}").as_bytes(),
-                )
-            })
-            .collect::<Vec<_>>();
-        let user_sk = <BlsScalar as CurveScalar>::from_u64(73);
-        let user_pk = <StarkCurve as Curve>::base_g() * user_sk;
-        let user_readable_cards = [1usize, 6]
-            .iter()
-            .enumerate()
-            .map(|(i, index)| {
-                ElGamalCiphertextGeneric::<StarkCurve>::encrypt(
-                    &cards[*index],
-                    &user_pk,
-                    &<BlsScalar as CurveScalar>::from_u64(1000 + i as u64),
-                )
-            })
-            .collect::<Vec<_>>();
-        let (s_vec, output_cards, swap_out_cards) = reconstruct_deck::<StarkCurve>(
-            &cards,
-            &user_readable_cards,
-            &user_sk,
-            &user_pk,
-            &<BlsScalar as CurveScalar>::from_u64(7),
-        )
-        .unwrap();
-        let proof = ReconstructProof::<StarkCurve>::prove(
-            cards.clone(),
-            user_readable_cards.clone(),
-            output_cards.clone(),
-            swap_out_cards.clone(),
-            &user_sk,
-            &user_pk,
-            s_vec,
-            &mut FiatShamirTranscript::new(b"borsh-reconstruction-v2"),
-        )
-        .unwrap();
-
-        let bytes = borsh::to_vec(&proof).unwrap();
-        assert_eq!(bytes[0], RECONSTRUCTION_PROOF_VERSION);
-        let recovered: ReconstructProof<StarkCurve> = borsh::from_slice(&bytes).unwrap();
-        let swap_ciphertexts = swap_out_cards
-            .iter()
-            .map(|(_, ciphertext)| ciphertext.clone())
-            .collect::<Vec<_>>();
-        recovered
-            .verify(
-                &cards,
-                &output_cards,
-                &swap_ciphertexts,
-                &user_readable_cards,
-                &user_pk,
-                &mut FiatShamirTranscript::new(b"borsh-reconstruction-v2"),
-            )
-            .unwrap();
-    }
-
-    #[test]
-    fn reconstruction_v2_borsh_rejects_unknown_version_and_huge_length() {
-        assert!(borsh::from_slice::<ReconstructProof<StarkCurve>>(&[99]).is_err());
-
-        let mut malicious = vec![RECONSTRUCTION_PROOF_VERSION];
-        malicious.extend_from_slice(&u32::MAX.to_le_bytes());
-        assert!(borsh::from_slice::<ReconstructProof<StarkCurve>>(&malicious).is_err());
-    }
-
-    #[test]
-    fn reconstruction_v3_statement_and_proof_borsh_roundtrip() {
-        let cards = (0..8)
-            .map(|i| {
-                <StarkCurve as Curve>::hash_to_curve(
-                    format!("borsh/reconstruction/v3/card/{i}").as_bytes(),
                 )
             })
             .collect::<Vec<_>>();
@@ -923,7 +658,7 @@ mod tests {
             })
             .collect::<Vec<_>>();
 
-        let (statement, proof) = ReconstructProofV3::<StarkCurve>::prove(
+        let (statement, proof) = ReconstructProof::<StarkCurve>::prove(
             [3u8; 32],
             12,
             [4u8; 32],
@@ -933,23 +668,23 @@ mod tests {
             &owner_pk,
             &aggregate_pk,
             &mut OsRng,
-            &mut FiatShamirTranscript::new(b"borsh-reconstruction-v3"),
+            &mut FiatShamirTranscript::new(b"borsh-reconstruction"),
         )
         .unwrap();
 
         let statement_bytes = borsh::to_vec(&statement).unwrap();
         let proof_bytes = borsh::to_vec(&proof).unwrap();
-        assert_eq!(statement_bytes[0], RECONSTRUCTION_V3_PROOF_VERSION);
-        assert_eq!(proof_bytes[0], RECONSTRUCTION_V3_PROOF_VERSION);
+        assert_eq!(statement_bytes[0], RECONSTRUCTION_PROOF_VERSION);
+        assert_eq!(proof_bytes[0], RECONSTRUCTION_PROOF_VERSION);
 
-        let recovered_statement: ReconstructionV3Statement<StarkCurve> =
+        let recovered_statement: ReconstructionStatement<StarkCurve> =
             borsh::from_slice(&statement_bytes).unwrap();
-        let recovered_proof: ReconstructProofV3<StarkCurve> =
+        let recovered_proof: ReconstructProof<StarkCurve> =
             borsh::from_slice(&proof_bytes).unwrap();
         recovered_proof
             .verify(
                 &recovered_statement,
-                &mut FiatShamirTranscript::new(b"borsh-reconstruction-v3"),
+                &mut FiatShamirTranscript::new(b"borsh-reconstruction"),
             )
             .unwrap();
     }

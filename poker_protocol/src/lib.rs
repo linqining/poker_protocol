@@ -4,8 +4,8 @@
 //! `DefaultCurve = StarkCurve`（Cairo 原生 EC_OP 结算路线）。
 
 pub mod crypto;
-pub mod zk_shuffle;
 pub mod z_poker;
+pub mod zk_shuffle;
 
 /// 2026-09 Poseidon epoch：生产 transcript 域标签（felt 直通 ≤31B）与
 /// 语句摘要压缩函数门面。poker_l1 / texas / z_poker / 证明器统一从这里

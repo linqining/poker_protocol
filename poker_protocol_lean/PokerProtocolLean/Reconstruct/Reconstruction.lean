@@ -1,16 +1,13 @@
 import Mathlib.Tactic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import PokerProtocolLean.Foundations.ElGamal
-import PokerProtocolLean.Reconstruct.ReconstructV2Counterexample
 import PokerProtocolLean.Reconstruct.ReadableCardProvenance
 
 /-!
-# Reconstruction V3: a sound ideal relation
+# Reconstruction: a sound ideal relation
 
 This module gives the machine-checked algebraic specification that a repaired
-reconstruction proof must establish.  It is intentionally separated from the
-current Rust v2 verifier, which does not establish this relation (see
-`ReconstructV2Counterexample.lean`).
+reconstruction proof must establish.
 
 The repair has two essential bindings:
 
@@ -32,16 +29,29 @@ proofs for the OR, joint-linear and Bayer--Groth components; the trust boundary
 is documented in `SECURITY_RECONSTRUCTION.md`.
 -/
 
-namespace PokerProtocolLean.Reconstruct.V3
+namespace PokerProtocolLean.Reconstruct.Reconstruction
 
 open PokerProtocolLean.Foundations
-open PokerProtocolLean.Reconstruct.V2Counterexample
 open scoped BigOperators
 
 variable (F : Type) [Field F]
 variable (G : Type) [AddCommGroup G] [Module F G]
 
-/-- Public reconstruction-v3 statement.  Hidden card indices, permutation and
+/-- Componentwise homomorphic addition of ElGamal ciphertexts. -/
+def ciphertextAdd (left right : ElGamalCiphertext G) : ElGamalCiphertext G :=
+  ⟨left.c1 + right.c1, left.c2 + right.c2⟩
+
+/-- ElGamal is homomorphic in both plaintext and randomness. -/
+theorem ciphertextAdd_encrypt
+    (g pk m₁ m₂ : G) (r₁ r₂ : F) :
+    ciphertextAdd G
+        (ElGamalCiphertext.encrypt F G g m₁ pk r₁)
+        (ElGamalCiphertext.encrypt F G g m₂ pk r₂) =
+      ElGamalCiphertext.encrypt F G g (m₁ + m₂) pk (r₁ + r₂) := by
+  simp [ciphertextAdd, ElGamalCiphertext.encrypt, add_smul]
+  abel
+
+/-- Public reconstruction statement.  Hidden card indices, permutation and
 all encryption randomness live only in `Witness`. -/
 structure Statement (n k : ℕ) where
   g : G
@@ -51,7 +61,7 @@ structure Statement (n k : ℕ) where
   contributions : Fin n → ElGamalCiphertext G
   readableCards : Fin k → ElGamalCiphertext G
 
-/-- Fail-closed public-statement conditions corresponding to the Rust V3
+/-- Fail-closed public-statement conditions corresponding to the Rust
 validator. Historical authentication of `readableCards` is deliberately not
 included here; it is supplied by `ReadableCardProvenance` and the state root. -/
 def WellFormedStatement {n k : ℕ} (stmt : Statement G n k) : Prop :=
@@ -82,7 +92,7 @@ structure Witness (n k : ℕ) where
 def contributionMessage (card : G) (removed : Bool) : G :=
   if removed then -card else 0
 
-/-- Ideal extracted relation for reconstruction v3. -/
+/-- Ideal extracted relation for reconstruction. -/
 def Relation {n k : ℕ} (stmt : Statement G n k) (wit : Witness F n k) : Prop :=
   (∀ i, stmt.contributions i =
     ElGamalCiphertext.encrypt F G stmt.g
@@ -114,7 +124,7 @@ def ValidRelation {n k : ℕ} (stmt : Statement G n k) (wit : Witness F n k) : P
   WellFormedStatement G stmt ∧ Relation F G stmt wit
 
 /-- Honest public validity plus the honest encryption equations establishes
-the full V3 algebraic statement. -/
+the full algebraic statement. -/
 theorem valid_relation_complete {n k : ℕ}
     (stmt : Statement G n k) (wit : Witness F n k)
     (hwellFormed : WellFormedStatement G stmt)
@@ -129,7 +139,7 @@ theorem valid_relation_complete {n k : ℕ}
     ValidRelation F G stmt wit :=
   ⟨hwellFormed, relation_complete F G stmt wit hcontribution hreadable⟩
 
-/-- The readable-card half of the V3 relation follows from authenticated
+/-- The readable-card half of the relation follows from authenticated
 prior-hand provenance, rather than being trusted as arbitrary prover input. -/
 theorem readable_equations_of_authenticated_lineage {n k : ℕ}
     (stmt : Statement G n k) (wit : Witness F n k)
@@ -152,7 +162,7 @@ theorem readable_equations_of_authenticated_lineage {n k : ℕ}
     F G hlineage haggregate hreadable
 
 /-- Semantic slot soundness: extraction yields exactly one of the two allowed
-plaintext branches, never the v2 plaintext `B - A` counterexample. -/
+plaintext branches. -/
 theorem accepted_contribution_is_zero_or_negative_card {n k : ℕ}
     (stmt : Statement G n k) (wit : Witness F n k)
     (hrel : Relation F G stmt wit) (i : Fin n) :
@@ -200,7 +210,7 @@ theorem corrected_slot_semantics {n k : ℕ}
         ElGamalCiphertext.encrypt F G stmt.g (stmt.cards i) stmt.aggregatePk
           (initialRandomness + wit.contributionRandomness i) := by
   rcases hrel with ⟨hcontribution, _⟩
-  rw [hcontribution i, encrypt_add]
+  rw [hcontribution i, ciphertextAdd_encrypt]
   cases hremoved : wit.removed i <;> simp [contributionMessage, hremoved]
 
 /-! ## Joint cross-key plaintext-negation relation -/
@@ -283,4 +293,4 @@ theorem aggregatePlaintext_unique_removal {players : ℕ}
     simp [contributionMessage, hothers p hne]
   · simp
 
-end PokerProtocolLean.Reconstruct.V3
+end PokerProtocolLean.Reconstruct.Reconstruction

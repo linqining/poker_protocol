@@ -1,15 +1,15 @@
 use crate::crypto::{
-    hash_to_scalar, DefaultCurve, EcPoint, ElGamalCiphertext, Plaintext, Scalar, base_g,
+    base_g, hash_to_scalar, DefaultCurve, EcPoint, ElGamalCiphertext, Plaintext, Scalar,
 };
 use crate::z_poker::convert::{ecpoint_to_hex, hex_to_scalar, scalar_to_hex};
 use crate::zk_shuffle::error::VerificationError;
-use crate::zk_shuffle::reconstruction::{reconstruct_deck, ReconstructProof, ReconstructProofV3};
+use crate::zk_shuffle::reconstruction::ReconstructProof;
 use crate::zk_shuffle::reveal_token_proof::RevealTokenProof;
 // 2026-09 Poseidon epoch：所有生产证明（reveal / shuffle / reconstruct）
 // 统一走 PoseidonFeltTranscript + transcript_domains 生产域标签；浏览器
 // 端经 wasm 共享同一 Rust 实现，逐字节一致。旧 Merlin/SHA3 域已停发。
 use super::rounds::{JoinGameAndShuffleRound, LeaveGameRound, MaskAndShuffleRound, ShuffleRound};
-use super::types::{ReconstructDeck, ReconstructDeckV3, RevealToken};
+use super::types::{ReconstructDeck, RevealToken};
 use crate::crypto::curve::{CurvePoint, CurveScalar};
 use crate::z_poker::card::PlayingCard;
 use crate::z_poker::key_manager::PKOwnershipProof;
@@ -26,13 +26,13 @@ pub struct ClientPlayer {
 impl ClientPlayer {
     pub fn new() -> Self {
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         Self { sk, pk }
     }
 
     pub fn new_with_wallet_address(wallet_address: &str) -> Self {
         let sk = hash_to_scalar(wallet_address.as_bytes());
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         Self { sk, pk }
     }
 
@@ -43,7 +43,7 @@ impl ClientPlayer {
     /// 与钱包零派生关系（对比 new_with_wallet_address 的公开可计算性）。
     pub fn new_with_passphrase(passphrase: &str) -> Self {
         let sk = Self::derive_key_from_passphrase(passphrase);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         Self { sk, pk }
     }
 
@@ -67,7 +67,7 @@ impl ClientPlayer {
 
     pub fn new_with_sk_hex(sk_hex: String) -> Result<Self, VerificationError> {
         let sk = hex_to_scalar(&sk_hex).map_err(|_| VerificationError::InvalidSecretKey)?;
-        let pk = base_g() *  &sk;
+        let pk = base_g() * &sk;
         Ok(Self { sk, pk })
     }
 
@@ -124,7 +124,9 @@ impl ClientPlayer {
         plain_cards: &[Plaintext],
     ) -> Result<(Plaintext, ElGamalCiphertext), VerificationError> {
         for token in tokens {
-            let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+            let mut transcript = PoseidonFeltTranscript::new_domain(
+                crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
+            );
             token
                 .proof
                 .verify(
@@ -153,7 +155,8 @@ impl ClientPlayer {
     pub fn verify_and_reveal_from_token(
         token: &RevealToken,
     ) -> Result<Plaintext, VerificationError> {
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         token
             .proof
             .verify(
@@ -168,7 +171,8 @@ impl ClientPlayer {
 
     pub fn generate_reveal_token(&self, ct: &ElGamalCiphertext) -> RevealToken {
         let reveal_token = ct.gen_reveal_token(&self.sk);
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &self.sk,
             &self.pk,
@@ -201,7 +205,8 @@ impl ClientPlayer {
         agg_pk: &EcPoint,
         permute: [usize; crate::crypto::N_CARDS],
     ) -> Result<ShuffleRound, VerificationError> {
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
         ShuffleRound::execute(deck_encrypted, agg_pk, permute, &mut transcript, &mut OsRng)
     }
 
@@ -256,7 +261,8 @@ impl ClientPlayer {
 
         let encrypted_card = hand_encrypted[hand_index].clone();
         let reveal_token = encrypted_card.gen_reveal_token(&self.sk);
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &self.sk,
             &self.pk,
@@ -278,7 +284,8 @@ impl ClientPlayer {
         let ct_for_self =
             ElGamalCiphertext::encrypt(&comm_plaintext, &self.pk, &Scalar::random(&mut OsRng));
         let reveal_token = ct_for_self.gen_reveal_token(&self.sk);
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &self.sk,
             &self.pk,
@@ -321,7 +328,9 @@ impl ClientPlayer {
         tokens: &[RevealToken],
     ) -> Result<Plaintext, VerificationError> {
         for token in tokens {
-            let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+            let mut transcript = PoseidonFeltTranscript::new_domain(
+                crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
+            );
             token
                 .proof
                 .verify(
@@ -342,46 +351,15 @@ impl ClientPlayer {
         (encrypted, r)
     }
 
-    pub fn reconstruct(
-        &self,
-        origin_cards: &[Plaintext],
-        user_readable_cards: &[ElGamalCiphertext],
-        coefficient: &Scalar,
-    ) -> Result<ReconstructDeck, VerificationError> {
-        let (s_vec, output_cards, swap_out_cards) = reconstruct_deck(
-            origin_cards,
-            user_readable_cards,
-            &self.sk,
-            &self.pk,
-            coefficient,
-        )?;
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_V2_POSEIDON);
-        let reconstruct_proof = ReconstructProof::<DefaultCurve>::prove(
-            origin_cards.to_vec(),
-            user_readable_cards.to_vec(),
-            output_cards.clone(),
-            swap_out_cards.clone(),
-            &self.sk,
-            &self.pk,
-            s_vec,
-            &mut transcript,
-        )?;
-        Ok(ReconstructDeck {
-            output_cards,
-            swap_cards: swap_out_cards.into_iter().map(|(_, ct)| ct).collect(),
-            proof: reconstruct_proof,
-        })
-    }
-
-    /// Create the V3 contribution vector and its proof for this player's prior
+    /// Create the contribution vector and proof for this player's prior
     /// readable hand.
     ///
     /// The host/AIR must check that `prior_state_digest` authenticates these
     /// readable ciphertexts as the owner's previous-round hand and that their
-    /// lineage starts at `init_deck`. V3 binds that historical fact to the
+    /// lineage starts at `init_deck`. The proof binds that historical fact to the
     /// current epoch without publishing card indices or shuffle coefficients.
     #[allow(clippy::too_many_arguments)]
-    pub fn reconstruct_v3(
+    pub fn reconstruct(
         &self,
         context_digest: [u8; 32],
         reconstruction_epoch: u64,
@@ -389,9 +367,10 @@ impl ClientPlayer {
         origin_cards: &[Plaintext],
         user_readable_cards: &[ElGamalCiphertext],
         aggregate_pk: &EcPoint,
-    ) -> Result<ReconstructDeckV3, VerificationError> {
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_V3_POSEIDON);
-        let (statement, proof) = ReconstructProofV3::<DefaultCurve>::prove(
+    ) -> Result<ReconstructDeck, VerificationError> {
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_POSEIDON);
+        let (statement, proof) = ReconstructProof::<DefaultCurve>::prove(
             context_digest,
             reconstruction_epoch,
             prior_state_digest,
@@ -403,22 +382,22 @@ impl ClientPlayer {
             &mut OsRng,
             &mut transcript,
         )?;
-        Ok(ReconstructDeckV3 { statement, proof })
+        Ok(ReconstructDeck { statement, proof })
     }
 }
 
 #[cfg(test)]
-mod reconstruction_v3_tests {
+mod reconstruction_tests {
     use super::*;
     use crate::crypto::curve::{Curve, CurveScalar};
 
     #[test]
-    fn client_builds_a_verifiable_v3_package() {
+    fn client_builds_a_verifiable_package() {
         let owner = ClientPlayer::new();
         let aggregate_sk = Scalar::random(&mut OsRng);
-        let aggregate_pk = base_g() *  aggregate_sk;
+        let aggregate_pk = base_g() * aggregate_sk;
         let cards: Vec<_> = (0..8)
-            .map(|i| DefaultCurve::hash_to_curve(format!("client/v3/card/{i}").as_bytes()))
+            .map(|i| DefaultCurve::hash_to_curve(format!("client/reconstruction/card/{i}").as_bytes()))
             .collect();
         let readable = [cards[2], cards[5]]
             .iter()
@@ -426,9 +405,10 @@ mod reconstruction_v3_tests {
             .collect::<Vec<_>>();
 
         let package = owner
-            .reconstruct_v3([1; 32], 9, [2; 32], &cards, &readable, &aggregate_pk)
+            .reconstruct([1; 32], 9, [2; 32], &cards, &readable, &aggregate_pk)
             .unwrap();
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_POSEIDON);
         package
             .proof
             .verify(&package.statement, &mut transcript)

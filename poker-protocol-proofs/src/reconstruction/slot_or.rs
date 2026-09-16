@@ -1,4 +1,4 @@
-//! Reconstruction V3 per-slot membership OR proof.
+//! Reconstruction per-slot membership OR proof.
 //!
 //! For canonical slot `i`, this witness-hiding Chaum--Pedersen OR proof shows
 //! that the public contribution encrypts either `0` or `-cards[i]` under the
@@ -13,7 +13,7 @@ use poker_protocol_core::{
 };
 use rand_core::{CryptoRng, RngCore};
 
-const PROTOCOL_ID: &[u8] = b"poker/reconstruction/v3/slot-or";
+const PROTOCOL_ID: &[u8] = b"poker/reconstruction/slot-or";
 
 /// Private branch used only while constructing a proof.  It is deliberately
 /// absent from `SlotContributionOrProof` and therefore absent from the wire.
@@ -63,25 +63,25 @@ fn append_statement<C: Curve>(
     aggregate_pk: &C::Point,
     transcript: &mut impl CryptoTranscript,
 ) {
-    transcript.append_message(b"reconstruct_v3_slot_or_protocol", PROTOCOL_ID);
-    transcript.append_point::<C>(b"reconstruct_v3_slot_or_card", card);
-    transcript.append_point::<C>(b"reconstruct_v3_slot_or_aggregate_pk", aggregate_pk);
-    transcript.append_point::<C>(b"reconstruct_v3_slot_or_c1", &contribution.c1);
-    transcript.append_point::<C>(b"reconstruct_v3_slot_or_c2", &contribution.c2);
+    transcript.append_message(b"reconstruct_slot_or_protocol", PROTOCOL_ID);
+    transcript.append_point::<C>(b"reconstruct_slot_or_card", card);
+    transcript.append_point::<C>(b"reconstruct_slot_or_aggregate_pk", aggregate_pk);
+    transcript.append_point::<C>(b"reconstruct_slot_or_c1", &contribution.c1);
+    transcript.append_point::<C>(b"reconstruct_slot_or_c2", &contribution.c2);
 }
 
 fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript) -> C::Scalar {
     let mut challenge = transcript
-        .challenge::<C>(b"reconstruct_v3_slot_or_challenge")
+        .challenge::<C>(b"reconstruct_slot_or_challenge")
         .scalar;
     let mut counter = 0u32;
     while challenge == C::Scalar::zero() {
         transcript.append_message(
-            b"reconstruct_v3_slot_or_zero_challenge_retry",
+            b"reconstruct_slot_or_zero_challenge_retry",
             &counter.to_le_bytes(),
         );
         challenge = transcript
-            .challenge::<C>(b"reconstruct_v3_slot_or_challenge")
+            .challenge::<C>(b"reconstruct_slot_or_challenge")
             .scalar;
         counter = counter.wrapping_add(1);
     }
@@ -165,10 +165,10 @@ impl<C: Curve> SlotContributionOrProof<C> {
 
         append_statement(card, contribution, aggregate_pk, transcript);
         for point in &commitment_g {
-            transcript.append_point::<C>(b"reconstruct_v3_slot_or_commitment_g", point);
+            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_g", point);
         }
         for point in &commitment_pk {
-            transcript.append_point::<C>(b"reconstruct_v3_slot_or_commitment_pk", point);
+            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_pk", point);
         }
         let challenge = challenge_nonzero::<C>(transcript);
 
@@ -208,10 +208,10 @@ impl<C: Curve> SlotContributionOrProof<C> {
 
         append_statement(card, contribution, aggregate_pk, transcript);
         for point in &self.commitment_g {
-            transcript.append_point::<C>(b"reconstruct_v3_slot_or_commitment_g", point);
+            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_g", point);
         }
         for point in &self.commitment_pk {
-            transcript.append_point::<C>(b"reconstruct_v3_slot_or_commitment_pk", point);
+            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_pk", point);
         }
         let challenge = challenge_nonzero::<C>(transcript);
         if self.challenges[0] + self.challenges[1] != challenge {

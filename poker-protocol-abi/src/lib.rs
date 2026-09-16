@@ -5,12 +5,10 @@
 //! binds the same proof request to one table/hand/call/seat/state transition.
 
 const SHUFFLE_REQUEST_MAGIC: [u8; 4] = *b"ZKSH";
-const RECONSTRUCTION_REQUEST_MAGIC: [u8; 4] = *b"ZKRC";
-const RECONSTRUCTION_V3_REQUEST_MAGIC: [u8; 4] = *b"ZKR3";
+const RECONSTRUCTION_REQUEST_MAGIC: [u8; 4] = *b"ZKR3";
 pub const SHUFFLE_ABI_VERSION: u8 = 2;
 pub const RECONSTRUCTION_ABI_VERSION: u8 = 1;
-pub const RECONSTRUCTION_V3_ABI_VERSION: u8 = 1;
-pub const RECONSTRUCTION_V3_STATEMENT_VERSION: u8 = 3;
+pub const RECONSTRUCTION_STATEMENT_VERSION: u8 = 3;
 pub const MAX_DECK_SIZE: usize = 1024;
 pub const MAX_CONTEXT_SIZE: usize = 4096;
 pub const MAX_PROOF_SIZE: usize = 1 << 20;
@@ -144,9 +142,8 @@ impl TryFrom<u8> for ShuffleProofSystem {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum ReconstructionProofSystem {
-    BayerGrothOrderedV2 = 2,
     /// Bayer--Groth hidden permutation plus cross-key and per-slot OR proofs.
-    BayerGrothSlotOrV3 = 3,
+    BayerGrothSlotOr = 3,
     /// Ristretto255 AIR proof for the corresponding reconstruction relation.
     RistrettoAirV1 = 4,
     /// Ristretto255 AIR v2: fixed-shape, parallel relation composition.
@@ -158,8 +155,7 @@ impl TryFrom<u8> for ReconstructionProofSystem {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            2 => Ok(Self::BayerGrothOrderedV2),
-            3 => Ok(Self::BayerGrothSlotOrV3),
+            3 => Ok(Self::BayerGrothSlotOr),
             4 => Ok(Self::RistrettoAirV1),
             5 => Ok(Self::RistrettoAirV2),
             _ => Err(AbiError::UnsupportedProofSystem(value)),
@@ -403,161 +399,12 @@ impl ShuffleVerifyRequest {
         Ok(request)
     }
 }
-
+/// Stable precompile request for reconstruction.
+///
+/// The dedicated magic and shape make the complete statement visible to the
+/// AIR without exposing the hidden readable-to-slot permutation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReconstructionVerifyRequest {
-    pub curve: CurveId,
-    pub proof_system: ReconstructionProofSystem,
-    pub transcript: TranscriptId,
-    pub context: Vec<u8>,
-    pub call_context: Vec<u8>,
-    pub cards: Vec<Vec<u8>>,
-    pub output_cards: Vec<EncodedCiphertext>,
-    pub swap_out_cards: Vec<EncodedCiphertext>,
-    pub user_readable_cards: Vec<EncodedCiphertext>,
-    pub user_public_key: Vec<u8>,
-    pub proof: Vec<u8>,
-}
-
-impl ReconstructionVerifyRequest {
-    pub fn validate(&self) -> Result<(), AbiError> {
-        validate_common(self.curve, &self.context, &self.call_context, &self.proof)?;
-        match (self.curve, self.proof_system, self.transcript) {
-            (
-                CurveId::Bls12381G1 | CurveId::Bls12377G1,
-                ReconstructionProofSystem::BayerGrothOrderedV2,
-                TranscriptId::Merlin | TranscriptId::FiatShamirSha3,
-            ) => {}
-            (
-                CurveId::StarkCurve,
-                ReconstructionProofSystem::BayerGrothOrderedV2,
-                TranscriptId::Merlin | TranscriptId::FiatShamirSha3,
-            ) => {}
-            // 2026-09 Poseidon 迁移：生产域（epoch 双收，旧域仅限在途证明）。
-            (
-                CurveId::StarkCurve,
-                ReconstructionProofSystem::BayerGrothOrderedV2,
-                TranscriptId::Poseidon252,
-            ) => {}
-            (CurveId::Ristretto255, _, _) => {
-                return Err(AbiError::UnsupportedProofSystem(self.proof_system as u8))
-            }
-            _ => return Err(AbiError::UnsupportedTranscript(self.transcript as u8)),
-        }
-        let n = self.cards.len();
-        let k = self.swap_out_cards.len();
-        if n < 2
-            || n > MAX_DECK_SIZE
-            || self.output_cards.len() != n
-            || k == 0
-            || k > n
-            || self.user_readable_cards.len() != k
-        {
-            return Err(AbiError::InvalidDeckSize);
-        }
-        let point_size = self.curve.point_size();
-        if self.user_public_key.len() != point_size
-            || self.cards.iter().any(|card| card.len() != point_size)
-            || !valid_ciphertexts(&self.output_cards, point_size)
-            || !valid_ciphertexts(&self.swap_out_cards, point_size)
-            || !valid_ciphertexts(&self.user_readable_cards, point_size)
-        {
-            return Err(AbiError::InvalidPointSize);
-        }
-        Ok(())
-    }
-
-    pub fn encode(&self) -> Result<Vec<u8>, AbiError> {
-        self.validate()?;
-        let n = u16_len(self.cards.len(), AbiError::InvalidDeckSize)?;
-        let k = u16_len(self.swap_out_cards.len(), AbiError::InvalidDeckSize)?;
-        let context_len = u16_len(self.context.len(), AbiError::ContextTooLarge)?;
-        let call_context_len = u16_len(self.call_context.len(), AbiError::ContextTooLarge)?;
-        let proof_len = u32_len(self.proof.len())?;
-        let mut out = Vec::new();
-        out.extend_from_slice(&RECONSTRUCTION_REQUEST_MAGIC);
-        out.extend_from_slice(&[
-            RECONSTRUCTION_ABI_VERSION,
-            self.curve as u8,
-            self.proof_system as u8,
-            self.transcript as u8,
-            0,
-        ]);
-        out.extend_from_slice(&n.to_le_bytes());
-        out.extend_from_slice(&k.to_le_bytes());
-        out.extend_from_slice(&context_len.to_le_bytes());
-        out.extend_from_slice(&call_context_len.to_le_bytes());
-        out.extend_from_slice(&self.context);
-        out.extend_from_slice(&self.call_context);
-        out.extend_from_slice(&self.user_public_key);
-        for card in &self.cards {
-            out.extend_from_slice(card);
-        }
-        encode_ciphertexts(&mut out, &self.output_cards);
-        encode_ciphertexts(&mut out, &self.swap_out_cards);
-        encode_ciphertexts(&mut out, &self.user_readable_cards);
-        out.extend_from_slice(&proof_len.to_le_bytes());
-        out.extend_from_slice(&self.proof);
-        Ok(out)
-    }
-
-    pub fn decode(bytes: &[u8]) -> Result<Self, AbiError> {
-        let mut decoder = Decoder::new(bytes);
-        if decoder.take(4)? != RECONSTRUCTION_REQUEST_MAGIC {
-            return Err(AbiError::InvalidMagic);
-        }
-        let version = decoder.u8()?;
-        if version != RECONSTRUCTION_ABI_VERSION {
-            return Err(AbiError::UnsupportedVersion(version));
-        }
-        let curve = CurveId::try_from(decoder.u8()?)?;
-        let proof_system = ReconstructionProofSystem::try_from(decoder.u8()?)?;
-        let transcript = TranscriptId::try_from(decoder.u8()?)?;
-        require_zero_flags(decoder.u8()?)?;
-        let n = decoder.u16()? as usize;
-        let k = decoder.u16()? as usize;
-        if n < 2 || n > MAX_DECK_SIZE || k == 0 || k > n {
-            return Err(AbiError::InvalidDeckSize);
-        }
-        let context_len = checked_context_len(decoder.u16()? as usize)?;
-        let call_context_len = checked_context_len(decoder.u16()? as usize)?;
-        let context = decoder.take(context_len)?.to_vec();
-        let call_context = decoder.take(call_context_len)?.to_vec();
-        let point_size = curve.point_size();
-        let user_public_key = decoder.take(point_size)?.to_vec();
-        let cards = (0..n)
-            .map(|_| Ok(decoder.take(point_size)?.to_vec()))
-            .collect::<Result<Vec<_>, AbiError>>()?;
-        let output_cards = decode_ciphertexts(&mut decoder, n, point_size)?;
-        let swap_out_cards = decode_ciphertexts(&mut decoder, k, point_size)?;
-        let user_readable_cards = decode_ciphertexts(&mut decoder, k, point_size)?;
-        let proof = decode_proof(&mut decoder)?;
-        decoder.finish()?;
-        let request = Self {
-            curve,
-            proof_system,
-            transcript,
-            context,
-            call_context,
-            cards,
-            output_cards,
-            swap_out_cards,
-            user_readable_cards,
-            user_public_key,
-            proof,
-        };
-        request.validate()?;
-        Ok(request)
-    }
-}
-
-/// Stable precompile request for reconstruction V3.
-///
-/// V3 deliberately has its own magic and shape instead of extending the V2
-/// request. This lets old decoders fail closed and makes the statement visible
-/// to the AIR without exposing the hidden readable-to-slot permutation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReconstructionV3VerifyRequest {
     pub curve: CurveId,
     pub proof_system: ReconstructionProofSystem,
     pub transcript: TranscriptId,
@@ -578,24 +425,24 @@ pub struct ReconstructionV3VerifyRequest {
     pub proof: Vec<u8>,
 }
 
-impl ReconstructionV3VerifyRequest {
+impl ReconstructionVerifyRequest {
     pub fn validate(&self) -> Result<(), AbiError> {
         validate_common(self.curve, &self.context, &self.call_context, &self.proof)?;
         match (self.curve, self.proof_system, self.transcript) {
             (
                 CurveId::Bls12381G1 | CurveId::Bls12377G1,
-                ReconstructionProofSystem::BayerGrothSlotOrV3,
+                ReconstructionProofSystem::BayerGrothSlotOr,
                 TranscriptId::Merlin | TranscriptId::FiatShamirSha3,
             )
             | (
                 CurveId::StarkCurve,
-                ReconstructionProofSystem::BayerGrothSlotOrV3,
+                ReconstructionProofSystem::BayerGrothSlotOr,
                 TranscriptId::Merlin | TranscriptId::FiatShamirSha3,
             )
             // 2026-09 Poseidon 迁移：生产域（epoch 双收，旧域仅限在途证明）。
             | (
                 CurveId::StarkCurve,
-                ReconstructionProofSystem::BayerGrothSlotOrV3,
+                ReconstructionProofSystem::BayerGrothSlotOr,
                 TranscriptId::Poseidon252,
             )
             | (
@@ -613,7 +460,7 @@ impl ReconstructionV3VerifyRequest {
             }
             _ => return Err(AbiError::UnsupportedTranscript(self.transcript as u8)),
         }
-        if self.statement_version != RECONSTRUCTION_V3_STATEMENT_VERSION {
+        if self.statement_version != RECONSTRUCTION_STATEMENT_VERSION {
             return Err(AbiError::UnsupportedVersion(self.statement_version));
         }
 
@@ -648,9 +495,9 @@ impl ReconstructionV3VerifyRequest {
         let proof_len = u32_len(self.proof.len())?;
 
         let mut out = Vec::new();
-        out.extend_from_slice(&RECONSTRUCTION_V3_REQUEST_MAGIC);
+        out.extend_from_slice(&RECONSTRUCTION_REQUEST_MAGIC);
         out.extend_from_slice(&[
-            RECONSTRUCTION_V3_ABI_VERSION,
+            RECONSTRUCTION_ABI_VERSION,
             self.curve as u8,
             self.proof_system as u8,
             self.transcript as u8,
@@ -680,11 +527,11 @@ impl ReconstructionV3VerifyRequest {
 
     pub fn decode(bytes: &[u8]) -> Result<Self, AbiError> {
         let mut decoder = Decoder::new(bytes);
-        if decoder.take(4)? != RECONSTRUCTION_V3_REQUEST_MAGIC {
+        if decoder.take(4)? != RECONSTRUCTION_REQUEST_MAGIC {
             return Err(AbiError::InvalidMagic);
         }
         let version = decoder.u8()?;
-        if version != RECONSTRUCTION_V3_ABI_VERSION {
+        if version != RECONSTRUCTION_ABI_VERSION {
             return Err(AbiError::UnsupportedVersion(version));
         }
         let curve = CurveId::try_from(decoder.u8()?)?;
@@ -749,11 +596,6 @@ pub trait ReconstructionVerifier {
     fn verify(&self, request: &ReconstructionVerifyRequest) -> Result<(), Self::Error>;
 }
 
-pub trait ReconstructionV3Verifier {
-    type Error;
-    fn verify(&self, request: &ReconstructionV3VerifyRequest) -> Result<(), Self::Error>;
-}
-
 #[derive(Debug, Clone, Copy, Default)]
 pub struct DisabledShuffleVerifier;
 
@@ -770,16 +612,6 @@ pub struct DisabledReconstructionVerifier;
 impl ReconstructionVerifier for DisabledReconstructionVerifier {
     type Error = AbiError;
     fn verify(&self, _request: &ReconstructionVerifyRequest) -> Result<(), Self::Error> {
-        Err(AbiError::VerifierUnavailable)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct DisabledReconstructionV3Verifier;
-
-impl ReconstructionV3Verifier for DisabledReconstructionV3Verifier {
-    type Error = AbiError;
-    fn verify(&self, _request: &ReconstructionV3VerifyRequest) -> Result<(), Self::Error> {
         Err(AbiError::VerifierUnavailable)
     }
 }
@@ -1015,27 +847,11 @@ mod tests {
     fn reconstruction_request() -> ReconstructionVerifyRequest {
         ReconstructionVerifyRequest {
             curve: CurveId::Bls12381G1,
-            proof_system: ReconstructionProofSystem::BayerGrothOrderedV2,
+            proof_system: ReconstructionProofSystem::BayerGrothSlotOr,
             transcript: TranscriptId::FiatShamirSha3,
-            context: b"zk_reconstruct_proof_v2".to_vec(),
-            call_context: b"table=1/hand=2/call=4/player=3".to_vec(),
-            cards: vec![vec![1; 48], vec![2; 48]],
-            output_cards: vec![ciphertext(3), ciphertext(4)],
-            swap_out_cards: vec![ciphertext(5)],
-            user_readable_cards: vec![ciphertext(6)],
-            user_public_key: vec![7; 48],
-            proof: vec![8; 512],
-        }
-    }
-
-    fn reconstruction_v3_request() -> ReconstructionV3VerifyRequest {
-        ReconstructionV3VerifyRequest {
-            curve: CurveId::Bls12381G1,
-            proof_system: ReconstructionProofSystem::BayerGrothSlotOrV3,
-            transcript: TranscriptId::FiatShamirSha3,
-            context: b"zk_reconstruct_proof_v3".to_vec(),
+            context: b"zk_reconstruct_proof".to_vec(),
             call_context: b"table=1/hand=3/call=4/player=3".to_vec(),
-            statement_version: RECONSTRUCTION_V3_STATEMENT_VERSION,
+            statement_version: RECONSTRUCTION_STATEMENT_VERSION,
             context_digest: [11; 32],
             reconstruction_epoch: 7,
             prior_state_digest: [12; 32],
@@ -1083,9 +899,7 @@ mod tests {
         };
         assert_eq!(
             bad_transcript.validate(),
-            Err(AbiError::UnsupportedTranscript(
-                TranscriptId::Merlin as u8
-            ))
+            Err(AbiError::UnsupportedTranscript(TranscriptId::Merlin as u8))
         );
 
         // Fail-closed: BN254 with the Ristretto-only proof system is rejected
@@ -1116,20 +930,6 @@ mod tests {
         assert_eq!(
             ReconstructionVerifyRequest::decode(&encoded).unwrap(),
             request
-        );
-    }
-
-    #[test]
-    fn reconstruction_v3_roundtrip_is_canonical_and_distinct_from_v2() {
-        let request = reconstruction_v3_request();
-        let encoded = request.encode().unwrap();
-        assert_eq!(
-            ReconstructionV3VerifyRequest::decode(&encoded).unwrap(),
-            request
-        );
-        assert_eq!(
-            ReconstructionVerifyRequest::decode(&encoded).unwrap_err(),
-            AbiError::InvalidMagic
         );
     }
 
@@ -1177,12 +977,6 @@ mod tests {
         assert_eq!(
             DisabledReconstructionVerifier
                 .verify(&reconstruction_request())
-                .unwrap_err(),
-            AbiError::VerifierUnavailable
-        );
-        assert_eq!(
-            DisabledReconstructionV3Verifier
-                .verify(&reconstruction_v3_request())
                 .unwrap_err(),
             AbiError::VerifierUnavailable
         );

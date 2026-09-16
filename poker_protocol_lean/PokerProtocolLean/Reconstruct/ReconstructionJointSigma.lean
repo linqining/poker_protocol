@@ -3,10 +3,10 @@ import Mathlib.Data.Fin.VecNotation
 import VCVio.CryptoFoundations.SigmaProtocol
 import VCVio.OracleComp.Constructions.SampleableType
 import PokerProtocolLean.Schnorr.GeneralizedSchnorr
-import PokerProtocolLean.Reconstruct.ReconstructionV3
+import PokerProtocolLean.Reconstruct.Reconstruction
 
 /-!
-# Reconstruction V3 joint cross-key Sigma protocol
+# Reconstruction joint cross-key Sigma protocol
 
 The three cross-key equations are encoded as one two-witness generalized
 Schnorr relation in the product module `G x G x G`.  This gives a genuinely
@@ -18,7 +18,7 @@ generalized Schnorr implementation.
 open OracleSpec OracleComp SigmaProtocol
 open scoped ENNReal
 
-namespace PokerProtocolLean.Reconstruct.V3.JointSigma
+namespace PokerProtocolLean.Reconstruct.Reconstruction.JointSigma
 
 variable (F : Type) [Field F] [Fintype F] [DecidableEq F] [SampleableType F]
 variable (G : Type) [AddCommGroup G] [Module F G] [Fintype G] [DecidableEq G]
@@ -89,4 +89,4 @@ theorem sigma_perfect_hvzk :
       (fun stmt => GeneralizedSchnorr.simTranscript F (JointGroup G) 2 stmt) :=
   GeneralizedSchnorr.sigma_perfect_hvzk F (JointGroup G) 2
 
-end PokerProtocolLean.Reconstruct.V3.JointSigma
+end PokerProtocolLean.Reconstruct.Reconstruction.JointSigma

@@ -1,8 +1,6 @@
 use crate::crypto::{DefaultCurve, EcPoint, ElGamalCiphertext, PublicKey};
 use crate::z_poker::card::PlayingCard;
-use crate::zk_shuffle::reconstruction::{
-    ReconstructProof, ReconstructProofV3, ReconstructionV3Statement,
-};
+use crate::zk_shuffle::reconstruction::{ReconstructProof, ReconstructionStatement};
 use crate::zk_shuffle::reveal_token_proof::RevealTokenProof;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -74,21 +72,14 @@ pub struct RevealToken {
     pub user_public_key: PublicKey,
 }
 
-#[derive(Debug)]
-pub struct ReconstructDeck {
-    pub output_cards: Vec<ElGamalCiphertext>,
-    pub swap_cards: Vec<ElGamalCiphertext>,
-    pub proof: ReconstructProof<DefaultCurve>,
-}
-
-/// V3 reconstruction result sent as one statement/proof pair.
+/// Reconstruction result sent as one statement/proof pair.
 ///
-/// Unlike V2, it has no public swap list or coefficient responses. The hidden
+/// It has no public swap list or coefficient responses. The hidden
 /// readable-to-slot mapping exists only as the Bayer--Groth prover witness.
 #[derive(Debug)]
-pub struct ReconstructDeckV3 {
-    pub statement: ReconstructionV3Statement<DefaultCurve>,
-    pub proof: ReconstructProofV3<DefaultCurve>,
+pub struct ReconstructDeck {
+    pub statement: ReconstructionStatement<DefaultCurve>,
+    pub proof: ReconstructProof<DefaultCurve>,
 }
 
 #[derive(Debug, Clone)]

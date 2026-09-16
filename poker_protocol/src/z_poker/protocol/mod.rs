@@ -8,12 +8,12 @@ mod types;
 // Re-export all public items so the public API remains unchanged
 pub use client::ClientPlayer;
 pub use expel::{ExpelRecord, ExpelSessionPhase, ExpelStateResponse, ExpelSummary};
-pub use game_action::{sign_game_action, verify_game_action_hex};
 pub use game::MentalPokerGame;
+pub use game_action::{sign_game_action, verify_game_action_hex};
 pub use rounds::{JoinGameAndShuffleRound, LeaveGameRound, MaskAndShuffleRound, ShuffleRound};
 pub use types::{
     DealResult, GameConfig, GamePhase, PlayerEncryptedCard, PlayerState, ReconstructDeck,
-    ReconstructDeckV3, RevealState, RevealToken, RevealTokenSimple,
+    RevealState, RevealToken, RevealTokenSimple,
 };
 
 // Re-export new_plain_text for external use (e.g., testnet verify tests)
@@ -23,7 +23,7 @@ pub use game::new_plain_text;
 mod tests {
     use super::*;
     use crate::crypto::curve::{CurvePoint, CurveScalar};
-    use crate::crypto::{DefaultCurve, EcPoint, ElGamalCiphertext, Scalar, base_g};
+    use crate::crypto::{base_g, DefaultCurve, EcPoint, ElGamalCiphertext, Scalar};
     use crate::zk_shuffle::error::VerificationError;
     use crate::zk_shuffle::reveal_token_proof::RevealTokenProof;
     use crate::zk_shuffle::reveal_token_proof::REVEAL_TOKEN_PROOF_LABEL;
@@ -96,8 +96,10 @@ mod tests {
         let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
-        let mut permute: [usize; crate::crypto::N_CARDS] =
-            (0..crate::crypto::N_CARDS).collect::<Vec<_>>().try_into().unwrap();
+        let mut permute: [usize; crate::crypto::N_CARDS] = (0..crate::crypto::N_CARDS)
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
         permute.reverse(); // 一个明确的用户置换
 
         let mut transcript = MerlinTranscript::new(b"test_user_permute");
@@ -106,7 +108,11 @@ mod tests {
 
         for (j, out) in round.output_cards.iter().enumerate() {
             let expected = input[permute[j]].decrypt(&sk);
-            assert_eq!(out.decrypt(&sk), expected, "output[{j}] must follow permute");
+            assert_eq!(
+                out.decrypt(&sk),
+                expected,
+                "output[{j}] must follow permute"
+            );
         }
     }
 
@@ -119,8 +125,7 @@ mod tests {
         let mut bad = [0usize; crate::crypto::N_CARDS];
         bad[0] = 1; // 重复槽位 → 非双射
         let mut transcript = MerlinTranscript::new(b"test_bad_permute");
-        let err = ShuffleRound::execute(&input, &pk, bad, &mut transcript, &mut OsRng)
-            .unwrap_err();
+        let err = ShuffleRound::execute(&input, &pk, bad, &mut transcript, &mut OsRng).unwrap_err();
         assert_eq!(err, VerificationError::InvalidPermutation);
 
         let mut out_of_range = [0usize; crate::crypto::N_CARDS];
@@ -134,13 +139,12 @@ mod tests {
     #[test]
     fn test_shuffle_round_execute_and_verify() {
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round");
-        let round =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
-                .expect("random shuffle round");
+        let round = ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
+            .expect("random shuffle round");
 
         // verify 应通过
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round");
@@ -166,16 +170,15 @@ mod tests {
     #[test]
     fn test_shuffle_round_wrong_pk_fails() {
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round_wrong_pk");
-        let round =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
-                .expect("random shuffle round");
+        let round = ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
+            .expect("random shuffle round");
 
         let wrong_sk = Scalar::random(&mut OsRng);
-        let wrong_pk = base_g() *  wrong_sk;
+        let wrong_pk = base_g() * wrong_sk;
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round_wrong_pk");
         assert!(
             !round.verify(&wrong_pk, &mut transcript),
@@ -186,13 +189,12 @@ mod tests {
     #[test]
     fn test_shuffle_round_tampered_output_fails() {
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round_tampered");
-        let mut round =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
-                .expect("random shuffle round");
+        let mut round = ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
+            .expect("random shuffle round");
 
         // 篡改 output[0]
         round.output_cards[0] = round.output_cards[0].re_encrypt(&pk, &Scalar::random(&mut OsRng));
@@ -206,18 +208,17 @@ mod tests {
     #[test]
     fn test_shuffle_round_tampered_input_fails() {
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
         let mut transcript = MerlinTranscript::new(b"test_shuffle_round_tampered_input");
-        let round =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
-                .expect("random shuffle round");
+        let round = ShuffleRound::execute_random(&input, &pk, &mut transcript, &mut OsRng)
+            .expect("random shuffle round");
 
         // 篡改 input[1]
         let mut tampered_input = input.clone();
         tampered_input[1] = ElGamalCiphertext::encrypt(
-            &(base_g() *  Scalar::from_u64(99u64)),
+            &(base_g() * Scalar::from_u64(99u64)),
             &pk,
             &Scalar::random(&mut OsRng),
         );
@@ -237,17 +238,15 @@ mod tests {
     fn test_shuffle_round_deterministic_permutation() {
         // 多次 execute 应产生不同排列（概率极高）
         let sk = Scalar::random(&mut OsRng);
-        let pk = base_g() *  sk;
+        let pk = base_g() * sk;
         let input = make_full_encrypted_cards(&pk);
 
         let mut transcript1 = MerlinTranscript::new(b"test_shuffle_round_det1");
-        let round1 =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript1, &mut OsRng)
-                .expect("random shuffle round");
+        let round1 = ShuffleRound::execute_random(&input, &pk, &mut transcript1, &mut OsRng)
+            .expect("random shuffle round");
         let mut transcript2 = MerlinTranscript::new(b"test_shuffle_round_det2");
-        let round2 =
-            ShuffleRound::execute_random(&input, &pk, &mut transcript2, &mut OsRng)
-                .expect("random shuffle round");
+        let round2 = ShuffleRound::execute_random(&input, &pk, &mut transcript2, &mut OsRng)
+            .expect("random shuffle round");
 
         // 两次 output 的 c1 不应完全相同（随机排列+随机重加密）
         let same = round1
@@ -264,9 +263,9 @@ mod tests {
     #[test]
     fn test_mask_and_shuffle_round_execute_and_verify() {
         let player_sk = Scalar::random(&mut OsRng);
-        let player_pk = base_g() *  player_sk;
+        let player_pk = base_g() * player_sk;
         let agg_sk = Scalar::random(&mut OsRng);
-        let agg_pk = base_g() *  agg_sk;
+        let agg_pk = base_g() * agg_sk;
         let share_pk = agg_pk + player_pk;
 
         let input = make_full_encrypted_cards(&share_pk);
@@ -280,12 +279,7 @@ mod tests {
             fixed
         };
         let round = MaskAndShuffleRound::execute(
-            &input,
-            &share_pk,
-            player_sk,
-            &player_pk,
-            permute,
-            &mut OsRng,
+            &input, &share_pk, player_sk, &player_pk, permute, &mut OsRng,
         )
         .expect("mask and shuffle round");
 
@@ -294,9 +288,8 @@ mod tests {
         // 2. 再验证 shuffle_proof（在 remask 数据之后继续吸收 shuffle 数据）
 
         // 与 prove（rounds.rs）相同的生产域 transcript（2026-09 Poseidon epoch）
-        let mut transcript = PoseidonFeltTranscript::new_domain(
-            crate::transcript_domains::MASK_SHUFFLE_V2_POSEIDON,
-        );
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::MASK_SHUFFLE_V2_POSEIDON);
         assert!(
             round
                 .remask_proof

@@ -1,4 +1,4 @@
-//! Reconstruction V3 joint cross-key plaintext-negation proof.
+//! Reconstruction joint cross-key plaintext-negation proof.
 //!
 //! This is one two-witness generalized Schnorr proof, not three independent
 //! Schnorr proofs. The shared responses bind `owner_sk` and contribution
@@ -12,7 +12,7 @@ use poker_protocol_core::{
 };
 use rand_core::{CryptoRng, RngCore};
 
-const PROTOCOL_ID: &[u8] = b"poker/reconstruction/v3/cross-key-negation";
+const PROTOCOL_ID: &[u8] = b"poker/reconstruction/cross-key-negation";
 
 /// Joint Sigma proof that two ciphertexts under different public keys contain
 /// opposite plaintexts.
@@ -44,33 +44,33 @@ fn append_statement<C: Curve>(
     aggregate_pk: &C::Point,
     transcript: &mut impl CryptoTranscript,
 ) {
-    transcript.append_message(b"reconstruct_v3_cross_key_protocol", PROTOCOL_ID);
-    transcript.append_point::<C>(b"reconstruct_v3_cross_key_owner_pk", owner_pk);
-    transcript.append_point::<C>(b"reconstruct_v3_cross_key_aggregate_pk", aggregate_pk);
-    transcript.append_point::<C>(b"reconstruct_v3_cross_key_readable_c1", &readable.c1);
-    transcript.append_point::<C>(b"reconstruct_v3_cross_key_readable_c2", &readable.c2);
+    transcript.append_message(b"reconstruct_cross_key_protocol", PROTOCOL_ID);
+    transcript.append_point::<C>(b"reconstruct_cross_key_owner_pk", owner_pk);
+    transcript.append_point::<C>(b"reconstruct_cross_key_aggregate_pk", aggregate_pk);
+    transcript.append_point::<C>(b"reconstruct_cross_key_readable_c1", &readable.c1);
+    transcript.append_point::<C>(b"reconstruct_cross_key_readable_c2", &readable.c2);
     transcript.append_point::<C>(
-        b"reconstruct_v3_cross_key_contribution_c1",
+        b"reconstruct_cross_key_contribution_c1",
         &negative_contribution.c1,
     );
     transcript.append_point::<C>(
-        b"reconstruct_v3_cross_key_contribution_c2",
+        b"reconstruct_cross_key_contribution_c2",
         &negative_contribution.c2,
     );
 }
 
 fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript) -> C::Scalar {
     let mut challenge = transcript
-        .challenge::<C>(b"reconstruct_v3_cross_key_challenge")
+        .challenge::<C>(b"reconstruct_cross_key_challenge")
         .scalar;
     let mut counter = 0u32;
     while challenge == C::Scalar::zero() {
         transcript.append_message(
-            b"reconstruct_v3_cross_key_zero_challenge_retry",
+            b"reconstruct_cross_key_zero_challenge_retry",
             &counter.to_le_bytes(),
         );
         challenge = transcript
-            .challenge::<C>(b"reconstruct_v3_cross_key_challenge")
+            .challenge::<C>(b"reconstruct_cross_key_challenge")
             .scalar;
         counter = counter.wrapping_add(1);
     }
@@ -157,17 +157,14 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             transcript,
         );
         transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_owner",
+            b"reconstruct_cross_key_commitment_owner",
             &commitment_owner_key,
         );
         transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_c1",
+            b"reconstruct_cross_key_commitment_c1",
             &commitment_contribution_c1,
         );
-        transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_c2",
-            &commitment_joint_c2,
-        );
+        transcript.append_point::<C>(b"reconstruct_cross_key_commitment_c2", &commitment_joint_c2);
         let challenge = challenge_nonzero::<C>(transcript);
 
         Ok(Self {
@@ -204,15 +201,15 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             transcript,
         );
         transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_owner",
+            b"reconstruct_cross_key_commitment_owner",
             &self.commitment_owner_key,
         );
         transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_c1",
+            b"reconstruct_cross_key_commitment_c1",
             &self.commitment_contribution_c1,
         );
         transcript.append_point::<C>(
-            b"reconstruct_v3_cross_key_commitment_c2",
+            b"reconstruct_cross_key_commitment_c2",
             &self.commitment_joint_c2,
         );
         let challenge = challenge_nonzero::<C>(transcript);

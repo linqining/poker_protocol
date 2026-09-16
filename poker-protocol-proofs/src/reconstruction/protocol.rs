@@ -7,18 +7,18 @@ use poker_protocol_core::{
 use rand_core::{CryptoRng, RngCore};
 use std::collections::{HashMap, HashSet};
 
-const PROTOCOL_ID: &[u8] = b"poker/reconstruction/v3";
-pub const RECONSTRUCTION_V3_PROOF_VERSION: u8 = 3;
-pub const RECONSTRUCTION_V3_PROOF_LABEL: &[u8] = b"zk_reconstruct_proof_v3";
+const PROTOCOL_ID: &[u8] = b"poker/reconstruction";
+pub const RECONSTRUCTION_PROOF_VERSION: u8 = 3;
+pub const RECONSTRUCTION_PROOF_LABEL: &[u8] = b"zk_reconstruct_proof";
 
-/// Public statement proved by reconstruction V3.
+/// Public statement proved by reconstruction.
 ///
 /// `prior_state_digest` is the bridge to the poker state machine: the host/AIR
 /// must ensure it authenticates the previous hand assignments and their
 /// init-deck lineage.  This proof checks the cryptographic relation against the
 /// digest, but cannot reconstruct historical state by itself.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReconstructionV3Statement<C: Curve> {
+pub struct ReconstructionStatement<C: Curve> {
     pub version: u8,
     /// Application-defined digest binding game id, table id and curve/domain.
     pub context_digest: [u8; 32],
@@ -36,11 +36,11 @@ pub struct ReconstructionV3Statement<C: Curve> {
     pub contributions: Vec<ElGamalCiphertextGeneric<C>>,
 }
 
-impl<C: Curve> ReconstructionV3Statement<C> {
+impl<C: Curve> ReconstructionStatement<C> {
     pub fn validate(&self) -> Result<(), VerificationError> {
         let n = self.cards.len();
         let k = self.user_readable_cards.len();
-        if self.version != RECONSTRUCTION_V3_PROOF_VERSION {
+        if self.version != RECONSTRUCTION_PROOF_VERSION {
             return Err(VerificationError::InvalidInput);
         }
         if n < 2 || k == 0 || k > n || self.contributions.len() != n {
@@ -75,29 +75,26 @@ impl<C: Curve> ReconstructionV3Statement<C> {
     /// eventually the AIR binding.  Do not reorder or omit fields when adding a
     /// host implementation.
     pub fn append_to_transcript(&self, transcript: &mut impl CryptoTranscript) {
-        transcript.append_message(b"reconstruct_v3_protocol", PROTOCOL_ID);
-        transcript.append_message(b"reconstruct_v3_version", &[self.version]);
-        transcript.append_message(b"reconstruct_v3_context_digest", &self.context_digest);
+        transcript.append_message(b"reconstruct_protocol", PROTOCOL_ID);
+        transcript.append_message(b"reconstruct_version", &[self.version]);
+        transcript.append_message(b"reconstruct_context_digest", &self.context_digest);
         transcript.append_message(
-            b"reconstruct_v3_epoch",
+            b"reconstruct_epoch",
             &self.reconstruction_epoch.to_le_bytes(),
         );
+        transcript.append_message(b"reconstruct_prior_state_digest", &self.prior_state_digest);
         transcript.append_message(
-            b"reconstruct_v3_prior_state_digest",
-            &self.prior_state_digest,
-        );
-        transcript.append_message(
-            b"reconstruct_v3_card_count",
+            b"reconstruct_card_count",
             &(self.cards.len() as u64).to_le_bytes(),
         );
         transcript.append_message(
-            b"reconstruct_v3_readable_count",
+            b"reconstruct_readable_count",
             &(self.user_readable_cards.len() as u64).to_le_bytes(),
         );
-        transcript.append_point::<C>(b"reconstruct_v3_aggregate_pk", &self.aggregate_pk);
-        transcript.append_point::<C>(b"reconstruct_v3_owner_pk", &self.owner_pk);
+        transcript.append_point::<C>(b"reconstruct_aggregate_pk", &self.aggregate_pk);
+        transcript.append_point::<C>(b"reconstruct_owner_pk", &self.owner_pk);
         for card in &self.cards {
-            transcript.append_point::<C>(b"reconstruct_v3_card", card);
+            transcript.append_point::<C>(b"reconstruct_card", card);
         }
         for ciphertext in &self.user_readable_cards {
             append_ciphertext::<C>(transcript, b"readable", ciphertext);
@@ -108,12 +105,12 @@ impl<C: Curve> ReconstructionV3Statement<C> {
     }
 }
 
-/// Reconstruction V3 proof package.
+/// Reconstruction proof package.
 ///
 /// The hidden readable-to-canonical mapping is represented only by the
 /// Bayer--Groth witness during proving.  It is not stored in this structure.
 #[derive(Debug, Clone)]
-pub struct ReconstructProofV3<C: Curve> {
+pub struct ReconstructProof<C: Curve> {
     /// One aggregate-key encryption of `-plaintext(readable_j)` per readable.
     pub negative_contributions: Vec<ElGamalCiphertextGeneric<C>>,
     pub cross_key_proofs: Vec<CrossKeyNegationProof<C>>,
@@ -129,9 +126,9 @@ fn append_ciphertext<C: Curve>(
     role: &[u8],
     ciphertext: &ElGamalCiphertextGeneric<C>,
 ) {
-    transcript.append_message(b"reconstruct_v3_ciphertext_role", role);
-    transcript.append_point::<C>(b"reconstruct_v3_ciphertext_c1", &ciphertext.c1);
-    transcript.append_point::<C>(b"reconstruct_v3_ciphertext_c2", &ciphertext.c2);
+    transcript.append_message(b"reconstruct_ciphertext_role", role);
+    transcript.append_point::<C>(b"reconstruct_ciphertext_c1", &ciphertext.c1);
+    transcript.append_point::<C>(b"reconstruct_ciphertext_c2", &ciphertext.c2);
 }
 
 /// Public zero encryptions used to pad the Bayer--Groth input to the deck size.
@@ -216,8 +213,8 @@ pub fn apply_reconstruction_contributions<C: Curve>(
         .collect())
 }
 
-impl<C: Curve> ReconstructProofV3<C> {
-    /// Generate the V3 public statement and proof together.  Returning them as
+impl<C: Curve> ReconstructProof<C> {
+    /// Generate the public statement and proof together.  Returning them as
     /// one pair prevents callers from accidentally proving against a different
     /// contribution vector than the one sent to the verifier/precompile.
     #[allow(clippy::too_many_arguments)]
@@ -232,7 +229,7 @@ impl<C: Curve> ReconstructProofV3<C> {
         aggregate_pk: &C::Point,
         rng: &mut (impl CryptoRng + RngCore),
         transcript: &mut impl CryptoTranscript,
-    ) -> Result<(ReconstructionV3Statement<C>, Self), VerificationError> {
+    ) -> Result<(ReconstructionStatement<C>, Self), VerificationError> {
         let n = cards.len();
         let k = user_readable_cards.len();
         if n < 2 || k == 0 || k > n {
@@ -348,8 +345,8 @@ impl<C: Curve> ReconstructProofV3<C> {
             });
         }
 
-        let statement = ReconstructionV3Statement {
-            version: RECONSTRUCTION_V3_PROOF_VERSION,
+        let statement = ReconstructionStatement {
+            version: RECONSTRUCTION_PROOF_VERSION,
             context_digest,
             reconstruction_epoch,
             prior_state_digest,
@@ -412,7 +409,7 @@ impl<C: Curve> ReconstructProofV3<C> {
 
     pub fn verify(
         &self,
-        statement: &ReconstructionV3Statement<C>,
+        statement: &ReconstructionStatement<C>,
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(), VerificationError> {
         statement.validate()?;

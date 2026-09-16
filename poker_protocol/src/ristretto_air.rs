@@ -8,8 +8,8 @@
 //! shape check is not proof verification.
 
 use poker_protocol_abi::{
-    AbiError, CurveId, EncodedCiphertext, ReconstructionProofSystem, ReconstructionV3VerifyRequest,
-    ShuffleProofSystem, ShuffleVerifyRequest, TranscriptId, RECONSTRUCTION_V3_STATEMENT_VERSION,
+    AbiError, CurveId, EncodedCiphertext, ReconstructionProofSystem, ReconstructionVerifyRequest,
+    ShuffleProofSystem, ShuffleVerifyRequest, TranscriptId, RECONSTRUCTION_STATEMENT_VERSION,
     RISTRETTO_AIR_DECK_SIZE, RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS,
 };
 use poker_protocol_core::{
@@ -19,19 +19,19 @@ use poker_protocol_core::{
 
 /// Number of canonical cards in the Ristretto Texas protocol.
 pub const RISTRETTO_TEXAS_DECK_SIZE: usize = RISTRETTO_AIR_DECK_SIZE;
-/// Number of owner-readable cards carried by one reconstruction V3 request.
+/// Number of owner-readable cards carried by one reconstruction request.
 pub const RISTRETTO_TEXAS_RECONSTRUCTION_READABLE_CARDS: usize =
     RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS;
 /// Fixed proof context for a Ristretto shuffle AIR request.
 pub const RISTRETTO_AIR_SHUFFLE_CONTEXT: &[u8] = b"poker/ristretto-air/shuffle/v1";
 /// Domain for the V2 fixed-shape batch shuffle schedule.
 pub const RISTRETTO_AIR_V2_SHUFFLE_CONTEXT: &[u8] = b"poker/ristretto-air/shuffle/v2";
-/// Fixed proof context for a Ristretto reconstruction V3 AIR request.
+/// Fixed proof context for a Ristretto reconstruction AIR request.
 ///
 /// The byte label is retained while the protocol is migrated because the AIR
 /// statement additionally binds `curve`, `proof_system`, and `transcript`.
 /// It is not accepted by the native BLS verifier for a Ristretto request.
-pub const RISTRETTO_AIR_RECONSTRUCTION_V3_CONTEXT: &[u8] = b"zk_reconstruct_proof_v3";
+pub const RISTRETTO_AIR_RECONSTRUCTION_CONTEXT: &[u8] = b"zk_reconstruct_proof";
 /// Domain for the V2 batched reconstruction schedule.
 pub const RISTRETTO_AIR_V2_RECONSTRUCTION_CONTEXT: &[u8] = b"poker/ristretto-air/reconstruction/v2";
 
@@ -184,9 +184,9 @@ impl RistrettoShuffleSubmission {
     }
 }
 
-/// One complete reconstruction V3 submission for the Ristretto/AIR protocol.
+/// One complete reconstruction submission for the Ristretto/AIR protocol.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RistrettoReconstructionV3Submission {
+pub struct RistrettoReconstructionSubmission {
     /// State-bound reconstruction context digest.
     pub context_digest: [u8; 32],
     /// Monotonic reconstruction epoch authenticated by table state.
@@ -206,19 +206,19 @@ pub struct RistrettoReconstructionV3Submission {
     pub air_proof: Vec<u8>,
 }
 
-impl RistrettoReconstructionV3Submission {
+impl RistrettoReconstructionSubmission {
     /// Build the canonical, fixed-shape Ristretto reconstruction request.
     pub fn to_verify_request(
         &self,
         call_context: Vec<u8>,
-    ) -> Result<ReconstructionV3VerifyRequest, RistrettoAirSubmissionError> {
-        let request = ReconstructionV3VerifyRequest {
+    ) -> Result<ReconstructionVerifyRequest, RistrettoAirSubmissionError> {
+        let request = ReconstructionVerifyRequest {
             curve: CurveId::Ristretto255,
             proof_system: ReconstructionProofSystem::RistrettoAirV1,
             transcript: TranscriptId::Poseidon252,
-            context: RISTRETTO_AIR_RECONSTRUCTION_V3_CONTEXT.to_vec(),
+            context: RISTRETTO_AIR_RECONSTRUCTION_CONTEXT.to_vec(),
             call_context,
-            statement_version: RECONSTRUCTION_V3_STATEMENT_VERSION,
+            statement_version: RECONSTRUCTION_STATEMENT_VERSION,
             context_digest: self.context_digest,
             reconstruction_epoch: self.reconstruction_epoch,
             prior_state_digest: self.prior_state_digest,
@@ -250,7 +250,7 @@ impl RistrettoReconstructionV3Submission {
     pub fn to_verify_request_v2(
         &self,
         call_context: Vec<u8>,
-    ) -> Result<ReconstructionV3VerifyRequest, RistrettoAirSubmissionError> {
+    ) -> Result<ReconstructionVerifyRequest, RistrettoAirSubmissionError> {
         let mut request = self.to_verify_request(call_context)?;
         request.proof_system = ReconstructionProofSystem::RistrettoAirV2;
         request.transcript = TranscriptId::FlockBlake3;
@@ -352,7 +352,7 @@ mod tests {
 
     #[test]
     fn reconstruction_submission_binds_the_canonical_cards() {
-        let submission = RistrettoReconstructionV3Submission {
+        let submission = RistrettoReconstructionSubmission {
             context_digest: [1; 32],
             reconstruction_epoch: 9,
             prior_state_digest: [2; 32],
@@ -373,14 +373,14 @@ mod tests {
         );
         assert_eq!(request.contributions.len(), RISTRETTO_TEXAS_DECK_SIZE);
         assert_eq!(
-            ReconstructionV3VerifyRequest::decode(&request.encode().unwrap()),
+            ReconstructionVerifyRequest::decode(&request.encode().unwrap()),
             Ok(request)
         );
         let v2 = submission.to_verify_request_v2(vec![7; 32]).unwrap();
         assert_eq!(v2.proof_system, ReconstructionProofSystem::RistrettoAirV2);
         assert_eq!(v2.context, RISTRETTO_AIR_V2_RECONSTRUCTION_CONTEXT);
         assert_eq!(
-            ReconstructionV3VerifyRequest::decode(&v2.encode().unwrap()),
+            ReconstructionVerifyRequest::decode(&v2.encode().unwrap()),
             Ok(v2)
         );
     }

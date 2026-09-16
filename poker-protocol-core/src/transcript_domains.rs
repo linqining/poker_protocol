@@ -31,26 +31,23 @@ pub const LEAVE_POSEIDON_V2: &[u8] = b"zk_leave_poseidon_v2";
 /// 揭牌令牌 DLEq（对应旧 `reveal_token_proof_v3`）。
 pub const REVEAL_TOKEN_V3_POSEIDON: &[u8] = b"reveal_token_poseidon_v3";
 
-/// 离场重建 V2（对应旧 `RECONSTRUCTION_PROOF_LABEL` 域）。
-pub const RECONSTRUCT_V2_POSEIDON: &[u8] = b"zk_reconstruct_poseidon_v2";
-
-/// 离场重建 V3（对应旧 `zk_reconstruct_proof_v3`）。
-pub const RECONSTRUCT_V3_POSEIDON: &[u8] = b"zk_reconstruct_poseidon_v3";
+/// 离场重建证明域。
+pub const RECONSTRUCT_POSEIDON: &[u8] = b"zk_reconstruct_poseidon";
 
 /// 操作员强洗（对应旧 `poker_protocol_force_shuffle`）。
 pub const FORCE_SHUFFLE_POSEIDON_V1: &[u8] = b"force_shuffle_poseidon_v1";
 
-/// reconstruction V3 上下文摘要域（字节材料前缀，随压缩函数切换 bump）。
-pub const RECONSTRUCTION_V3_CONTEXT_DIGEST_DOMAIN: &[u8] =
-    b"zchain.texas_poker.reconstruction_v3.context.v2.poseidon";
+/// reconstruction 上下文摘要域（字节材料前缀，随压缩函数切换 bump）。
+pub const RECONSTRUCTION_CONTEXT_DIGEST_DOMAIN: &[u8] =
+    b"zchain.texas_poker.reconstruction.context.v2.poseidon";
 
-/// reconstruction V3 前置状态摘要域（字节材料前缀）。
+/// reconstruction 前置状态摘要域（字节材料前缀）。
 ///
 /// v4（2026-09-11）：52 张明文牌点改为常量承诺
 /// `poseidon_hash_many(52×(x,y))` 单 32B 吸收（替代 len + 52×32B 逐点
 /// 压缩字节），重算路径不再依赖 52 次 hash_to_curve 开方。
-pub const RECONSTRUCTION_V3_PRIOR_STATE_DIGEST_DOMAIN: &[u8] =
-    b"zchain.texas_poker.reconstruction_v3.prior_state.v4.poseidon";
+pub const RECONSTRUCTION_PRIOR_STATE_DIGEST_DOMAIN: &[u8] =
+    b"zchain.texas_poker.reconstruction.prior_state.v4.poseidon";
 
 #[cfg(test)]
 mod tests {
@@ -64,8 +61,7 @@ mod tests {
             ("mask_shuffle", MASK_SHUFFLE_V2_POSEIDON),
             ("leave", LEAVE_POSEIDON_V2),
             ("reveal_token", REVEAL_TOKEN_V3_POSEIDON),
-            ("reconstruct_v2", RECONSTRUCT_V2_POSEIDON),
-            ("reconstruct_v3", RECONSTRUCT_V3_POSEIDON),
+            ("reconstruct", RECONSTRUCT_POSEIDON),
             ("force_shuffle", FORCE_SHUFFLE_POSEIDON_V1),
         ] {
             assert!(

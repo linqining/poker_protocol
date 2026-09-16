@@ -3,7 +3,7 @@ import Mathlib.Tactic.Module
 import PokerProtocolLean.Foundations.ElGamal
 
 /-!
-# Reconstruction V3 slot-membership OR proof
+# Reconstruction slot-membership OR proof
 
 This file formalizes the two-branch Chaum--Pedersen OR protocol implemented by
 Rust `reconstruction/slot_or.rs`. For one canonical card `card` and aggregate-
@@ -22,7 +22,7 @@ Fiat--Shamir challenge derivation and rejection sampling of identity
 commitments are implementation-layer obligations and are not modeled here.
 -/
 
-namespace PokerProtocolLean.Reconstruct.V3.SlotOr
+namespace PokerProtocolLean.Reconstruct.Reconstruction.SlotOr
 
 open PokerProtocolLean.Foundations
 
@@ -254,4 +254,4 @@ theorem perfect_hvzk_algebraic (stmt : Statement G) (realBranch : Bool)
   rw [← heq]
   exact hhonest
 
-end PokerProtocolLean.Reconstruct.V3.SlotOr
+end PokerProtocolLean.Reconstruct.Reconstruction.SlotOr

@@ -5,18 +5,16 @@
 use crate::crypto::curve::{Curve, CurvePoint, ElGamalCiphertextGeneric};
 use crate::crypto::types::DefaultCurve;
 use crate::zk_shuffle::bayer_groth::BayerGrothShuffleProof;
-use crate::zk_shuffle::reconstruction::{
-    ReconstructProof, ReconstructProofV3, ReconstructionV3Statement,
-};
+use crate::zk_shuffle::reconstruction::{ReconstructProof, ReconstructionStatement};
 use crate::zk_shuffle::transcript_ext::{
     CryptoTranscript, FiatShamirTranscript, MerlinTranscript, PoseidonFeltTranscript,
 };
 use crate::zk_shuffle::{ShuffleProof, VersionedShuffleProof};
 use borsh::BorshDeserialize;
 use poker_protocol_abi::{
-    AbiError, CurveId, EncodedCiphertext, ReconstructionProofSystem, ReconstructionV3Verifier,
-    ReconstructionV3VerifyRequest, ReconstructionVerifier, ReconstructionVerifyRequest,
-    ShuffleProofSystem, ShuffleVerifier, ShuffleVerifyRequest, TranscriptId,
+    AbiError, CurveId, EncodedCiphertext, ReconstructionProofSystem, ReconstructionVerifier,
+    ReconstructionVerifyRequest, ShuffleProofSystem, ShuffleVerifier, ShuffleVerifyRequest,
+    TranscriptId,
 };
 
 pub fn build_bls12381_shuffle_request(
@@ -46,56 +44,24 @@ pub fn build_bls12381_shuffle_request(
     Ok(request)
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn build_bls12381_reconstruction_request(
-    context: &[u8],
-    call_context: &[u8],
-    transcript: TranscriptId,
-    cards: &[<DefaultCurve as Curve>::Point],
-    output_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    swap_out_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    user_readable_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    user_public_key: &<DefaultCurve as Curve>::Point,
-    proof: &ReconstructProof<DefaultCurve>,
-) -> Result<ReconstructionVerifyRequest, NativePrecompileError> {
-    let request = ReconstructionVerifyRequest {
-        curve: CurveId::StarkCurve,
-        proof_system: ReconstructionProofSystem::BayerGrothOrderedV2,
-        transcript,
-        context: context.to_vec(),
-        call_context: call_context.to_vec(),
-        cards: cards
-            .iter()
-            .map(|card| card.compress().as_ref().to_vec())
-            .collect(),
-        output_cards: encode_ciphertexts(output_cards),
-        swap_out_cards: encode_ciphertexts(swap_out_cards),
-        user_readable_cards: encode_ciphertexts(user_readable_cards),
-        user_public_key: user_public_key.compress().as_ref().to_vec(),
-        proof: borsh::to_vec(proof).map_err(|_| NativePrecompileError::InvalidProofEncoding)?,
-    };
-    request.validate()?;
-    Ok(request)
-}
-
-/// Encode exactly the V3 statement that was proved.
+/// Encode exactly the statement that was proved.
 ///
 /// Taking the statement as one object prevents a caller from accidentally
 /// sending a contribution vector or epoch different from the values absorbed
 /// by the cryptographic transcript.
-pub fn build_bls12381_reconstruction_v3_request(
+pub fn build_reconstruction_request(
     context: &[u8],
     call_context: &[u8],
     transcript: TranscriptId,
-    statement: &ReconstructionV3Statement<DefaultCurve>,
-    proof: &ReconstructProofV3<DefaultCurve>,
-) -> Result<ReconstructionV3VerifyRequest, NativePrecompileError> {
+    statement: &ReconstructionStatement<DefaultCurve>,
+    proof: &ReconstructProof<DefaultCurve>,
+) -> Result<ReconstructionVerifyRequest, NativePrecompileError> {
     statement
         .validate()
         .map_err(|_| NativePrecompileError::VerificationFailed)?;
-    let request = ReconstructionV3VerifyRequest {
+    let request = ReconstructionVerifyRequest {
         curve: CurveId::StarkCurve,
-        proof_system: ReconstructionProofSystem::BayerGrothSlotOrV3,
+        proof_system: ReconstructionProofSystem::BayerGrothSlotOr,
         transcript,
         context: context.to_vec(),
         call_context: call_context.to_vec(),
@@ -169,9 +135,9 @@ impl ShuffleVerifier for NativeBls12381ShuffleVerifier {
 }
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct NativeBls12381ReconstructionVerifier;
+pub struct NativeReconstructionVerifier;
 
-impl ReconstructionVerifier for NativeBls12381ReconstructionVerifier {
+impl ReconstructionVerifier for NativeReconstructionVerifier {
     type Error = NativePrecompileError;
 
     fn verify(&self, request: &ReconstructionVerifyRequest) -> Result<(), Self::Error> {
@@ -179,72 +145,11 @@ impl ReconstructionVerifier for NativeBls12381ReconstructionVerifier {
         if request.curve != CurveId::StarkCurve {
             return Err(NativePrecompileError::UnsupportedCurve);
         }
-        if request.proof_system != ReconstructionProofSystem::BayerGrothOrderedV2 {
-            return Err(NativePrecompileError::UnsupportedProofSystem);
-        }
-        let cards = request
-            .cards
-            .iter()
-            .map(|card| decode_point(card))
-            .collect::<Result<Vec<_>, _>>()?;
-        let output_cards = decode_ciphertexts(&request.output_cards)?;
-        let swap_out_cards = decode_ciphertexts(&request.swap_out_cards)?;
-        let user_readable_cards = decode_ciphertexts(&request.user_readable_cards)?;
-        let user_public_key = decode_point(&request.user_public_key)?;
-        let proof = ReconstructProof::<DefaultCurve>::try_from_slice(&request.proof)
-            .map_err(|_| NativePrecompileError::InvalidProofEncoding)?;
-        match request.transcript {
-            TranscriptId::Merlin => verify_reconstruction(
-                &proof,
-                &cards,
-                &output_cards,
-                &swap_out_cards,
-                &user_readable_cards,
-                &user_public_key,
-                &mut MerlinTranscript::new(&request.context),
-            ),
-            TranscriptId::FiatShamirSha3 => verify_reconstruction(
-                &proof,
-                &cards,
-                &output_cards,
-                &swap_out_cards,
-                &user_readable_cards,
-                &user_public_key,
-                &mut FiatShamirTranscript::new(&request.context),
-            ),
-            // 2026-09 Poseidon 迁移：Stark 曲线生产域。
-            TranscriptId::Poseidon252 => verify_reconstruction(
-                &proof,
-                &cards,
-                &output_cards,
-                &swap_out_cards,
-                &user_readable_cards,
-                &user_public_key,
-                &mut PoseidonFeltTranscript::new_domain(&request.context),
-            ),
-            TranscriptId::Keccak256 => Err(NativePrecompileError::UnsupportedProofSystem),
-            TranscriptId::FlockBlake3 => Err(NativePrecompileError::UnsupportedProofSystem),
-            TranscriptId::Poseidon2M31 => Err(NativePrecompileError::UnsupportedProofSystem),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct NativeBls12381ReconstructionV3Verifier;
-
-impl ReconstructionV3Verifier for NativeBls12381ReconstructionV3Verifier {
-    type Error = NativePrecompileError;
-
-    fn verify(&self, request: &ReconstructionV3VerifyRequest) -> Result<(), Self::Error> {
-        request.validate()?;
-        if request.curve != CurveId::StarkCurve {
-            return Err(NativePrecompileError::UnsupportedCurve);
-        }
-        if request.proof_system != ReconstructionProofSystem::BayerGrothSlotOrV3 {
+        if request.proof_system != ReconstructionProofSystem::BayerGrothSlotOr {
             return Err(NativePrecompileError::UnsupportedProofSystem);
         }
 
-        let statement = ReconstructionV3Statement::<DefaultCurve> {
+        let statement = ReconstructionStatement::<DefaultCurve> {
             version: request.statement_version,
             context_digest: request.context_digest,
             reconstruction_epoch: request.reconstruction_epoch,
@@ -262,22 +167,22 @@ impl ReconstructionV3Verifier for NativeBls12381ReconstructionV3Verifier {
         statement
             .validate()
             .map_err(|_| NativePrecompileError::VerificationFailed)?;
-        let proof = ReconstructProofV3::<DefaultCurve>::try_from_slice(&request.proof)
+        let proof = ReconstructProof::<DefaultCurve>::try_from_slice(&request.proof)
             .map_err(|_| NativePrecompileError::InvalidProofEncoding)?;
 
         match request.transcript {
-            TranscriptId::Merlin => verify_reconstruction_v3(
+            TranscriptId::Merlin => verify_reconstruction(
                 &proof,
                 &statement,
                 &mut MerlinTranscript::new(&request.context),
             ),
-            TranscriptId::FiatShamirSha3 => verify_reconstruction_v3(
+            TranscriptId::FiatShamirSha3 => verify_reconstruction(
                 &proof,
                 &statement,
                 &mut FiatShamirTranscript::new(&request.context),
             ),
             // 2026-09 Poseidon 迁移：Stark 曲线生产域。
-            TranscriptId::Poseidon252 => verify_reconstruction_v3(
+            TranscriptId::Poseidon252 => verify_reconstruction(
                 &proof,
                 &statement,
                 &mut PoseidonFeltTranscript::new_domain(&request.context),
@@ -301,31 +206,9 @@ fn verify_shuffle(
         .map_err(|_| NativePrecompileError::VerificationFailed)
 }
 
-#[allow(clippy::too_many_arguments)]
 fn verify_reconstruction(
     proof: &ReconstructProof<DefaultCurve>,
-    cards: &[<DefaultCurve as Curve>::Point],
-    output_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    swap_out_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    user_readable_cards: &[ElGamalCiphertextGeneric<DefaultCurve>],
-    user_public_key: &<DefaultCurve as Curve>::Point,
-    transcript: &mut impl CryptoTranscript,
-) -> Result<(), NativePrecompileError> {
-    proof
-        .verify(
-            cards,
-            output_cards,
-            swap_out_cards,
-            user_readable_cards,
-            user_public_key,
-            transcript,
-        )
-        .map_err(|_| NativePrecompileError::VerificationFailed)
-}
-
-fn verify_reconstruction_v3(
-    proof: &ReconstructProofV3<DefaultCurve>,
-    statement: &ReconstructionV3Statement<DefaultCurve>,
+    statement: &ReconstructionStatement<DefaultCurve>,
     transcript: &mut impl CryptoTranscript,
 ) -> Result<(), NativePrecompileError> {
     proof
@@ -560,73 +443,7 @@ mod tests {
 
     #[test]
     fn abi_roundtrip_matches_native_reconstruction_verification() {
-        use crate::zk_shuffle::reconstruction::{reconstruct_deck, RECONSTRUCTION_PROOF_LABEL};
-
-        let n = 8;
-        let secret_key = <DefaultCurve as Curve>::Scalar::random(&mut OsRng);
-        let public_key = <DefaultCurve as Curve>::base_g() * secret_key;
-        let cards: Vec<_> = (0..n)
-            .map(|i| {
-                DefaultCurve::hash_to_curve(format!("precompile/reconstruct/card/{i}").as_bytes())
-            })
-            .collect();
-        let user_readable_cards: Vec<_> = [1usize, 6]
-            .iter()
-            .map(|&i| {
-                ElGamalCiphertextGeneric::encrypt(
-                    &cards[i],
-                    &public_key,
-                    &<DefaultCurve as Curve>::Scalar::random(&mut OsRng),
-                )
-            })
-            .collect();
-        let coefficient = <DefaultCurve as Curve>::Scalar::from_u64(7);
-        let (s_vec, output_cards, indexed_swap_cards) = reconstruct_deck::<DefaultCurve>(
-            &cards,
-            &user_readable_cards,
-            &secret_key,
-            &public_key,
-            &coefficient,
-        )
-        .unwrap();
-        let mut prover_transcript = FiatShamirTranscript::new(RECONSTRUCTION_PROOF_LABEL);
-        let proof = ReconstructProof::prove(
-            cards.clone(),
-            user_readable_cards.clone(),
-            output_cards.clone(),
-            indexed_swap_cards.clone(),
-            &secret_key,
-            &public_key,
-            s_vec,
-            &mut prover_transcript,
-        )
-        .unwrap();
-        let swap_cards: Vec<_> = indexed_swap_cards
-            .into_iter()
-            .map(|(_, ciphertext)| ciphertext)
-            .collect();
-        let request = build_bls12381_reconstruction_request(
-            RECONSTRUCTION_PROOF_LABEL,
-            b"table=1/hand=2/call=4/seat=3",
-            TranscriptId::FiatShamirSha3,
-            &cards,
-            &output_cards,
-            &swap_cards,
-            &user_readable_cards,
-            &public_key,
-            &proof,
-        )
-        .unwrap();
-        let encoded = request.encode().unwrap();
-        let decoded = ReconstructionVerifyRequest::decode(&encoded).unwrap();
-        NativeBls12381ReconstructionVerifier
-            .verify(&decoded)
-            .unwrap();
-    }
-
-    #[test]
-    fn abi_roundtrip_matches_native_reconstruction_v3_verification() {
-        use crate::zk_shuffle::reconstruction::RECONSTRUCTION_V3_PROOF_LABEL;
+        use crate::zk_shuffle::reconstruction::RECONSTRUCTION_PROOF_LABEL;
 
         let n = 8;
         let owner_sk = <DefaultCurve as Curve>::Scalar::random(&mut OsRng);
@@ -637,9 +454,7 @@ mod tests {
         let aggregate_pk = <DefaultCurve as Curve>::base_g() * aggregate_sk;
         let cards: Vec<_> = (0..n)
             .map(|i| {
-                DefaultCurve::hash_to_curve(
-                    format!("precompile/reconstruct-v3/card/{i}").as_bytes(),
-                )
+                DefaultCurve::hash_to_curve(format!("precompile/reconstruct/card/{i}").as_bytes())
             })
             .collect();
         let user_readable_cards: Vec<_> = [1usize, 6]
@@ -653,8 +468,8 @@ mod tests {
             })
             .collect();
 
-        let mut prover_transcript = FiatShamirTranscript::new(RECONSTRUCTION_V3_PROOF_LABEL);
-        let (statement, proof) = ReconstructProofV3::prove(
+        let mut prover_transcript = FiatShamirTranscript::new(RECONSTRUCTION_PROOF_LABEL);
+        let (statement, proof) = ReconstructProof::prove(
             [11; 32],
             3,
             [22; 32],
@@ -668,8 +483,8 @@ mod tests {
         )
         .unwrap();
 
-        let request = build_bls12381_reconstruction_v3_request(
-            RECONSTRUCTION_V3_PROOF_LABEL,
+        let request = build_reconstruction_request(
+            RECONSTRUCTION_PROOF_LABEL,
             b"table=1/hand=3/call=4/seat=3/state=9",
             TranscriptId::FiatShamirSha3,
             &statement,
@@ -677,21 +492,15 @@ mod tests {
         )
         .unwrap();
         let encoded = request.encode().unwrap();
-        let decoded = ReconstructionV3VerifyRequest::decode(&encoded).unwrap();
-        NativeBls12381ReconstructionV3Verifier
-            .verify(&decoded)
-            .unwrap();
+        let decoded = ReconstructionVerifyRequest::decode(&encoded).unwrap();
+        NativeReconstructionVerifier.verify(&decoded).unwrap();
 
         let mut changed = decoded.clone();
         changed.reconstruction_epoch += 1;
-        assert!(NativeBls12381ReconstructionV3Verifier
-            .verify(&changed)
-            .is_err());
+        assert!(NativeReconstructionVerifier.verify(&changed).is_err());
 
         let mut changed = decoded;
         changed.contributions[0].c2[0] ^= 1;
-        assert!(NativeBls12381ReconstructionV3Verifier
-            .verify(&changed)
-            .is_err());
+        assert!(NativeReconstructionVerifier.verify(&changed).is_err());
     }
 }
