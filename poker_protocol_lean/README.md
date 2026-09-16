@@ -7,7 +7,7 @@ Lean 4 + Mathlib + VCV-io formalization of the Rust proof systems.
 The reconstruction entry point is `PokerProtocolLean.Reconstruct.ReconstructProof`.
 It composes:
 
-- authenticated readable-card lineage;
+- authenticated residual-carrier lineage;
 - the extracted slot relation and aggregate semantics;
 - the shared cross-key Sigma protocol;
 - the two-branch slot OR protocol;
@@ -16,7 +16,7 @@ It composes:
 The Lean build contains no protocol-specific axiom. Component security and
 implementation refinements enter as explicit verified interfaces; once their
 component guarantees hold, the composed theorem derives public validity,
-exact readable coverage, and per-slot plaintext membership.
+exact residual_carrier coverage, and per-slot plaintext membership.
 
 ```bash
 lake build PokerProtocolLean

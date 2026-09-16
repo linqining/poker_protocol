@@ -67,7 +67,7 @@ def UnknownDL (P : G) : Prop :=
 
 /-- Standard average-case DLog hardness for a fresh uniformly sampled
 exponent.  This directly wraps VCV-io's `DiffieHellman.dlogExp` and is the
-assumption used for the accumulated `c1` exponent of authenticated readable
+assumption used for the accumulated `c1` exponent of authenticated residual_carrier
 cards when at least one shuffle re-randomizer is honest and hidden. -/
 def FreshDLogHard : Prop :=
   ∀ (A : DLogAdversary F G),

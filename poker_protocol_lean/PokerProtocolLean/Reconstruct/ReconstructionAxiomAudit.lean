@@ -8,11 +8,11 @@ The commands below report the trusted Lean axioms used by the principal
 reconstruction results. No protocol-specific axiom is introduced.
 -/
 
-#print axioms PokerProtocolLean.Reconstruct.ReadableCardProvenance.authenticated_prior_hand_yields_user_readable_card
-#print axioms PokerProtocolLean.Reconstruct.ReadableCardProvenance.honest_rerandomizer_translation_bijective
+#print axioms PokerProtocolLean.Reconstruct.ResidualCarrierProvenance.authenticated_prior_hand_yields_residual_carrier
+#print axioms PokerProtocolLean.Reconstruct.ResidualCarrierProvenance.honest_rerandomizer_translation_bijective
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.relation_complete
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.valid_relation_complete
-#print axioms PokerProtocolLean.Reconstruct.Reconstruction.readable_equations_of_authenticated_lineage
+#print axioms PokerProtocolLean.Reconstruct.Reconstruction.residual_carrier_equations_of_authenticated_lineage
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.accepted_contribution_is_zero_or_negative_card
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.corrected_slot_semantics
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.cross_key_negation_complete

@@ -12,11 +12,11 @@ import PokerProtocolLean.ChaumPedersen.ChaumPedersenDLEQ
 
 Backing `poker_protocol/src/zk_shuffle/swap_out_card_proof.rs`.
 
-A "swap-out" card is one where the player replaces a `readable` ciphertext
+A "swap-out" card is one where the player replaces a `residual_carrier` ciphertext
 (which they can decrypt) with a `swap` ciphertext that the user holds the
 secret key for. The proof establishes that the difference ciphertext
-components `delta_c1 = swap.c1 - readable.c1` and
-`delta_c2 = swap.c2 - readable.c2` share the same discrete log w.r.t. the
+components `delta_c1 = swap.c1 - residual_carrier.c1` and
+`delta_c2 = swap.c2 - residual_carrier.c2` share the same discrete log w.r.t. the
 user's public key:
 
     delta_c2 = user_sk • delta_c1   and   user_pk = user_sk • g.
@@ -36,17 +36,17 @@ variable (G : Type) [AddCommGroup G] [Module F G] [Fintype G] [DecidableEq G]
   [SampleableType G]
 
 /-- Build a Chaum-Pedersen statement for the swap-out proof. -/
-def toChaumPedersen (g : G) (readable swap : ElGamalCiphertext G)
+def toChaumPedersen (g : G) (residual_carrier swap : ElGamalCiphertext G)
     (user_pk : G) :
     PokerProtocolLean.ChaumPedersen.Statement F G where
-  G1 := swap.c1 - readable.c1
+  G1 := swap.c1 - residual_carrier.c1
   G2 := g
-  P1 := swap.c2 - readable.c2
+  P1 := swap.c2 - residual_carrier.c2
   P2 := user_pk
 
 /-- The swap-out Σ-protocol is the Chaum-Pedersen protocol on the
 specialised statement. -/
-def sigma (g : G) (readable swap : ElGamalCiphertext G) (user_pk : G) :
+def sigma (g : G) (residual_carrier swap : ElGamalCiphertext G) (user_pk : G) :
     SigmaProtocol
       (PokerProtocolLean.ChaumPedersen.Statement F G)
       (PokerProtocolLean.ChaumPedersen.Witness F)
@@ -65,19 +65,19 @@ theorems in `PokerProtocolLean.ChaumPedersen`. The specialised statement
 `toChaumPedersen` and is transparent to the proof, since `PerfectlyComplete`,
 `SpeciallySound`, and `PerfectHVZK` are quantified over *all* statements. -/
 
-theorem sigma_complete (g : G) (readable swap : ElGamalCiphertext G)
+theorem sigma_complete (g : G) (residual_carrier swap : ElGamalCiphertext G)
     (user_pk : G) :
-    PerfectlyComplete (sigma F G g readable swap user_pk) := by
+    PerfectlyComplete (sigma F G g residual_carrier swap user_pk) := by
   exact PokerProtocolLean.ChaumPedersen.sigma_complete F G
 
-theorem sigma_speciallySound (g : G) (readable swap : ElGamalCiphertext G)
+theorem sigma_speciallySound (g : G) (residual_carrier swap : ElGamalCiphertext G)
     (user_pk : G) :
-    SpeciallySound (sigma F G g readable swap user_pk) := by
+    SpeciallySound (sigma F G g residual_carrier swap user_pk) := by
   exact PokerProtocolLean.ChaumPedersen.sigma_speciallySound F G
 
-theorem sigma_perfect_hvzk (g : G) (readable swap : ElGamalCiphertext G)
+theorem sigma_perfect_hvzk (g : G) (residual_carrier swap : ElGamalCiphertext G)
     (user_pk : G) :
-    PerfectHVZK (sigma F G g readable swap user_pk)
+    PerfectHVZK (sigma F G g residual_carrier swap user_pk)
       (fun stmt => PokerProtocolLean.ChaumPedersen.simTranscript F G stmt) := by
   exact PokerProtocolLean.ChaumPedersen.sigma_perfect_hvzk F G
 

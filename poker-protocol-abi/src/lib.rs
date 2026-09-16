@@ -22,8 +22,8 @@ pub const MAX_RISTRETTO_AIR_V2_PACKAGE_PART_SIZE: usize = 2 * 1024 * 1024 * 1024
 /// shared with non-Texas callers.  The Ristretto route is a distinct protocol:
 /// an AIR proof always authenticates the complete ordered 52-card deck.
 pub const RISTRETTO_AIR_DECK_SIZE: usize = 52;
-/// Number of owner-readable hole cards in one Texas reconstruction request.
-pub const RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS: usize = 2;
+/// Number of owner-residual carriers in one Texas reconstruction request.
+pub const RISTRETTO_AIR_RECONSTRUCTION_RESIDUAL_CARRIERS: usize = 2;
 const RISTRETTO_AIR_V2_PACKAGE_MAGIC: [u8; 4] = *b"ZR4A";
 const RISTRETTO_AIR_V2_PACKAGE_VERSION: u8 = 1;
 
@@ -402,7 +402,7 @@ impl ShuffleVerifyRequest {
 /// Stable precompile request for reconstruction.
 ///
 /// The dedicated magic and shape make the complete statement visible to the
-/// AIR without exposing the hidden readable-to-slot permutation.
+/// AIR without exposing the hidden residual-carrier-to-slot permutation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ReconstructionVerifyRequest {
     pub curve: CurveId,
@@ -419,7 +419,7 @@ pub struct ReconstructionVerifyRequest {
     pub aggregate_pk: Vec<u8>,
     pub owner_pk: Vec<u8>,
     pub cards: Vec<Vec<u8>>,
-    pub user_readable_cards: Vec<EncodedCiphertext>,
+    pub residual_carriers: Vec<EncodedCiphertext>,
     /// Canonical slots; each plaintext is proved to be zero or `-cards[i]`.
     pub contributions: Vec<EncodedCiphertext>,
     pub proof: Vec<u8>,
@@ -465,12 +465,12 @@ impl ReconstructionVerifyRequest {
         }
 
         let n = self.cards.len();
-        let k = self.user_readable_cards.len();
+        let k = self.residual_carriers.len();
         if n < 2 || n > MAX_DECK_SIZE || k == 0 || k > n || self.contributions.len() != n {
             return Err(AbiError::InvalidDeckSize);
         }
         if self.curve == CurveId::Ristretto255
-            && (n != RISTRETTO_AIR_DECK_SIZE || k != RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS)
+            && (n != RISTRETTO_AIR_DECK_SIZE || k != RISTRETTO_AIR_RECONSTRUCTION_RESIDUAL_CARRIERS)
         {
             return Err(AbiError::InvalidDeckSize);
         }
@@ -478,7 +478,7 @@ impl ReconstructionVerifyRequest {
         if self.aggregate_pk.len() != point_size
             || self.owner_pk.len() != point_size
             || self.cards.iter().any(|card| card.len() != point_size)
-            || !valid_ciphertexts(&self.user_readable_cards, point_size)
+            || !valid_ciphertexts(&self.residual_carriers, point_size)
             || !valid_ciphertexts(&self.contributions, point_size)
         {
             return Err(AbiError::InvalidPointSize);
@@ -489,7 +489,7 @@ impl ReconstructionVerifyRequest {
     pub fn encode(&self) -> Result<Vec<u8>, AbiError> {
         self.validate()?;
         let n = u16_len(self.cards.len(), AbiError::InvalidDeckSize)?;
-        let k = u16_len(self.user_readable_cards.len(), AbiError::InvalidDeckSize)?;
+        let k = u16_len(self.residual_carriers.len(), AbiError::InvalidDeckSize)?;
         let context_len = u16_len(self.context.len(), AbiError::ContextTooLarge)?;
         let call_context_len = u16_len(self.call_context.len(), AbiError::ContextTooLarge)?;
         let proof_len = u32_len(self.proof.len())?;
@@ -518,7 +518,7 @@ impl ReconstructionVerifyRequest {
         for card in &self.cards {
             out.extend_from_slice(card);
         }
-        encode_ciphertexts(&mut out, &self.user_readable_cards);
+        encode_ciphertexts(&mut out, &self.residual_carriers);
         encode_ciphertexts(&mut out, &self.contributions);
         out.extend_from_slice(&proof_len.to_le_bytes());
         out.extend_from_slice(&self.proof);
@@ -559,7 +559,7 @@ impl ReconstructionVerifyRequest {
         let cards = (0..n)
             .map(|_| Ok(decoder.take(point_size)?.to_vec()))
             .collect::<Result<Vec<_>, AbiError>>()?;
-        let user_readable_cards = decode_ciphertexts(&mut decoder, k, point_size)?;
+        let residual_carriers = decode_ciphertexts(&mut decoder, k, point_size)?;
         let contributions = decode_ciphertexts(&mut decoder, n, point_size)?;
         let proof = decode_proof(&mut decoder)?;
         decoder.finish()?;
@@ -577,7 +577,7 @@ impl ReconstructionVerifyRequest {
             aggregate_pk,
             owner_pk,
             cards,
-            user_readable_cards,
+            residual_carriers,
             contributions,
             proof,
         };
@@ -858,7 +858,7 @@ mod tests {
             aggregate_pk: vec![7; 48],
             owner_pk: vec![8; 48],
             cards: vec![vec![1; 48], vec![2; 48]],
-            user_readable_cards: vec![ciphertext(6)],
+            residual_carriers: vec![ciphertext(6)],
             contributions: vec![ciphertext(3), ciphertext(4)],
             proof: vec![9; 1024],
         }

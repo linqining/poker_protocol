@@ -30,8 +30,8 @@ pub struct ReconstructionStatement<C: Curve> {
     pub owner_pk: C::Point,
     /// Canonical public card points in their protocol-defined order.
     pub cards: Vec<C::Point>,
-    /// Previous-round owner-readable ciphertexts.
-    pub user_readable_cards: Vec<ElGamalCiphertextGeneric<C>>,
+    /// Previous-round owner-residual ciphertexts.
+    pub residual_carriers: Vec<ElGamalCiphertextGeneric<C>>,
     /// Canonical-slot contributions, each encrypting either zero or `-card_i`.
     pub contributions: Vec<ElGamalCiphertextGeneric<C>>,
 }
@@ -39,7 +39,7 @@ pub struct ReconstructionStatement<C: Curve> {
 impl<C: Curve> ReconstructionStatement<C> {
     pub fn validate(&self) -> Result<(), VerificationError> {
         let n = self.cards.len();
-        let k = self.user_readable_cards.len();
+        let k = self.residual_carriers.len();
         if self.version != RECONSTRUCTION_PROOF_VERSION {
             return Err(VerificationError::InvalidInput);
         }
@@ -61,7 +61,7 @@ impl<C: Curve> ReconstructionStatement<C> {
             return Err(VerificationError::InvalidInput);
         }
         if self
-            .user_readable_cards
+            .residual_carriers
             .iter()
             .chain(&self.contributions)
             .any(|ciphertext| !ciphertext.is_valid())
@@ -88,16 +88,16 @@ impl<C: Curve> ReconstructionStatement<C> {
             &(self.cards.len() as u64).to_le_bytes(),
         );
         transcript.append_message(
-            b"reconstruct_readable_count",
-            &(self.user_readable_cards.len() as u64).to_le_bytes(),
+            b"reconstruct_residual_carrier_count",
+            &(self.residual_carriers.len() as u64).to_le_bytes(),
         );
         transcript.append_point::<C>(b"reconstruct_aggregate_pk", &self.aggregate_pk);
         transcript.append_point::<C>(b"reconstruct_owner_pk", &self.owner_pk);
         for card in &self.cards {
             transcript.append_point::<C>(b"reconstruct_card", card);
         }
-        for ciphertext in &self.user_readable_cards {
-            append_ciphertext::<C>(transcript, b"readable", ciphertext);
+        for ciphertext in &self.residual_carriers {
+            append_ciphertext::<C>(transcript, b"residual_carrier", ciphertext);
         }
         for ciphertext in &self.contributions {
             append_ciphertext::<C>(transcript, b"contribution", ciphertext);
@@ -107,11 +107,11 @@ impl<C: Curve> ReconstructionStatement<C> {
 
 /// Reconstruction proof package.
 ///
-/// The hidden readable-to-canonical mapping is represented only by the
+/// The hidden residual-carrier-to-canonical mapping is represented only by the
 /// Bayer--Groth witness during proving.  It is not stored in this structure.
 #[derive(Debug, Clone)]
 pub struct ReconstructProof<C: Curve> {
-    /// One aggregate-key encryption of `-plaintext(readable_j)` per readable.
+    /// One aggregate-key encryption of `-plaintext(residual_carrier_j)` per carrier.
     pub negative_contributions: Vec<ElGamalCiphertextGeneric<C>>,
     pub cross_key_proofs: Vec<CrossKeyNegationProof<C>>,
     /// Proves that statement.contributions is a rerandomized permutation of
@@ -223,7 +223,7 @@ impl<C: Curve> ReconstructProof<C> {
         reconstruction_epoch: u64,
         prior_state_digest: [u8; 32],
         cards: Vec<C::Point>,
-        user_readable_cards: Vec<ElGamalCiphertextGeneric<C>>,
+        residual_carriers: Vec<ElGamalCiphertextGeneric<C>>,
         owner_sk: &C::Scalar,
         owner_pk: &C::Point,
         aggregate_pk: &C::Point,
@@ -231,7 +231,7 @@ impl<C: Curve> ReconstructProof<C> {
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(ReconstructionStatement<C>, Self), VerificationError> {
         let n = cards.len();
-        let k = user_readable_cards.len();
+        let k = residual_carriers.len();
         if n < 2 || k == 0 || k > n {
             return Err(VerificationError::LengthMismatch);
         }
@@ -258,11 +258,11 @@ impl<C: Curve> ReconstructProof<C> {
         let mut canonical_indices = Vec::with_capacity(k);
         let mut negative_contributions = Vec::with_capacity(k);
         let mut negative_randomness = Vec::with_capacity(k);
-        for readable in &user_readable_cards {
-            if !readable.is_valid() {
+        for residual_carrier in &residual_carriers {
+            if !residual_carrier.is_valid() {
                 return Err(VerificationError::InvalidCiphertext);
             }
-            let plaintext = readable.decrypt(owner_sk);
+            let plaintext = residual_carrier.decrypt(owner_sk);
             let plaintext_key = plaintext.compress().as_ref().to_vec();
             let canonical_index = *card_indices
                 .get(&plaintext_key)
@@ -353,7 +353,7 @@ impl<C: Curve> ReconstructProof<C> {
             aggregate_pk: *aggregate_pk,
             owner_pk: *owner_pk,
             cards,
-            user_readable_cards,
+            residual_carriers,
             contributions,
         };
         statement.validate()?;
@@ -362,7 +362,7 @@ impl<C: Curve> ReconstructProof<C> {
         let mut cross_key_proofs = Vec::with_capacity(k);
         for j in 0..k {
             cross_key_proofs.push(CrossKeyNegationProof::prove(
-                &statement.user_readable_cards[j],
+                &statement.residual_carriers[j],
                 &negative_contributions[j],
                 owner_sk,
                 &negative_randomness[j],
@@ -414,7 +414,7 @@ impl<C: Curve> ReconstructProof<C> {
     ) -> Result<(), VerificationError> {
         statement.validate()?;
         let n = statement.cards.len();
-        let k = statement.user_readable_cards.len();
+        let k = statement.residual_carriers.len();
         if self.negative_contributions.len() != k
             || self.cross_key_proofs.len() != k
             || self.slot_membership_proofs.len() != n
@@ -430,7 +430,7 @@ impl<C: Curve> ReconstructProof<C> {
         for j in 0..k {
             self.cross_key_proofs[j]
                 .verify(
-                    &statement.user_readable_cards[j],
+                    &statement.residual_carriers[j],
                     &self.negative_contributions[j],
                     &statement.owner_pk,
                     &statement.aggregate_pk,

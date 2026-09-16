@@ -7,20 +7,20 @@ Status: 2026-09-16
 The reconstruction proof publishes one aggregate-key contribution per canonical
 slot. For each slot it proves that the plaintext is either zero or the negative
 of that slot's canonical card. Every negative branch is tied to an
-authenticated owner-readable ciphertext by a shared cross-key Sigma proof, and
-Bayer--Groth hides the readable-to-slot permutation.
+authenticated owner-residual ciphertext by a shared cross-key Sigma proof, and
+Bayer--Groth hides the residual-carrier-to-slot permutation.
 
 The Lean entry point is `PokerProtocolLean.Reconstruct.ReconstructProof`.
 It composes:
 
-1. readable-card lineage (`ReadableCardProvenance`);
+1. residual-carrier lineage (`ResidualCarrierProvenance`);
 2. the extracted relation and slot semantics (`Reconstruction`);
 3. the cross-key Sigma protocol (`ReconstructionJointSigma`);
 4. the slot OR protocol (`ReconstructionSlotOr`);
 5. production component guarantees and refinements (`ReconstructionSecurity`).
 
 `ReconstructionSecurity.verified_package_semantics` is the composed theorem:
-an accepted package yields public validity, exact readable coverage, and
+an accepted package yields public validity, exact residual_carrier coverage, and
 per-slot membership in `{0, -card_i}`. No protocol-specific Lean axiom is
 introduced.
 
@@ -32,16 +32,16 @@ The Rust `ReconstructionStatement` binds:
 - a monotonic reconstruction epoch;
 - aggregate and owner public keys;
 - canonical card points;
-- owner-readable ciphertexts;
+- owner-residual ciphertexts;
 - canonical-slot contribution ciphertexts.
 
-The host authenticates the readable vector and enforces cross-player
+The host authenticates the residual_carrier vector and enforces cross-player
 disjointness. Reconstruction proves the cryptographic relation; it cannot
 derive historical state from a digest alone.
 
 ## Components
 
-For readable `R = Enc_Q(m;r)` and negative contribution
+For residual_carrier `R = Enc_Q(m;r)` and negative contribution
 `S = P(-m;v)`, the cross-key proof establishes knowledge of `(sk_Q,v)` in:
 
 ```text
@@ -74,9 +74,9 @@ semantics.
 
 | Rust component | Lean result |
 | --- | --- |
-| readable lineage | `ReadableCardProvenance.authenticated_prior_hand_yields_user_readable_card` |
+| residual_carrier lineage | `ResidualCarrierProvenance.authenticated_prior_hand_yields_residual_carrier` |
 | slot semantics | `Reconstruction.corrected_slot_semantics` |
-| exact readable coverage | `Reconstruction.removed_iff_has_readable_witness` |
+| exact residual_carrier coverage | `Reconstruction.removed_iff_has_residual_carrier_witness` |
 | cross-key proof | `JointSigma.relation_iff_cross_key`, `sigma_complete`, `sigma_speciallySound`, `sigma_perfect_hvzk` |
 | slot OR proof | `SlotOr.honest_accepts`, `specially_sound`, `perfect_hvzk_algebraic` |
 | composed package | `Security.verified_package_semantics` |

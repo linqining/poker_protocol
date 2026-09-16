@@ -95,7 +95,7 @@ impl ClientPlayer {
         None
     }
 
-    pub fn decrypt_readable_card(
+    pub fn decrypt_owner_residual_carrier(
         &self,
         ct: &ElGamalCiphertext,
         deck_plaintext: Vec<Plaintext>,
@@ -147,9 +147,9 @@ impl ClientPlayer {
         if !plain_cards.contains(&plain_text) {
             return Err(VerificationError::InvalidPlaintext);
         }
-        let mut user_readable_card = ct.clone();
-        user_readable_card.c2 -= other_tokens_sum;
-        Ok((plain_text, user_readable_card))
+        let mut residual_carrier = ct.clone();
+        residual_carrier.c2 -= other_tokens_sum;
+        Ok((plain_text, residual_carrier))
     }
 
     pub fn verify_and_reveal_from_token(
@@ -352,10 +352,10 @@ impl ClientPlayer {
     }
 
     /// Create the contribution vector and proof for this player's prior
-    /// readable hand.
+    /// residual-carrier hand.
     ///
     /// The host/AIR must check that `prior_state_digest` authenticates these
-    /// readable ciphertexts as the owner's previous-round hand and that their
+    /// residual carriers as the owner's previous-round hand and that their
     /// lineage starts at `init_deck`. The proof binds that historical fact to the
     /// current epoch without publishing card indices or shuffle coefficients.
     #[allow(clippy::too_many_arguments)]
@@ -365,7 +365,7 @@ impl ClientPlayer {
         reconstruction_epoch: u64,
         prior_state_digest: [u8; 32],
         origin_cards: &[Plaintext],
-        user_readable_cards: &[ElGamalCiphertext],
+        residual_carriers: &[ElGamalCiphertext],
         aggregate_pk: &EcPoint,
     ) -> Result<ReconstructDeck, VerificationError> {
         let mut transcript =
@@ -375,7 +375,7 @@ impl ClientPlayer {
             reconstruction_epoch,
             prior_state_digest,
             origin_cards.to_vec(),
-            user_readable_cards.to_vec(),
+            residual_carriers.to_vec(),
             &self.sk,
             &self.pk,
             aggregate_pk,
@@ -399,13 +399,13 @@ mod reconstruction_tests {
         let cards: Vec<_> = (0..8)
             .map(|i| DefaultCurve::hash_to_curve(format!("client/reconstruction/card/{i}").as_bytes()))
             .collect();
-        let readable = [cards[2], cards[5]]
+        let residual_carrier = [cards[2], cards[5]]
             .iter()
             .map(|card| ElGamalCiphertext::encrypt(card, &owner.pk, &Scalar::random(&mut OsRng)))
             .collect::<Vec<_>>();
 
         let package = owner
-            .reconstruct([1; 32], 9, [2; 32], &cards, &readable, &aggregate_pk)
+            .reconstruct([1; 32], 9, [2; 32], &cards, &residual_carrier, &aggregate_pk)
             .unwrap();
         let mut transcript =
             PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_POSEIDON);

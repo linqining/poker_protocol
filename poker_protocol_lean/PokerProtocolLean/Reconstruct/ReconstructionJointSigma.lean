@@ -29,16 +29,16 @@ equations in one linear relation. -/
 abbrev JointGroup := G × G × G
 
 /-- Two public bases, one for `ownerSk` and one for contribution randomness. -/
-def bases (g aggregatePk : G) (readable : Foundations.ElGamalCiphertext G) :
+def bases (g aggregatePk : G) (residual_carrier : Foundations.ElGamalCiphertext G) :
     Fin 2 → JointGroup G :=
-  ![(g, 0, readable.c1), (0, g, aggregatePk)]
+  ![(g, 0, residual_carrier.c1), (0, g, aggregatePk)]
 
 /-- Public target for the joint relation. -/
 def toStatement (g ownerPk aggregatePk : G)
-    (readable contribution : Foundations.ElGamalCiphertext G) :
+    (residual_carrier contribution : Foundations.ElGamalCiphertext G) :
     GeneralizedSchnorr.Statement F (JointGroup G) 2 where
-  base_points := bases G g aggregatePk readable
-  R := (ownerPk, contribution.c1, readable.c2 + contribution.c2)
+  base_points := bases G g aggregatePk residual_carrier
+  R := (ownerPk, contribution.c1, residual_carrier.c2 + contribution.c2)
 
 /-- Shared two-scalar witness. -/
 def toWitness (ownerSk contributionRandomness : F) :
@@ -49,12 +49,12 @@ def toWitness (ownerSk contributionRandomness : F) :
 cross-key equations. -/
 theorem relation_iff_cross_key
     (g ownerPk aggregatePk : G)
-    (readable contribution : Foundations.ElGamalCiphertext G)
+    (residual_carrier contribution : Foundations.ElGamalCiphertext G)
     (ownerSk contributionRandomness : F) :
     GeneralizedSchnorr.relation F (JointGroup G) 2
-      (toStatement F G g ownerPk aggregatePk readable contribution)
+      (toStatement F G g ownerPk aggregatePk residual_carrier contribution)
       (toWitness F ownerSk contributionRandomness) = true ↔
-    CrossKeyNegationRelation F G g ownerPk aggregatePk readable contribution
+    CrossKeyNegationRelation F G g ownerPk aggregatePk residual_carrier contribution
       ownerSk contributionRandomness := by
   simp only [GeneralizedSchnorr.relation, decide_eq_true_eq,
     GeneralizedSchnorr.dotSmul, Fin.sum_univ_two]

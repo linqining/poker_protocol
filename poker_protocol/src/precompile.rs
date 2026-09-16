@@ -76,7 +76,7 @@ pub fn build_reconstruction_request(
             .iter()
             .map(|card| card.compress().as_ref().to_vec())
             .collect(),
-        user_readable_cards: encode_ciphertexts(&statement.user_readable_cards),
+        residual_carriers: encode_ciphertexts(&statement.residual_carriers),
         contributions: encode_ciphertexts(&statement.contributions),
         proof: borsh::to_vec(proof).map_err(|_| NativePrecompileError::InvalidProofEncoding)?,
     };
@@ -161,7 +161,7 @@ impl ReconstructionVerifier for NativeReconstructionVerifier {
                 .iter()
                 .map(|card| decode_point(card))
                 .collect::<Result<Vec<_>, _>>()?,
-            user_readable_cards: decode_ciphertexts(&request.user_readable_cards)?,
+            residual_carriers: decode_ciphertexts(&request.residual_carriers)?,
             contributions: decode_ciphertexts(&request.contributions)?,
         };
         statement
@@ -457,7 +457,7 @@ mod tests {
                 DefaultCurve::hash_to_curve(format!("precompile/reconstruct/card/{i}").as_bytes())
             })
             .collect();
-        let user_readable_cards: Vec<_> = [1usize, 6]
+        let residual_carriers: Vec<_> = [1usize, 6]
             .iter()
             .map(|&i| {
                 ElGamalCiphertextGeneric::encrypt(
@@ -474,7 +474,7 @@ mod tests {
             3,
             [22; 32],
             cards,
-            user_readable_cards,
+            residual_carriers,
             &owner_sk,
             &owner_pk,
             &aggregate_pk,

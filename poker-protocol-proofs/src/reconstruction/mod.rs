@@ -1,9 +1,9 @@
 //! Aggregate-key deck reconstruction proofs.
 //!
 //! Each player publishes one contribution per canonical slot, proves every
-//! readable card's negative plaintext across keys, hides readable placement
+//! residual carrier's negative plaintext across keys, hides carrier placement
 //! with Bayer--Groth, and proves each slot is either zero or that slot's
-//! negative card. Historical provenance of `user_readable_cards` is
+//! negative card. Historical provenance of `residual_carriers` is
 //! authenticated by the outer state digest.
 
 mod cross_key;

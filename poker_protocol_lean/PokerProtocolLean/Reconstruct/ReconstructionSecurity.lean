@@ -44,7 +44,7 @@ structure ComponentInterface where
   transcriptStatementBinding : Prop
   rustLeanSerializationRefinement : Prop
   authenticatedPriorState : Prop
-  crossPlayerReadableDisjointness : Prop
+  crossPlayerResidualCarrierDisjointness : Prop
 
 /-- All production components succeeded. -/
 def ComponentInterface.Hold (a : ComponentInterface) : Prop :=
@@ -56,7 +56,7 @@ def ComponentInterface.Hold (a : ComponentInterface) : Prop :=
   a.transcriptStatementBinding ∧
   a.rustLeanSerializationRefinement ∧
   a.authenticatedPriorState ∧
-  a.crossPlayerReadableDisjointness
+  a.crossPlayerResidualCarrierDisjointness
 
 /-- Abstract interface to the exact Rust proof bytes and verifier. -/
 structure Implementation (Proof View : Type) where
@@ -142,13 +142,13 @@ structure VerifiedPackage (n k : ℕ) where
   components : ComponentInterface
   componentOutputs : components.Hold
 
-/-- The composed package theorem combines public validity, exact readable
+/-- The composed package theorem combines public validity, exact residual_carrier
 coverage, and per-slot plaintext membership into one end-to-end result. -/
 theorem verified_package_semantics (package : VerifiedPackage F G n k) :
     ValidRelation F G package.statement package.witness ∧
     ∀ i,
       package.witness.removed i = true ↔
-      ∃ j, package.witness.readableIndex j = i ∧
+      ∃ j, package.witness.residualCarrierIndex j = i ∧
       (package.statement.contributions i =
           PokerProtocolLean.Foundations.ElGamalCiphertext.encrypt F G
             package.statement.g 0 package.statement.aggregatePk
@@ -161,11 +161,11 @@ theorem verified_package_semantics (package : VerifiedPackage F G n k) :
   ⟨⟨package.wellFormed, package.relation⟩, fun i =>
     Iff.intro
       (fun hremoved =>
-        let ⟨j, hj⟩ := (package.witness.removed_iff_readable i).mp hremoved
+        let ⟨j, hj⟩ := (package.witness.removed_iff_residual_carrier i).mp hremoved
         ⟨j, hj, accepted_contribution_is_zero_or_negative_card F G
           package.statement package.witness package.relation i⟩)
       (fun hbranch =>
         let ⟨j, hj, _⟩ := hbranch
-        (package.witness.removed_iff_readable i).mpr ⟨j, hj⟩)⟩
+        (package.witness.removed_iff_residual_carrier i).mpr ⟨j, hj⟩)⟩
 
 end PokerProtocolLean.Reconstruct.Reconstruction.Security

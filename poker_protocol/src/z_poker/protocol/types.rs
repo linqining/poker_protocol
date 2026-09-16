@@ -39,7 +39,7 @@ pub struct PlayerEncryptedCard {
 }
 
 impl PlayerEncryptedCard {
-    pub(crate) fn get_readable_card(&self, user_pk: PublicKey) -> Option<ElGamalCiphertext> {
+    pub(crate) fn get_owner_residual_carrier(&self, user_pk: PublicKey) -> Option<ElGamalCiphertext> {
         if self.reveal_state.pending_players.contains(&user_pk)
             && self.reveal_state.pending_players.len() == 1
         {
@@ -49,9 +49,9 @@ impl PlayerEncryptedCard {
                 .iter()
                 .map(|t| t.reveal_token)
                 .sum();
-            let mut readable_card = self.encrypted_card.clone();
-            readable_card.c2 -= sum_token;
-            Some(readable_card)
+            let mut residual_carrier = self.encrypted_card.clone();
+            residual_carrier.c2 -= sum_token;
+            Some(residual_carrier)
         } else {
             None
         }
@@ -75,7 +75,7 @@ pub struct RevealToken {
 /// Reconstruction result sent as one statement/proof pair.
 ///
 /// It has no public swap list or coefficient responses. The hidden
-/// readable-to-slot mapping exists only as the Bayer--Groth prover witness.
+/// Residual-carrier-to-slot mapping exists only as the Bayer--Groth prover witness.
 #[derive(Debug)]
 pub struct ReconstructDeck {
     pub statement: ReconstructionStatement<DefaultCurve>,

@@ -5,3 +5,5 @@ poker_protocol_lean/.lake/
 .vscode/
 poker_protocol/paper/
 poker_protocol/paper/draft.md
+paper/
+__pycache__/

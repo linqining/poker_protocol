@@ -2,10 +2,10 @@ import Mathlib.Tactic
 import PokerProtocolLean.Foundations.ElGamal
 
 /-!
-# Authenticated provenance of `user_readable_cards`
+# Authenticated provenance of `residual_carriers`
 
 This file formalises the protocol invariant needed by reconstruction.  A
-`user_readable_card` is not arbitrary prover input and is not literally an
+`residual_carrier` is not arbitrary prover input and is not literally an
 element copied from `init_deck`.  It is a ciphertext with an authenticated
 lineage:
 
@@ -24,7 +24,7 @@ important: provenance is a protocol-state invariant, not a fact that can be
 inferred from the reconstruction proof alone.
 -/
 
-namespace PokerProtocolLean.Reconstruct.ReadableCardProvenance
+namespace PokerProtocolLean.Reconstruct.ResidualCarrierProvenance
 
 open PokerProtocolLean.Foundations
 
@@ -129,34 +129,34 @@ theorem partial_decryption_yields_owner_ciphertext
 If a dealt card has an authenticated lineage from canonical `init_deck`, the
 aggregate key decomposes into the owner's key plus all other players' key
 shares, and valid partial decryptions remove precisely those other shares,
-then the resulting `user_readable_card` is an encryption of the same canonical
+then the resulting `residual_carrier` is an encryption of the same canonical
 card under the owner's public key. -/
-theorem authenticated_prior_hand_yields_user_readable_card
+theorem authenticated_prior_hand_yields_residual_carrier
     {g m aggregatePk ownerPk : G} {otherSk r : F}
-    {dealt readable : ElGamalCiphertext G}
+    {dealt residual_carrier : ElGamalCiphertext G}
     (hlineage : AuthenticatedLineage F G g m aggregatePk r dealt)
     (haggregate : aggregatePk = ownerPk + otherSk • g)
-    (hreadable : readable = removeOtherPlayers F G otherSk dealt) :
-    readable = ElGamalCiphertext.encrypt F G g m ownerPk r := by
-  rw [hreadable, lineage_is_canonical_encryption F G hlineage, haggregate]
+    (hresidual : residual_carrier = removeOtherPlayers F G otherSk dealt) :
+    residual_carrier = ElGamalCiphertext.encrypt F G g m ownerPk r := by
+  rw [hresidual, lineage_is_canonical_encryption F G hlineage, haggregate]
   exact partial_decryption_yields_owner_ciphertext F G g ownerPk m otherSk r
 
-/-- In particular, the readable card's first component is the accumulated
+/-- In particular, the residual carrier's first component is the accumulated
 shuffle exponent times the generator. -/
-theorem user_readable_c1_eq_accumulated_randomness
+theorem residual_carrier_c1_eq_accumulated_randomness
     {g m aggregatePk ownerPk : G} {otherSk r : F}
-    {dealt readable : ElGamalCiphertext G}
+    {dealt residual_carrier : ElGamalCiphertext G}
     (hlineage : AuthenticatedLineage F G g m aggregatePk r dealt)
     (haggregate : aggregatePk = ownerPk + otherSk • g)
-    (hreadable : readable = removeOtherPlayers F G otherSk dealt) :
-    readable.c1 = r • g := by
-  rw [authenticated_prior_hand_yields_user_readable_card F G hlineage haggregate hreadable]
+    (hresidual : residual_carrier = removeOtherPlayers F G otherSk dealt) :
+    residual_carrier.c1 = r • g := by
+  rw [authenticated_prior_hand_yields_residual_carrier F G hlineage haggregate hresidual]
   rfl
 
 /-- A single honest uniform re-randomizer hides any fixed accumulated offset:
 translation by that offset is a bijection of the scalar field. Combined with
 uniform sampling, this is the distributional bridge from authenticated
-shuffle freshness to the `FreshDLogHard` experiment for `readable.c1`.
+shuffle freshness to the `FreshDLogHard` experiment for `residual_carrier.c1`.
 
 This theorem deliberately does not claim that every fixed group point has an
 unknown logarithm; it proves the exact change of variables required by the
@@ -170,4 +170,4 @@ theorem honest_rerandomizer_translation_bijective (knownOffset : F) :
     refine ⟨z - knownOffset, ?_⟩
     abel
 
-end PokerProtocolLean.Reconstruct.ReadableCardProvenance
+end PokerProtocolLean.Reconstruct.ResidualCarrierProvenance

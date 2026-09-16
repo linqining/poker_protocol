@@ -38,7 +38,7 @@ fn fixture(
     // These model the output of the authenticated prior-hand lineage: after
     // every non-owner reveal token is removed, each card remains encrypted
     // only under owner_pk with hidden accumulated randomness.
-    let readable_cards = selected_indices
+    let residual_carriers = selected_indices
         .iter()
         .enumerate()
         .map(|(j, index)| Ciphertext::encrypt(&cards[*index], &owner_pk, &scalar(1000 + j as u64)))
@@ -50,7 +50,7 @@ fn fixture(
         11,
         [9u8; 32],
         cards,
-        readable_cards,
+        residual_carriers,
         &owner_sk,
         &owner_pk,
         &aggregate_pk,

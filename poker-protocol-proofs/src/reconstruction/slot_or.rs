@@ -3,7 +3,7 @@
 //! For canonical slot `i`, this witness-hiding Chaum--Pedersen OR proof shows
 //! that the public contribution encrypts either `0` or `-cards[i]` under the
 //! aggregate key. One branch is real and one simulated; the proof contains no
-//! branch flag or readable-card index. Special soundness follows because two
+//! branch flag or residual-carrier index. Special soundness follows because two
 //! accepting forks with different global challenges differ in at least one
 //! challenge share, from which that branch's randomness is extracted.
 

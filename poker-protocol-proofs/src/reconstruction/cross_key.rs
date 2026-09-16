@@ -4,7 +4,7 @@
 //! Schnorr proofs. The shared responses bind `owner_sk` and contribution
 //! randomness simultaneously across the owner-key, contribution-`c1`, and
 //! joint-`c2` equations. It proves opposite plaintexts without knowing or
-//! revealing `DL(readable.c1)` or a readable-to-slot index.
+//! revealing `DL(residual_carrier.c1)` or a residual-carrier-to-slot index.
 
 use crate::transcript_ext::CryptoTranscript;
 use poker_protocol_core::{
@@ -38,7 +38,7 @@ pub struct CrossKeyNegationProof<C: Curve> {
 }
 
 fn append_statement<C: Curve>(
-    readable: &ElGamalCiphertextGeneric<C>,
+    residual_carrier: &ElGamalCiphertextGeneric<C>,
     negative_contribution: &ElGamalCiphertextGeneric<C>,
     owner_pk: &C::Point,
     aggregate_pk: &C::Point,
@@ -47,8 +47,14 @@ fn append_statement<C: Curve>(
     transcript.append_message(b"reconstruct_cross_key_protocol", PROTOCOL_ID);
     transcript.append_point::<C>(b"reconstruct_cross_key_owner_pk", owner_pk);
     transcript.append_point::<C>(b"reconstruct_cross_key_aggregate_pk", aggregate_pk);
-    transcript.append_point::<C>(b"reconstruct_cross_key_readable_c1", &readable.c1);
-    transcript.append_point::<C>(b"reconstruct_cross_key_readable_c2", &readable.c2);
+    transcript.append_point::<C>(
+        b"reconstruct_cross_key_residual_carrier_c1",
+        &residual_carrier.c1,
+    );
+    transcript.append_point::<C>(
+        b"reconstruct_cross_key_residual_carrier_c2",
+        &residual_carrier.c2,
+    );
     transcript.append_point::<C>(
         b"reconstruct_cross_key_contribution_c1",
         &negative_contribution.c1,
@@ -78,7 +84,7 @@ fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript) -> C::Sca
 }
 
 fn validate_statement<C: Curve>(
-    readable: &ElGamalCiphertextGeneric<C>,
+    residual_carrier: &ElGamalCiphertextGeneric<C>,
     negative_contribution: &ElGamalCiphertextGeneric<C>,
     owner_pk: &C::Point,
     aggregate_pk: &C::Point,
@@ -86,7 +92,7 @@ fn validate_statement<C: Curve>(
     if owner_pk.is_identity() || aggregate_pk.is_identity() {
         return Err(VerificationError::InvalidPublicKey);
     }
-    if !readable.is_valid() || !negative_contribution.is_valid() {
+    if !residual_carrier.is_valid() || !negative_contribution.is_valid() {
         return Err(VerificationError::InvalidCiphertext);
     }
     Ok(())
@@ -95,7 +101,7 @@ fn validate_statement<C: Curve>(
 impl<C: Curve> CrossKeyNegationProof<C> {
     #[allow(clippy::too_many_arguments)]
     pub fn prove(
-        readable: &ElGamalCiphertextGeneric<C>,
+        residual_carrier: &ElGamalCiphertextGeneric<C>,
         negative_contribution: &ElGamalCiphertextGeneric<C>,
         owner_sk: &C::Scalar,
         contribution_randomness: &C::Scalar,
@@ -104,14 +110,14 @@ impl<C: Curve> CrossKeyNegationProof<C> {
         rng: &mut (impl CryptoRng + RngCore),
         transcript: &mut impl CryptoTranscript,
     ) -> Result<Self, VerificationError> {
-        validate_statement(readable, negative_contribution, owner_pk, aggregate_pk)?;
+        validate_statement(residual_carrier, negative_contribution, owner_pk, aggregate_pk)?;
 
         if *owner_sk == C::Scalar::zero()
             || *contribution_randomness == C::Scalar::zero()
             || *owner_pk != C::base_g() * *owner_sk
             || negative_contribution.c1 != C::base_g() * *contribution_randomness
-            || readable.c1 * *owner_sk + *aggregate_pk * *contribution_randomness
-                != readable.c2 + negative_contribution.c2
+            || residual_carrier.c1 * *owner_sk + *aggregate_pk * *contribution_randomness
+                != residual_carrier.c2 + negative_contribution.c2
         {
             return Err(VerificationError::InvalidInput);
         }
@@ -134,7 +140,7 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             let commitment_owner_key = C::base_g() * nonce_owner_sk;
             let commitment_contribution_c1 = C::base_g() * nonce_contribution;
             let commitment_joint_c2 =
-                readable.c1 * nonce_owner_sk + *aggregate_pk * nonce_contribution;
+                residual_carrier.c1 * nonce_owner_sk + *aggregate_pk * nonce_contribution;
             if !commitment_owner_key.is_identity()
                 && !commitment_contribution_c1.is_identity()
                 && !commitment_joint_c2.is_identity()
@@ -150,7 +156,7 @@ impl<C: Curve> CrossKeyNegationProof<C> {
         };
 
         append_statement(
-            readable,
+            residual_carrier,
             negative_contribution,
             owner_pk,
             aggregate_pk,
@@ -179,13 +185,13 @@ impl<C: Curve> CrossKeyNegationProof<C> {
 
     pub fn verify(
         &self,
-        readable: &ElGamalCiphertextGeneric<C>,
+        residual_carrier: &ElGamalCiphertextGeneric<C>,
         negative_contribution: &ElGamalCiphertextGeneric<C>,
         owner_pk: &C::Point,
         aggregate_pk: &C::Point,
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(), VerificationError> {
-        validate_statement(readable, negative_contribution, owner_pk, aggregate_pk)?;
+        validate_statement(residual_carrier, negative_contribution, owner_pk, aggregate_pk)?;
         if self.commitment_owner_key.is_identity()
             || self.commitment_contribution_c1.is_identity()
             || self.commitment_joint_c2.is_identity()
@@ -194,7 +200,7 @@ impl<C: Curve> CrossKeyNegationProof<C> {
         }
 
         append_statement(
-            readable,
+            residual_carrier,
             negative_contribution,
             owner_pk,
             aggregate_pk,
@@ -218,9 +224,9 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             == self.commitment_owner_key + *owner_pk * challenge;
         let contribution_c1_equation = C::base_g() * self.response_contribution_randomness
             == self.commitment_contribution_c1 + negative_contribution.c1 * challenge;
-        let joint_c2_equation = readable.c1 * self.response_owner_sk
+        let joint_c2_equation = residual_carrier.c1 * self.response_owner_sk
             + *aggregate_pk * self.response_contribution_randomness
-            == self.commitment_joint_c2 + (readable.c2 + negative_contribution.c2) * challenge;
+            == self.commitment_joint_c2 + (residual_carrier.c2 + negative_contribution.c2) * challenge;
 
         if owner_equation && contribution_c1_equation && joint_c2_equation {
             Ok(())

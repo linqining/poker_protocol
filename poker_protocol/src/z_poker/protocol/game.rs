@@ -1103,16 +1103,16 @@ impl MentalPokerGame {
     }
 
     // 用户可解出的tokan
-    pub fn get_player_readable_tokens(&self) -> HashMap<String, Vec<ElGamalCiphertext>> {
+    pub fn get_player_residual_carriers(&self) -> HashMap<String, Vec<ElGamalCiphertext>> {
         let mut player_map = HashMap::new();
         for (player_pk, player) in self.players.clone() {
-            let mut player_readable_cards = Vec::with_capacity(player.hand_encrypted.len());
+            let mut player_residual_carriers = Vec::with_capacity(player.hand_encrypted.len());
             for ct in &player.hand_encrypted {
-                if let Some(readable_card) = ct.get_readable_card(player.pk.clone()) {
-                    player_readable_cards.push(readable_card);
+                if let Some(residual_carrier) = ct.get_owner_residual_carrier(player.pk.clone()) {
+                    player_residual_carriers.push(residual_carrier);
                 }
             }
-            player_map.insert(player_pk.clone(), player_readable_cards);
+            player_map.insert(player_pk.clone(), player_residual_carriers);
         }
         player_map
     }

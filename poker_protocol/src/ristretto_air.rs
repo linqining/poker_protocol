@@ -10,7 +10,7 @@
 use poker_protocol_abi::{
     AbiError, CurveId, EncodedCiphertext, ReconstructionProofSystem, ReconstructionVerifyRequest,
     ShuffleProofSystem, ShuffleVerifyRequest, TranscriptId, RECONSTRUCTION_STATEMENT_VERSION,
-    RISTRETTO_AIR_DECK_SIZE, RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS,
+    RISTRETTO_AIR_DECK_SIZE, RISTRETTO_AIR_RECONSTRUCTION_RESIDUAL_CARRIERS,
 };
 use poker_protocol_core::{
     Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric, RistrettoCurve,
@@ -19,9 +19,9 @@ use poker_protocol_core::{
 
 /// Number of canonical cards in the Ristretto Texas protocol.
 pub const RISTRETTO_TEXAS_DECK_SIZE: usize = RISTRETTO_AIR_DECK_SIZE;
-/// Number of owner-readable cards carried by one reconstruction request.
-pub const RISTRETTO_TEXAS_RECONSTRUCTION_READABLE_CARDS: usize =
-    RISTRETTO_AIR_RECONSTRUCTION_READABLE_CARDS;
+/// Number of owner-residual carriers carried by one reconstruction request.
+pub const RISTRETTO_TEXAS_RECONSTRUCTION_RESIDUAL_CARRIERS: usize =
+    RISTRETTO_AIR_RECONSTRUCTION_RESIDUAL_CARRIERS;
 /// Fixed proof context for a Ristretto shuffle AIR request.
 pub const RISTRETTO_AIR_SHUFFLE_CONTEXT: &[u8] = b"poker/ristretto-air/shuffle/v1";
 /// Domain for the V2 fixed-shape batch shuffle schedule.
@@ -191,15 +191,15 @@ pub struct RistrettoReconstructionSubmission {
     pub context_digest: [u8; 32],
     /// Monotonic reconstruction epoch authenticated by table state.
     pub reconstruction_epoch: u64,
-    /// Digest of the selected owner's readable-card state.
+    /// Digest of the selected owner's residual-carrier state.
     pub prior_state_digest: [u8; 32],
     /// Aggregate ElGamal key for the table epoch.
     pub aggregate_pk: [u8; 32],
     /// Owner public key for this contribution.
     pub owner_pk: [u8; 32],
-    /// The two owner-readable ciphertexts from authenticated table state.
-    pub user_readable_cards:
-        [RistrettoAirCiphertext; RISTRETTO_TEXAS_RECONSTRUCTION_READABLE_CARDS],
+    /// The two owner-residual ciphertexts from authenticated table state.
+    pub residual_carriers:
+        [RistrettoAirCiphertext; RISTRETTO_TEXAS_RECONSTRUCTION_RESIDUAL_CARRIERS],
     /// One contribution ciphertext for every canonical card slot.
     pub contributions: [RistrettoAirCiphertext; RISTRETTO_TEXAS_DECK_SIZE],
     /// `ZR3P` envelope plus the AIR proof package selected by the backend ABI.
@@ -228,8 +228,8 @@ impl RistrettoReconstructionSubmission {
                 .into_iter()
                 .map(|card| card.to_vec())
                 .collect(),
-            user_readable_cards: self
-                .user_readable_cards
+            residual_carriers: self
+                .residual_carriers
                 .iter()
                 .copied()
                 .map(RistrettoAirCiphertext::to_abi)
@@ -358,7 +358,7 @@ mod tests {
             prior_state_digest: [2; 32],
             aggregate_pk: point_bytes(&RistrettoCurve::base_g()),
             owner_pk: point_bytes(&RistrettoCurve::base_h()),
-            user_readable_cards: [ciphertext(10), ciphertext(12)],
+            residual_carriers: [ciphertext(10), ciphertext(12)],
             contributions: std::array::from_fn(|index| ciphertext((index + 40) as u8)),
             air_proof: vec![9; 32],
         };
@@ -368,8 +368,8 @@ mod tests {
             RistrettoTexasDeck::canonical_cards().map(|card| card.to_vec())
         );
         assert_eq!(
-            request.user_readable_cards.len(),
-            RISTRETTO_TEXAS_RECONSTRUCTION_READABLE_CARDS
+            request.residual_carriers.len(),
+            RISTRETTO_TEXAS_RECONSTRUCTION_RESIDUAL_CARRIERS
         );
         assert_eq!(request.contributions.len(), RISTRETTO_TEXAS_DECK_SIZE);
         assert_eq!(

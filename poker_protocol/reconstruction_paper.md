@@ -2,13 +2,12 @@
 
 ## 槽位语义绑定、跨密钥联合证明与 Lean 形式化
 
-**论文初稿**
 日期：2026-09-16
 代码基线：`poker-protocol-proofs` 的 `ReconstructProof`
 开源仓库：[poker_protocol](https://github.com/linqining/poker_protocol)
 
 > **主张边界。** 本文的条件 UC 定理在随机预言机、Bayer--Groth 组件安全、
-> 状态认证和字节级 refinement 假设下成立。Lean 机器检查 readable lineage、
+> 状态认证和字节级 refinement 假设下成立。Lean 机器检查 residual-carrier lineage、
 > 聚合语义、跨密钥 Sigma、槽位 OR，以及生产组件保证到完整 reconstruction
 > 语义的组合定理。组件计算安全和序列化 refinement 是显式安全假设，不是
 > 未完成的 Lean proof goal。
@@ -23,15 +22,15 @@
 C_i = Enc_P(0; v_i) 或 Enc_P(-m_i; v_i),
 ```
 
-其中负分支只能由一个经过状态认证的 owner-readable card 支持。证明由四个部分组成：对每个 readable card 的跨密钥联合 generalized-Schnorr proof；隐藏 readable-to-slot 映射的 Bayer--Groth shuffle proof；每个 canonical slot 的二分支 OR proof；以及对上下文、epoch、状态摘要、公钥、牌点和全部密文的 transcript 绑定。
+其中负分支只能由一个经过状态认证的 owner-residual carrier 支持。证明由四个部分组成：对每个 residual carrier 的跨密钥联合 generalized-Schnorr proof；隐藏 residual-carrier-to-slot 映射的 Bayer--Groth shuffle proof；每个 canonical slot 的二分支 OR proof；以及对上下文、epoch、状态摘要、公钥、牌点和全部密文的 transcript 绑定。
 
-在明确假设下，我们证明接受的证明包可提取满足逐槽语义和 exact coverage 的见证；重建后的槽位为原牌或 identity；每张认证 readable card 至多且恰好移除一次；协议在 `F_RECON` 理想功能下满足静态腐化模型中的组合安全。Lean 侧新增 `verified_package_semantics`：当 Bayer--Groth、跨密钥、OR、字节编码和状态认证组件安全与 refinement 保证成立时，完整包的公共有效性、readable 覆盖和槽位明文隶属关系由一个机器检查定理一次性导出。
+在明确假设下，我们证明接受的证明包可提取满足逐槽语义和 exact coverage 的见证；重建后的槽位为原牌或 identity；每张认证 residual carrier 至多且恰好移除一次；协议在 `F_RECON` 理想功能下满足静态腐化模型中的组合安全。Lean 侧新增 `verified_package_semantics`：当 Bayer--Groth、跨密钥、OR、字节编码和状态认证组件安全与 refinement 保证成立时，完整包的公共有效性、residual-carrier 覆盖和槽位明文隶属关系由一个机器检查定理一次性导出。
 
 ## 1. 引言
 
 设 canonical deck 为公开、无重复且按协议顺序固定的曲线点序列
 `M=(m_0,...,m_{n-1})`。上一局结束时，玩家 `p` 的牌以 owner key `Q_p`
-下的 readable ciphertext 保存。重建需要生成聚合公钥 `P=sum_p Q_p` 下的
+下的 residual carrier 保存。重建需要生成聚合公钥 `P=sum_p Q_p` 下的
 下一局牌组，使得：
 
 - 已持有的牌解密为 identity；
@@ -39,14 +38,14 @@ C_i = Enc_P(0; v_i) 或 Enc_P(-m_i; v_i),
 - 持牌映射、分支和随机性不公开；
 - 重建牌组可直接进入下一轮 shuffle。
 
-核心难点是槽位语义。若只证明密文多重集或线性和正确，攻击者可用补偿密文让代数和成立而破坏单个槽位语义。逐槽 OR proof 把 `C_i` 的明文限制为 `0` 或 `-m_i`，跨密钥 proof 再把负分支连接到 owner-readable card，状态摘要则把 readable card 连接到真实历史发牌。
+核心难点是槽位语义。若只证明密文多重集或线性和正确，攻击者可用补偿密文让代数和成立而破坏单个槽位语义。逐槽 OR proof 把 `C_i` 的明文限制为 `0` 或 `-m_i`，跨密钥 proof 再把负分支连接到 owner-residual carrier，状态摘要则把 residual carrier 连接到真实历史发牌。
 
 ### 贡献
 
 1. **聚合公钥统一。** 所有玩家贡献在同一 `P` 下加密，重建保持标准 ElGamal 密文形状。
 2. **跨密钥负元证明。** 对 `R=Enc_Q(m;r)` 与 `S=Enc_P(-m;v)`，证明者只需知道 `(sk_Q,v)`，无需知道 `DL(R.c1)`。
 3. **槽位语义 OR。** 每个 canonical slot 独立证明 `C_i in {Enc_P(0), Enc_P(-m_i)}`；分支和映射只在 witness 中。
-4. **状态与 transcript 绑定。** context、epoch、prior state、公钥、canonical cards、readable cards 和 contributions 全部进入域分离 transcript。
+4. **状态与 transcript 绑定。** context、epoch、prior state、公钥、canonical cards、residual carriers 和 contributions 全部进入域分离 transcript。
 5. **组合 UC 模型。** 给出 `F_RECON`、real protocol、静态腐化模拟器和 ROM-hybrid 证明。
 6. **机器检查组合层。** Lean 从组件保证导出完整包语义，不引入协议特定 axiom。
 
@@ -54,7 +53,7 @@ C_i = Enc_P(0; v_i) 或 Enc_P(-m_i; v_i),
 
 心智扑克通常使用可加密曲线点、re-encryption shuffle、部分解密和 DLEQ/Chaum--Pedersen 证明。Bayer--Groth 提供短的隐藏置换证明；Schnorr、Chaum--Pedersen 和 generalized-Schnorr 证明线性关系知识；Fiat--Shamir 在 ROM 中把交互 Sigma protocol 转成 NIZK；UC 框架要求把证明、状态、调度和并发调用放入同一理想功能。
 
-与这些组件相比，本文的目标不是新的 shuffle argument，而是 reconstruction 特有的槽位语义绑定：shuffle 只隐藏映射，逐槽 OR 限制明文，跨密钥联合证明连接 readable ciphertext，状态摘要认证历史血统。这个分层使每个组件可以被独立实现和形式化，再由组合定理连接。
+与这些组件相比，本文的目标不是新的 shuffle argument，而是 reconstruction 特有的槽位语义绑定：shuffle 只隐藏映射，逐槽 OR 限制明文，跨密钥联合证明连接 residual carrier，状态摘要认证历史血统。这个分层使每个组件可以被独立实现和形式化，再由组合定理连接。
 
 ## 3. 模型与假设
 
@@ -72,13 +71,58 @@ Enc_P(m;r)+Enc_P(m';r')=Enc_P(m+m';r+r').
 
 `P=sum_p pk_p`，`Q_p=sk_p g`。canonical cards 非零且两两不同。
 
+### 3.1 Reveal token 与 residual carrier 的推导
+
+对槽位 `i`，完整聚合密文为
+
+```text
+C_i = Enc_P(m_i;r_i) = (r_i g, m_i+r_i P),
+P = sum_p Q_p,  Q_p=sk_p g.
+```
+
+玩家 `p` 提交的 reveal token 为 `t_{p,i}=sk_p C_i.c1=r_i Q_p`，并附带
+Chaum--Pedersen/DLEQ 证明，证明同一秘密标量同时连接 `Q_p=sk_p g` 与
+`t_{p,i}=sk_p C_i.c1`。令 `A` 为已经提交有效 token 的玩家集合，
+`U=Players\A` 为缺失 token 的玩家集合，`Q_U=sum_{p in U}Q_p`。从密文
+第二分量减去所有已认证 token，得到
+
+```text
+R_i(A)
+ = C_i - sum_{p in A}(0,t_{p,i})
+ = (r_i g, m_i+r_i P-r_i sum_{p in A}Q_p)
+ = (r_i g, m_i+r_i Q_U)
+ = Enc_{Q_U}(m_i;r_i).
+```
+
+这一定义解释了为何一般对象应称为 residual carrier。当 `|U|=1`，设
+`U={q}`，则 `Q_U=Q_q`，玩家 `q` 能用自己的私钥解密；这是当前实现的
+owner-residual specialization。当 `|U|>=2`，`Q_U` 是多个公钥之和，任一
+在线玩家都不拥有 `sk_U=sum_{p in U}sk_p`，因此无人单独知道原牌。尽管
+如此，`R_i(A)` 仍是具有认证血统的合法 ElGamal 密文，协议可以在不公开
+`m_i` 的情况下证明它与负贡献之间的群关系。`|U|=0` 则是完全揭示或重新
+发牌边界，不应称为“可读牌”。
+
+对隐藏映射 `i(j)`，重建贡献为 `S_j=Enc_P(-m_{i(j)};v_j)`，并证明
+
+```text
+Q_U=sk_U g,
+S_j.c1=v_j g,
+sk_U R_j.c1+v_j P=R_j.c2+S_j.c2.
+```
+
+单缺失 token 时，`sk_U` 就是 owner 私钥。多缺失 token 时，需要联合生成
+或门限化的 aggregate-witness 证明接口；当前 AIR producer 尚未实现该路径。
+一旦 carrier relation 成立，Bayer--Groth 隐藏 carrier-to-slot 映射，逐槽
+OR proof 再把每个贡献限制为 `Enc_P(0)` 或 `Enc_P(-m_i)`，因此 reconstruction
+的可靠性直接扎根于上述 token 减法推导，而非任何参与者预先知道明文。
+
 ### 假设
 
 `A1` 曲线实现只接受 prime-order subgroup 的 canonical encoding，并正确实现群运算。
 
 `A2` ElGamal 在 DDH 或等价假设下 IND-CPA 安全。
 
-`A3` 每个 readable card 的隐藏随机性至少来自一次诚实、秘密、均匀的 shuffle rerandomizer；隐私使用平均情形 fresh-DLog 困难性。
+`A3` 每个 residual carrier 的隐藏随机性至少来自一次诚实、秘密、均匀的 shuffle rerandomizer；隐私使用平均情形 fresh-DLog 困难性。
 
 `A4` Bayer--Groth 组件具有完备性、知识可靠性和零知识。
 
@@ -88,7 +132,7 @@ Enc_P(m;r)+Enc_P(m';r')=Enc_P(m+m';r+r').
 
 `A7` `D_prev` 的认证状态功能不可伪造，Rust/AIR 字节编码与 Lean statement 精化一致。
 
-`A8` 同一 epoch 的 readable sets 跨玩家不相交，每张 canonical card 至多一个 owner。
+`A8` 同一 epoch 的 residual-carrier sets 跨玩家不相交，每张 canonical card 至多一个 owner。
 
 `A9` 静态腐化；被挑战牌的 owner secret 在执行结束前不泄露。
 
@@ -107,7 +151,7 @@ S=(context_digest, epoch, D_prev, P,Q,
 
 ### 4.2 证明生成
 
-玩家拥有 `sk_Q` 和 authenticated readable vector `R_0,...,R_{k-1}`。
+玩家拥有 `sk_Q` 和 authenticated residual-carrier vector `R_0,...,R_{k-1}`。
 
 1. 用 `sk_Q` 解密每个 `R_j`，要求明文在 canonical deck 中且互不重复。
 2. 采样 `v_j`，构造 `S_j=Enc_P(-m_{i(j)};v_j)`；构造 `n-k` 个确定性零密文。
@@ -116,7 +160,7 @@ S=(context_digest, epoch, D_prev, P,Q,
 5. 对 `(S||Z)` 到 `C` 生成 Bayer--Groth proof。
 6. 对每个 canonical slot 生成 OR proof。
 
-隐藏的 readable-to-slot 映射、分支、permutation 和随机性不出现在 wire proof 中。
+隐藏的 residual-carrier-to-slot 映射、分支、permutation 和随机性不出现在 wire proof 中。
 
 ### 4.3 跨密钥联合证明
 
@@ -128,7 +172,7 @@ S.c1 = v g
 sk_Q R.c1 + v P = R.c2 + S.c2.
 ```
 
-这是 `G x G x G` 上的 two-scalar generalized-Schnorr relation。三条方程共享响应，不能由三个独立 Schnorr proof 拼接得到。由第三式可得两个密文明文和为零，因此负贡献确实对应 readable plaintext。见证不需要 `r=DL(R.c1)`。
+这是 `G x G x G` 上的 two-scalar generalized-Schnorr relation。三条方程共享响应，不能由三个独立 Schnorr proof 拼接得到。由第三式可得两个密文明文和为零，因此负贡献确实对应 residual-carrier plaintext。见证不需要 `r=DL(R.c1)`。
 
 ### 4.4 槽位 OR proof
 
@@ -162,22 +206,22 @@ B~_i = B_i + sum_{p in S_submit} C_{p,i}.
 
 若 statement 满足认证状态条件，诚实玩家按 §4.2 生成 proof，则 verifier 接受，除去显式重采样的零挑战事件，概率界为 `O((n+k)/q)`。
 
-**证明。** readable lineage 给出 `R_j=Enc_Q(m_{i(j)};r_j)`；跨密钥方程直接代入成立。Bayer--Groth 对正确 permutation/rerandomizer 完备。OR proof 的真实 branch 诚实响应，模拟 branch 由定义满足验证式，challenge share 之和等于全局 challenge。所有 statement 字段按相同顺序进入 transcript。□
+**证明。** residual-carrier lineage 给出 `R_j=Enc_Q(m_{i(j)};r_j)`；跨密钥方程直接代入成立。Bayer--Groth 对正确 permutation/rerandomizer 完备。OR proof 的真实 branch 诚实响应，模拟 branch 由定义满足验证式，challenge share 之和等于全局 challenge。所有 statement 字段按相同顺序进入 transcript。□
 
 ### 定理 2（知识可靠性）
 
-在 `A1,A4,A5,A6,A7` 下，对任意输出被接受 statement/proof 的 PPT adversary，存在 extractor 除误差外输出 witness `(removed,v,readableIndex,...)`，满足：
+在 `A1,A4,A5,A6,A7` 下，对任意输出被接受 statement/proof 的 PPT adversary，存在 extractor 除误差外输出 witness `(removed,v,residualCarrierIndex,...)`，满足：
 
 1. 每个槽 `C_i=Enc_P(0;v_i)` 或 `C_i=Enc_P(-m_i;v_i)`；
-2. `removed_i=true` 当且仅当存在 readable `j` 使 `readableIndex(j)=i`；
-3. `readableIndex` 单射；
-4. 每个 negative branch 对应 authenticated readable plaintext。
+2. `removed_i=true` 当且仅当存在 residual carrier `j` 使 `residualCarrierIndex(j)=i`；
+3. `residualCarrierIndex` 单射；
+4. 每个 negative branch 对应 authenticated residual-carrier plaintext。
 
-**证明。** 对共享 transcript fork。Bayer--Groth fork 提取 permutation/rerandomizer；跨密钥 proof 提取同一 `(sk_Q,v_j)`；OR fork 提取该槽 branch randomness。将提取对象代入 Lean relation 得 readable 方程和槽位方程，再由 exact coverage 得 2--4。任一失败给出对应组件安全或 refinement 归约。□
+**证明。** 对共享 transcript fork。Bayer--Groth fork 提取 permutation/rerandomizer；跨密钥 proof 提取同一 `(sk_Q,v_j)`；OR fork 提取该槽 branch randomness。将提取对象代入 Lean relation 得 residual-carrier 方程和槽位方程，再由 exact coverage 得 2--4。任一失败给出对应组件安全或 refinement 归约。□
 
 ### 定理 3（重建语义）
 
-令 `chi_{p,i}=1` 当且仅当玩家 `p` 的 authenticated readable set 包含 `m_i`。在 `A8` 下：
+令 `chi_{p,i}=1` 当且仅当玩家 `p` 的 authenticated residual-carrier set 包含 `m_i`。在 `A8` 下：
 
 ```text
 Dec_P(B~_i) =
@@ -185,23 +229,23 @@ Dec_P(B~_i) =
   m_i,      若没有玩家持有 m_i.
 ```
 
-**证明。** 由定理 2，每个贡献明文属于 `{0,-m_i}`；exact coverage 保证对应 readable 的槽得到负元。使用 ElGamal 同态性求和即可。□
+**证明。** 由定理 2，每个贡献明文属于 `{0,-m_i}`；exact coverage 保证对应 residual carrier 的槽得到负元。使用 ElGamal 同态性求和即可。□
 
 ## 6. UC 理想功能与组合安全
 
 ### 6.1 Hybrid 模型
 
-协议运行在 `F_RO`、`F_STATE` 和已认证 key/shuffle/reveal functionality 的 hybrid 中。`F_STATE` 维护 canonical deck、公钥、上一局 assignment、readable lineage、epoch 和跨玩家不相交性。腐化集合静态固定，网络 adversary 可重排、丢弃和延迟消息。
+协议运行在 `F_RO`、`F_STATE` 和已认证 key/shuffle/reveal functionality 的 hybrid 中。`F_STATE` 维护 canonical deck、公钥、上一局 assignment、residual-carrier lineage、epoch 和跨玩家不相交性。腐化集合静态固定，网络 adversary 可重排、丢弃和延迟消息。
 
 ### 6.2 `F_RECON`
 
-`sid=(context,table,hand,epoch,D_prev)`。功能从 `F_STATE` 获得每个玩家的 authenticated readable plaintext set，但不把它发给 adversary。它等待每个玩家的 `SUBMIT` 或 deadline；令 `S` 为成功提交者，移除且仅移除 `S` 中玩家的 readable set。若 readable sets 重叠，输出 `STATE_INVALID`。
+`sid=(context,table,hand,epoch,D_prev)`。功能从 `F_STATE` 获得每个玩家的 authenticated residual-carrier plaintext set，但不把它发给 adversary。它等待每个玩家的 `SUBMIT` 或 deadline；令 `S` 为成功提交者，移除且仅移除 `S` 中玩家的 residual-carrier set。若 residual-carrier sets 重叠，输出 `STATE_INVALID`。
 
 功能生成新的聚合加密牌组，只公开 `n,k,keys,epoch,D_prev`、验证结果、deadline/abort 状态和最终 state digest，不公开 owner-to-slot mapping、branch、随机性或 permutation。partial submission 建模为可用性事件：提交者可让自己的牌保留，但不能多删他人的牌。
 
 ### 6.3 Real protocol
 
-Real protocol 从 `F_STATE` 获得 exact readable vector、`D_prev`、canonical deck 和 aggregate key；玩家运行 `ReconstructProof::prove`；verifier 独立验证后执行同态聚合；host 检查 ABI、call context、epoch、state digest 和下一轮 shuffle 输入。`ABORT` 产生 no-op 或 timeout，不产生任意 negative contribution。
+Real protocol 从 `F_STATE` 获得 exact residual-carrier vector、`D_prev`、canonical deck 和 aggregate key；玩家运行 `ReconstructProof::prove`；verifier 独立验证后执行同态聚合；host 检查 ABI、call context、epoch、state digest 和下一轮 shuffle 输入。`ABORT` 产生 no-op 或 timeout，不产生任意 negative contribution。
 
 ### 6.4 条件 UC 定理
 
@@ -211,7 +255,7 @@ Real protocol 从 `F_STATE` 获得 exact readable vector、`D_prev`、canonical 
 
 ### 6.5 非己手牌 veto
 
-定义 `Veto(p,m)` 为玩家 `p` 的 accepted package 移除 `m`，但 `m` 不属于其 authenticated readable set。
+定义 `Veto(p,m)` 为玩家 `p` 的 accepted package 移除 `m`，但 `m` 不属于其 authenticated residual-carrier set。
 
 **定理 5。** 在 `A1,A4,A5,A6,A7,A8` 下，
 
@@ -219,7 +263,7 @@ Real protocol 从 `F_STATE` 获得 exact readable vector、`D_prev`、canonical 
 Pr[Veto(p,m)] <= eps_KS + eps_state + eps_ser.
 ```
 
-若 package 被接受，定理 2 给出 negative branch 及对应 readable plaintext。`D_prev` 的 exact-vector binding 把该 readable 识别为 `p` 的认证手牌；否则攻击者伪造 state digest、joint/OR/BG proof 或 serialization refinement。若 `p` 不提交，则不存在其贡献，不能产生他人 negative branch。若两个玩家 readable sets 重叠或 owner secret 泄露，该定理前提失效。
+若 package 被接受，定理 2 给出 negative branch 及对应 residual-carrier plaintext。`D_prev` 的 exact-vector binding 把该 residual carrier 识别为 `p` 的认证手牌；否则攻击者伪造 state digest、joint/OR/BG proof 或 serialization refinement。若 `p` 不提交，则不存在其贡献，不能产生他人 negative branch。若两个玩家 residual-carrier sets 重叠或 owner secret 泄露，该定理前提失效。
 
 ## 7. Lean 形式化
 
@@ -227,13 +271,13 @@ Lean 项目使用固定 Mathlib/VCV-io revision 和 `autoImplicit=false`。主�
 
 | 层 | 文件 | 代表定理 | 结论 |
 |---|---|---|---|
-| readable lineage | `ReadableCardProvenance.lean` | `authenticated_prior_hand_yields_user_readable_card` | 认证 readable 是 canonical plaintext 的 owner-key 密文 |
+| residual-carrier lineage | `ResidualCarrierProvenance.lean` | `authenticated_prior_hand_yields_residual carrier` | 认证 residual carrier 是 canonical plaintext 的 owner-key 密文 |
 | 聚合语义 | `Reconstruction.lean` | `corrected_slot_semantics`, `aggregatePlaintext_unique_removal` | 逐槽重建正确性 |
 | 跨密钥 Sigma | `ReconstructionJointSigma.lean` | `relation_iff_cross_key`, `sigma_speciallySound`, `sigma_perfect_hvzk` | 共享 `(sk_Q,v)` 的联合证明 |
 | 槽位 OR | `ReconstructionSlotOr.lean` | `honest_accepts`, `specially_sound`, `perfect_hvzk_algebraic` | 完备、fork 提取与模拟 |
 | 组合层 | `ReconstructionSecurity.lean` | `verified_package_semantics` | 组件保证蕴含完整包语义 |
 
-`ReconstructionSecurity.ComponentInterface` 汇集 BG、FS、transcript、serialization、state 和 disjointness 的安全保证。`VerifiedPackage` 同时保存 public statement、提取 witness、公共有效性和组件保证。`verified_package_semantics` 由该包一次性导出 `ValidRelation`、exact readable coverage 和逐槽 `{0,-m_i}` 隶属关系。
+`ReconstructionSecurity.ComponentInterface` 汇集 BG、FS、transcript、serialization、state 和 disjointness 的安全保证。`VerifiedPackage` 同时保存 public statement、提取 witness、公共有效性和组件保证。`verified_package_semantics` 由该包一次性导出 `ValidRelation`、exact residual-carrier coverage 和逐槽 `{0,-m_i}` 隶属关系。
 
 `scripts/count_sorries.sh` 报告 0 个 `sorry/admit`。`ReconstructionAxiomAudit.lean` 打印主要定理依赖的 Lean trusted axioms；reconstruction 模块不引入协议特定 axiom。
 
@@ -254,8 +298,8 @@ cd poker_protocol_lean && bash scripts/count_sorries.sh
 ## 9. 限制与未来工作
 
 - 恶意不提交是 liveness 问题，需要 deadline、stake 或替代玩家机制。
-- 状态认证不可省略；若 host 不认证 readable lineage，“非己手牌 veto”不成立。
-- `n,k`、公钥、canonical cards、epoch 和 digest 公开；协议不隐藏牌组大小和 readable 数量。
+- 状态认证不可省略；若 host 不认证 residual-carrier lineage，“非己手牌 veto”不成立。
+- `n,k`、公钥、canonical cards、epoch 和 digest 公开；协议不隐藏牌组大小和 residual-carrier 数量。
 - 完整 UC 依赖可组合 FS-NIZK；标准模型需要 CRS extractable NIZK 或新证明。
 - 自适应腐化需要 erasure 或 non-committing 技术。
 - 多重持有由跨玩家 disjointness invariant 强制。

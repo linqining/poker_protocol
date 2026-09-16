@@ -1,7 +1,7 @@
 # Reconstruction soundness
 
 This document is the implementation-facing summary of
-`reconstruction_paper_draft.md` and `poker_protocol_lean/SECURITY_RECONSTRUCTION.md`.
+`reconstruction_paper.md` and `poker_protocol_lean/SECURITY_RECONSTRUCTION.md`.
 
 ## Protocol relation
 
@@ -15,12 +15,12 @@ contribution[i] = Enc_PKagg(0; v_i)
 
 The proof package contains:
 
-1. a cross-key proof for every authenticated readable card;
-2. a Bayer--Groth proof hiding the readable-to-slot permutation;
+1. a cross-key proof for every authenticated residual carrier;
+2. a Bayer--Groth proof hiding the residual-carrier-to-slot permutation;
 3. one OR proof per canonical slot;
 4. a statement-bound context, epoch, prior-state digest, keys and ciphertexts.
 
-The host authenticates the exact readable vector and enforces cross-player
+The host authenticates the exact residual-carrier vector and enforces cross-player
 disjointness. Reconstruction cannot infer those historical state facts from a
 digest alone.
 
@@ -31,8 +31,8 @@ extracts:
 
 - a branch for every canonical slot;
 - the contribution randomness for that branch;
-- an injective readable-to-slot mapping;
-- exact coverage between negative branches and readable cards.
+- an injective residual-carrier-to-slot mapping;
+- exact coverage between negative branches and residual carriers.
 
 Adding verified contributions to the canonical base deck makes a held card
 decrypt to identity and leaves every unheld card unchanged. Missing

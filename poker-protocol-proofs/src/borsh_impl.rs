@@ -355,7 +355,7 @@ impl BorshSerialize for ReconstructionStatement<StarkCurve> {
     fn serialize<W: borsh::io::Write>(&self, w: &mut W) -> borsh::io::Result<()> {
         if self.version != RECONSTRUCTION_PROOF_VERSION
             || self.cards.len() != self.contributions.len()
-            || self.user_readable_cards.len() > self.cards.len()
+            || self.residual_carriers.len() > self.cards.len()
         {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
@@ -373,8 +373,8 @@ impl BorshSerialize for ReconstructionStatement<StarkCurve> {
         for card in &self.cards {
             write_stark_point(card, w)?;
         }
-        write_reconstruction_len(self.user_readable_cards.len(), 1, w)?;
-        for ciphertext in &self.user_readable_cards {
+        write_reconstruction_len(self.residual_carriers.len(), 1, w)?;
+        for ciphertext in &self.residual_carriers {
             BorshSerialize::serialize(ciphertext, w)?;
         }
         // Contributions have exactly the canonical card count, so no second
@@ -414,10 +414,10 @@ impl BorshDeserialize for ReconstructionStatement<StarkCurve> {
         if k > n {
             return Err(borsh::io::Error::new(
                 borsh::io::ErrorKind::InvalidData,
-                "more readable cards than reconstruction slots",
+                "more residual carriers than reconstruction slots",
             ));
         }
-        let user_readable_cards = (0..k)
+        let residual_carriers = (0..k)
             .map(|_| BorshDeserialize::deserialize_reader(r))
             .collect::<Result<Vec<ElGamalCiphertextGeneric<StarkCurve>>, _>>()?;
         let contributions = (0..n)
@@ -431,7 +431,7 @@ impl BorshDeserialize for ReconstructionStatement<StarkCurve> {
             aggregate_pk,
             owner_pk,
             cards,
-            user_readable_cards,
+            residual_carriers,
             contributions,
         };
         statement.validate().map_err(|_| {
@@ -646,7 +646,7 @@ mod tests {
         let aggregate_sk = owner_sk + other_sk;
         let owner_pk = <StarkCurve as Curve>::base_g() * owner_sk;
         let aggregate_pk = <StarkCurve as Curve>::base_g() * aggregate_sk;
-        let readable_cards = [1usize, 6]
+        let residual_carriers = [1usize, 6]
             .iter()
             .enumerate()
             .map(|(i, index)| {
@@ -663,7 +663,7 @@ mod tests {
             12,
             [4u8; 32],
             cards,
-            readable_cards,
+            residual_carriers,
             &owner_sk,
             &owner_pk,
             &aggregate_pk,
