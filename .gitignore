@@ -3,3 +3,5 @@ poker_protocol_lean/.lake/
 .DS_Store
 .codex_docx/
 .vscode/
+poker_protocol/paper/
+poker_protocol/paper/draft.md
