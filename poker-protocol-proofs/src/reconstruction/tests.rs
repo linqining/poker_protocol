@@ -2,6 +2,7 @@ use super::{
     apply_reconstruction_contributions, canonical_base_deck, ContributionBranch, ReconstructProof,
     ReconstructionStatement, SlotContributionOrProof, RECONSTRUCTION_PROOF_LABEL,
 };
+use crate::reconstruction::CrossKeyNegationProof;
 use crate::transcript_ext::{CryptoTranscript, MerlinTranscript};
 use curve25519_dalek::{ristretto::RistrettoPoint, scalar::Scalar};
 use poker_protocol_core::{
@@ -191,6 +192,110 @@ fn slot_or_rejects_cross_slot_plaintext() {
         &mut transcript,
     )
     .is_err());
+}
+
+#[test]
+fn cross_key_rejects_foreign_card_negation() {
+    // Non-owner veto attempt: the attacker's authenticated carrier decrypts to
+    // card A, but the negative contribution encrypts -B for someone else's
+    // card B.  The joint c2 equation cannot hold without DL(R.c1), so honest
+    // witness construction is impossible and prove must fail closed.
+    let card_a = RistrettoCurve::hash_to_curve(b"cross-key-owned-a");
+    let card_b = RistrettoCurve::hash_to_curve(b"cross-key-foreign-b");
+    let owner_sk = scalar(73);
+    let owner_pk = RistrettoCurve::base_g() * owner_sk;
+    let aggregate_pk = RistrettoCurve::base_g() * scalar(102);
+
+    let residual_carrier = Ciphertext::encrypt(&card_a, &owner_pk, &scalar(11));
+    let foreign_negation = Ciphertext::encrypt(
+        &(RistrettoPoint::identity() - card_b),
+        &aggregate_pk,
+        &scalar(12),
+    );
+    let mut transcript = MerlinTranscript::new(b"cross-key-foreign");
+    assert!(CrossKeyNegationProof::<RistrettoCurve>::prove(
+        &residual_carrier,
+        &foreign_negation,
+        &owner_sk,
+        &scalar(12),
+        &owner_pk,
+        &aggregate_pk,
+        &mut rand_core::OsRng,
+        &mut transcript,
+    )
+    .is_err());
+
+    // The same attack with a zero contribution (removing a card while
+    // contributing nothing) is equally unprovable.
+    let zero_contribution = Ciphertext::encrypt(&RistrettoPoint::identity(), &aggregate_pk, &scalar(13));
+    let mut transcript = MerlinTranscript::new(b"cross-key-zero");
+    assert!(CrossKeyNegationProof::<RistrettoCurve>::prove(
+        &residual_carrier,
+        &zero_contribution,
+        &owner_sk,
+        &scalar(13),
+        &owner_pk,
+        &aggregate_pk,
+        &mut rand_core::OsRng,
+        &mut transcript,
+    )
+    .is_err());
+}
+
+#[test]
+fn cross_key_rejects_mismatched_owner_key() {
+    // Claiming another player's owner_pk: the pk/sk pairing equation fails
+    // before any proof bytes are produced.
+    let card = RistrettoCurve::hash_to_curve(b"cross-key-owned-a");
+    let owner_sk = scalar(73);
+    let owner_pk = RistrettoCurve::base_g() * owner_sk;
+    let other_pk = RistrettoCurve::base_g() * scalar(74);
+    let aggregate_pk = RistrettoCurve::base_g() * scalar(102);
+    let residual_carrier = Ciphertext::encrypt(&card, &owner_pk, &scalar(11));
+    let negation = Ciphertext::encrypt(&(RistrettoPoint::identity() - card), &aggregate_pk, &scalar(12));
+
+    let mut transcript = MerlinTranscript::new(b"cross-key-wrong-pk");
+    assert!(CrossKeyNegationProof::<RistrettoCurve>::prove(
+        &residual_carrier,
+        &negation,
+        &owner_sk,
+        &scalar(12),
+        &other_pk,
+        &aggregate_pk,
+        &mut rand_core::OsRng,
+        &mut transcript,
+    )
+    .is_err());
+}
+
+#[test]
+fn cross_key_verify_rejects_swapped_owner_key() {
+    // An honestly produced proof does not verify against a different owner
+    // key: the transcript challenge and both response equations break.
+    let card = RistrettoCurve::hash_to_curve(b"cross-key-owned-a");
+    let owner_sk = scalar(73);
+    let owner_pk = RistrettoCurve::base_g() * owner_sk;
+    let other_pk = RistrettoCurve::base_g() * scalar(74);
+    let aggregate_pk = RistrettoCurve::base_g() * scalar(102);
+    let residual_carrier = Ciphertext::encrypt(&card, &owner_pk, &scalar(11));
+    let negation = Ciphertext::encrypt(&(RistrettoPoint::identity() - card), &aggregate_pk, &scalar(12));
+
+    let proof = CrossKeyNegationProof::<RistrettoCurve>::prove(
+        &residual_carrier,
+        &negation,
+        &owner_sk,
+        &scalar(12),
+        &owner_pk,
+        &aggregate_pk,
+        &mut rand_core::OsRng,
+        &mut MerlinTranscript::new(b"cross-key-swap"),
+    )
+    .unwrap();
+
+    let mut transcript = MerlinTranscript::new(b"cross-key-swap");
+    assert!(proof
+        .verify(&residual_carrier, &negation, &other_pk, &aggregate_pk, &mut transcript)
+        .is_err());
 }
 
 #[test]

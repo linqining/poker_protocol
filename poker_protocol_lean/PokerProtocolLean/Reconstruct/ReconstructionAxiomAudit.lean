@@ -29,6 +29,10 @@ reconstruction results. No protocol-specific axiom is introduced.
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.Security.knowledge_soundness_under_components
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.Security.zero_knowledge_under_components
 #print axioms PokerProtocolLean.Reconstruct.Reconstruction.Security.verified_package_semantics
+#print axioms PokerProtocolLean.Reconstruct.Reconstruction.Veto.no_removable_witness_without_owner_carrier
+#print axioms PokerProtocolLean.Reconstruct.Reconstruction.Veto.unauthorized_slot_keeps_card
+#print axioms PokerProtocolLean.Reconstruct.Reconstruction.Veto.veto_free_extraction
+#print axioms PokerProtocolLean.Reconstruct.Reconstruction.Veto.veto_error_bound_negligible
 #print axioms PokerProtocolLean.PKOwnership.sigma_complete
 #print axioms PokerProtocolLean.PKOwnership.sigma_speciallySound
 #print axioms PokerProtocolLean.PKOwnership.sigma_perfect_hvzk
