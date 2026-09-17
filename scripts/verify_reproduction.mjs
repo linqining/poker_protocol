@@ -10,6 +10,7 @@ const repoRoot = resolve(import.meta.dirname, "..");
 const metadataPath = resolve(repoRoot, "paper/experiments/benchmark_metadata.json");
 const nativeBaseline = resolve(repoRoot, "paper/experiments/reconstruction_stark.csv");
 const componentBaseline = resolve(repoRoot, "paper/experiments/reconstruction_components.csv");
+const baselineJson = resolve(repoRoot, "paper/experiments/circom_slot_baseline.json");
 const wasmBaseline = resolve(repoRoot, "paper/experiments/reconstruction_wasm.csv");
 
 function fail(message) {
@@ -81,11 +82,28 @@ const componentHeader = [
 ];
 
 const mode = process.argv[2];
-if (mode === "--committed") {
+function validateScopedBaseline(path) {
+  const baseline = JSON.parse(readFileSync(path, "utf8"));
+  for (const key of ["constraints", "proof_bytes", "public_signal_bytes", "witness_ms", "prove_ms", "verify_ms"]) {
+    if (!Number.isFinite(Number(baseline[key])) || Number(baseline[key]) <= 0) {
+      fail(`${path} has invalid ${key}`);
+    }
+  }
+  if (baseline.baseline !== "circom-groth16-single-slot" || !Array.isArray(baseline.unsupported_semantics) || baseline.unsupported_semantics.length < 4) {
+    fail(`${path} is missing scoped-baseline identity or unsupported semantics`);
+  }
+}
+
+if (mode === "--baseline") {
+  if (process.argv.length !== 4) fail("usage: verify_reproduction.mjs --baseline BASELINE_JSON");
+  validateScopedBaseline(resolve(process.argv[3]));
+  console.log(`[repro-verify] scoped Circom baseline is valid: ${resolve(process.argv[3])}`);
+} else if (mode === "--committed") {
   const metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
   const checks = [
     [nativeBaseline, metadata.native_benchmark.csv_sha256],
     [componentBaseline, metadata.native_benchmark.component_csv_sha256],
+    [baselineJson, metadata.scoped_baseline.json_sha256],
     [wasmBaseline, metadata.benchmark.csv_sha256],
     ...Object.entries(metadata.native_benchmark.source_sha256).map(([path, hash]) => [resolve(repoRoot, path), hash]),
     ...Object.entries(metadata.benchmark.source_sha256).map(([path, hash]) => [resolve(repoRoot, path), hash]),
@@ -98,6 +116,7 @@ if (mode === "--committed") {
   }
   parseCsv(nativeBaseline, nativeHeader);
   parseCsv(componentBaseline, componentHeader);
+  validateScopedBaseline(baselineJson);
   parseCsv(wasmBaseline, wasmHeader);
   console.log(`[repro-verify] committed artifacts match ${metadataPath}`);
 } else if (mode === "--generated") {

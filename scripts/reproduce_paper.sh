@@ -83,6 +83,7 @@ export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:${ELAN_HOME:-$HOME/.elan}/bin:$PATH
 NATIVE_CSV="$OUTPUT_DIR/reconstruction_stark.csv"
 COMPONENT_CSV="$OUTPUT_DIR/reconstruction_components.csv"
 WASM_CSV="$OUTPUT_DIR/reconstruction_wasm.csv"
+BASELINE_JSON="$OUTPUT_DIR/circom_slot_baseline.json"
 
 cd "$REPO_ROOT"
 node scripts/verify_reproduction.mjs --committed
@@ -102,6 +103,9 @@ printf '[reproduce] running WASM Node tests and release build\n'
 printf '[reproduce] measuring Node/V8 WASM benchmark\n'
 node client-wasm/benchmark.mjs "$SAMPLES" "$WASM_CSV"
 
+printf '[reproduce] measuring scoped Circom/Groth16 slot baseline\n'
+node scripts/run_circom_slot_baseline.mjs "$BASELINE_JSON"
+
 printf '[reproduce] building Lean model and checking for placeholders\n'
 (cd poker_protocol_lean && lake build PokerProtocolLean)
 (cd poker_protocol_lean && bash scripts/count_sorries.sh)
@@ -109,5 +113,6 @@ printf '[reproduce] building Lean model and checking for placeholders\n'
 node scripts/verify_reproduction.mjs \
   --generated "$NATIVE_CSV" "$WASM_CSV" --samples "$SAMPLES" \
   --metadata "$OUTPUT_DIR/run_metadata.json"
+node scripts/verify_reproduction.mjs --baseline "$BASELINE_JSON"
 
 printf '[reproduce] complete; new measurements are in %s\n' "$OUTPUT_DIR"
