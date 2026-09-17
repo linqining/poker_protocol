@@ -1,38 +1,63 @@
-# Pre-Word submission checklist
+# TIFS submission readiness checklist
 
-This checklist is the review gate agreed for the current pass: finish and
-confirm the implementation, proofs, data, and metadata first; generate DOCX
-artifacts only after the pending user-supplied fields are filled and the items
-below are explicitly accepted.
+This checklist separates technical-complete artifacts from author-supplied
+submission metadata. The current English and Chinese DOCX drafts already
+exist; they should be regenerated after metadata is finalized and before an
+IEEE submission.
 
 | Item | Status | Authoritative evidence | User action |
 | --- | --- | --- | --- |
-| Rust reconstruction implementation and attack tests | Complete | `cargo test --workspace` passed on 2026-09-17; reconstruction tamper, foreign-card veto, zero-contribution veto, and owner-key swap tests pass | Confirm |
+| Rust reconstruction implementation and attack tests | Complete | `cargo test --workspace` passed on 2026-09-18; reconstruction tamper, foreign-card veto, zero-contribution veto, and owner-key swap tests pass | Confirm |
 | Browser Borsh boundary | Complete | `BrowserReconstructionV3Bundle` Borsh roundtrip and epoch-tamper rejection test pass | Confirm |
 | Native benchmark grid | Complete | `paper/experiments/reconstruction_stark.csv` (11 lines: 10 measurements plus header) | Confirm |
-| WASM implementation and test | Complete | `wasm-pack test --node --release` passed on 2026-09-17 | Confirm |
+| WASM implementation and test | Complete | `wasm-pack test --node --release` passed on 2026-09-18 | Confirm |
 | WASM benchmark grid | Complete | `paper/experiments/reconstruction_wasm.csv` (11 lines: 10 measurements plus header) | Confirm |
+| Benchmark environment record | Complete | `paper/experiments/benchmark_metadata.json` records host, toolchain, target, commands, warm-up, aggregation, and hashes for both native and WASM grids | Confirm |
 | Theorems 1-5 | Complete | Full proofs are in `poker_protocol/reconstruction_paper.md` and mirrored in the DOCX builder source | Confirm |
 | Conditional UC simulator and hybrid proof | Complete | Theorem 4 includes simulator construction, honest/corrupted submissions, and H0-H4 hybrid sequence | Confirm |
 | Lean reconstruction boundary | Complete | `lake build PokerProtocolLean` passed; `count_sorries.sh` reports zero | Confirm |
 | Non-owner veto theorem | Complete | `ReconstructionVeto.veto_free_extraction` and `veto_error_bound_negligible` | Confirm |
 | Related-work comparison | Complete | Quantitative `d,N,r` boundary comparison with dropout-tolerant TTP-free mental poker | Confirm |
 | Bibliography | Complete | 14 entries with venue, volume/pages where available, and DOI where available | Confirm |
-| Submission metadata | Pending author input | `paper/submission_metadata.json`; DOCX guard rejects empty `authors` for both EN and ZH builds | Supply authors/affiliations |
-| Final pre-render regression | Ready after metadata | Re-run Rust, WASM, Lean, Python syntax, and diff checks after metadata is filled | Run before DOCX |
-| English and Chinese DOCX | Intentionally deferred | No DOCX generated in this pass | Generate only after checklist confirmation |
+| Submission metadata | Pending author input | `paper/submission_metadata.json`; author name is present, but affiliations, corresponding-author contact, ORCID, funding, and acknowledgements are not finalized | Supply/confirm metadata |
+| Final pre-render regression | Current draft passed; repeat after metadata | Rust, WASM, Lean, zero-sorry, baseline-hash, generated-grid, syntax, and diff checks passed on 2026-09-18 | Re-run after metadata is finalized |
+| English and Chinese DOCX | Current drafts rendered; final rerender pending metadata | The English draft renders to 18 pages with zero accessibility findings; the Chinese draft contains complete extractable text and renders to 12 pages | Rerender after metadata and final regression |
 
 Reproduce the non-DOCX verification with:
 
 ```bash
-cargo test --workspace
-(cd client-wasm && wasm-pack test --node --release)
-(cd client-wasm && wasm-pack build --target web --release)
-(cd poker_protocol_lean && lake build PokerProtocolLean)
-(cd poker_protocol_lean && bash scripts/count_sorries.sh)
+./scripts/install_repro_deps.sh
+./scripts/reproduce_paper.sh
 ```
+
+The installer is user-space only and pins the recorded Rust, Lean, Node.js,
+and `wasm-pack` versions. The reproduction runner preserves the committed
+paper CSV files, verifies their recorded hashes, emits fresh measurements
+under `.repro/results/`, and validates the new parameter grids and canonical
+proof/statement sizes. Each run also records the host, tool versions, Git
+state, and result hashes in `run_metadata.json`. Use
+`./scripts/install_repro_deps.sh --check` when only an environment audit is
+desired.
 
 The metadata JSON must contain a non-empty `authors` array. Each string can
 include the display name and affiliation, for example `"Given Family
 (Department, Institution)"`; set `corresponding_author`, `funding`, and
 `acknowledgements` to `null` when not applicable.
+
+The WASM measurements are explicitly Node/V8 host measurements. They should
+not be described as Android/iOS or browser-device measurements unless those
+experiments are run and their environment records are added separately.
+
+## Outstanding evidence and submission work
+
+| Priority | Item | Current status | Completion criterion |
+| --- | --- | --- | --- |
+| P0 | Author metadata | Blocked on author input | Affiliation, corresponding-author email, ORCID, author order, funding, and acknowledgements are confirmed |
+| P0 | IEEE TIFS packaging | Not started | English manuscript is transferred to the current IEEE journal template with numbered/captioned tables and figures, IEEE references, vector or 300-DPI figures, and a final page-count check |
+| P0 | Claim discipline | Complete for current data | Node/V8 results remain explicitly separated from browser/mobile-device claims |
+| P1 | Browser and mobile measurements | Missing | Desktop Chrome plus at least one Android Chrome and one iPhone Safari device report warm/cold latency, P50/P95 or spread, and environment metadata |
+| P1 | Measured baseline | Missing | A functionally scoped comparison reports proving time, verification time, proof bytes, setup assumptions, and unsupported semantics for a Circom/Groth16 or PLONK baseline, or a defensible closest published implementation |
+| P1 | Component profiling | Missing | Native and WASM runs separately report fixture/statement construction, cross-key proofs, Bayer--Groth, slot OR, serialization, and verification |
+| P1 | Security-theorem tightening | Partial | The paper either supplies a concrete concurrently composable NIZK instantiation/reduction or narrows the UC claim to the exact hybrid assumption without suggesting end-to-end formal verification |
+| P1 | Rust-to-Lean refinement | Assumed interface | Canonical serialization and statement/relation conformance receive executable cross-language vectors or a checked refinement argument |
+| P2 | Continuous verification | Pinned install and end-to-end local reproduction scripts complete; CI is missing | CI should invoke `scripts/reproduce_paper.sh` or equivalent Rust, WASM, Lean, and zero-sorry jobs on the pinned toolchains |

@@ -10,6 +10,8 @@ paper/*
 paper/experiments/*
 !paper/experiments/reconstruction_stark.csv
 !paper/experiments/reconstruction_wasm.csv
+!paper/experiments/benchmark_metadata.json
 !paper/submission_checklist.md
 !paper/submission_metadata.json
 __pycache__/
+.repro/

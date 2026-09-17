@@ -174,12 +174,13 @@ def make_figures():
     d.rounded_rectangle((760,170,1040,480),radius=22,fill='#F7FBFF',outline='#'+BLUE,width=4)
     d.multiline_text((900,215),'Subtract\nsubmitted tokens',font=bold,fill='#'+NAVY,anchor='ma',align='center',spacing=2)
     d.text((900,320),'t_p,i = r_i Q_p',font=font,fill='#'+BLACK,anchor='ma')
-    d.text((900,405),'C_i - sum t_p,i for p in A',font=font,fill='#'+BLACK,anchor='ma')
+    d.multiline_text((900,390),'C_i - sum t_p,i\nfor p in A',font=small,fill='#'+BLACK,anchor='ma',align='center',spacing=2)
     d.line((1040,325,1240,325),fill='#'+BLUE,width=7); d.polygon([(1240,325),(1220,312),(1220,338)],fill='#'+BLUE)
     d.rounded_rectangle((1240,170,1710,480),radius=22,fill='#'+LIGHT,outline='#'+BLUE,width=4)
     d.text((1475,225),'Residual carrier',font=bold,fill='#'+NAVY,anchor='ma')
-    d.text((1475,320),'= Enc_(sum Q_p for p in U)(m_i; r_i)',font=font,fill='#'+BLACK,anchor='ma')
-    d.text((1475,405),'U = Players minus A',font=font,fill='#'+BLACK,anchor='ma')
+    d.text((1475,310),'Enc_Q_U(m_i; r_i)',font=font,fill='#'+BLACK,anchor='ma')
+    d.text((1475,370),'Q_U = sum Q_p for p in U',font=small,fill='#'+BLACK,anchor='ma')
+    d.text((1475,425),'U = Players minus A',font=small,fill='#'+BLACK,anchor='ma')
     d.line((1475,480,1475,625),fill='#C97A15',width=6); d.polygon([(1475,625),(1462,605),(1488,605)],fill='#C97A15')
     d.rounded_rectangle((180,625,870,905),radius=22,fill='#FDF4E7',outline='#C97A15',width=3)
     d.text((525,690),'One missing token  |U| = 1',font=bold,fill='#9A5B00',anchor='ma')
@@ -238,8 +239,8 @@ def setup_styles_zh(doc):
     setup_styles(doc)
     for name in ['Normal', 'Title', 'Heading 1', 'Heading 2', 'Heading 3', 'Subtitle Custom', 'Caption Custom', 'Small Note']:
         st = doc.styles[name]
-        st.font.name = 'Songti SC'
-        st._element.rPr.rFonts.set(qn('w:eastAsia'), 'Songti SC')
+        st.font.name = 'Arial Unicode MS'
+        st._element.rPr.rFonts.set(qn('w:eastAsia'), 'Arial Unicode MS')
     doc.styles['Equation'].font.name = 'Cambria Math'
     doc.styles['Equation']._element.rPr.rFonts.set(qn('w:eastAsia'), 'Cambria Math')
 
@@ -454,16 +455,17 @@ def build():
     add_table(doc,['Component','Role'],[('poker-protocol-core','Curve arithmetic, ElGamal, and transcripts.'),('poker-protocol-bg','Bayer–Groth shuffle component.'),('poker-protocol-proofs','Reconstruction, cross-key, OR, and related proofs.'),('poker_protocol','Native adapter, ABI, and game integration.'),('client-wasm','Browser bridge and reproducible WASM benchmark.'),('poker_protocol_lean','Formal specification and checked composition.')],widths=[2.1,4.0])
     add_para(doc,'The native path uses the Stark-curve/Poseidon transcript domain. The Ristretto adapter constructs the public submission object; verification of an external AIR archive is outside this repository. The Move contract stores the partial ciphertext after subtracting submitted reveal tokens, while the AIR test helper derives the |U| = 1 owner-residual vector by subtracting every other seat’s token. When two or more tokens are missing, no owner-residual vector entry is created and the rebuilt canonical slot remains unchanged. The repository branch containing the paper and implementation is https://github.com/linqining/poker_protocol/tree/feat/paper.')
     add_para(doc,'To reproduce the checks:')
-    add_equation(doc,'cargo test --workspace\n(cd poker_protocol_lean && lake build PokerProtocolLean)\n(cd poker_protocol_lean && bash scripts/count_sorries.sh)\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark\n(cd client-wasm && wasm-pack test --node --release)\n(cd client-wasm && wasm-pack build --target nodejs --release)\nnode client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv')
-    add_para(doc,'A reference run on the native path (StarkCurve, Poseidon-felt transcript, release build, median of 7 samples) proves and verifies a full 52-card package with k = 13 carriers in 154 ms and 105 ms with a 21.8 KB proof; peak allocations are 87.2 KiB for proving and 39.4 KiB for verification. With k = 26, the same deck takes 167 ms and 116 ms with a 24.7 KB proof and 93.0 KiB proving peak allocation. A 13-card single-carrier package takes 36 ms and 26 ms at 5.4 KB. Proving and verification time, proof size, and peak memory all grow approximately linearly in n and k. The benchmark table reports representative rows; the full measurement grid is committed at paper/experiments/reconstruction_stark.csv.')
+    add_equation(doc,'./scripts/install_repro_deps.sh\n./scripts/reproduce_paper.sh')
+    add_para(doc,'The installer configures the pinned Rust, Lean, Node.js, and wasm-pack versions in user-writable locations without sudo; --check performs a read-only environment audit. The runner verifies the committed baseline and source hashes, executes the Rust, WASM, and Lean checks, and writes fresh timing grids under .repro/results rather than replacing the paper baselines. Each run records the host, tool versions, Git state, and result hashes in run_metadata.json.')
+    add_para(doc,'A reference run on the native path (StarkCurve, production RECONSTRUCT_POSEIDON transcript domain, release build, median of 7 samples) proves and verifies a full 52-card package with k = 13 carriers in 150.0 ms and 104.7 ms with a 21.8 KB proof; peak allocations are 85.2 KiB for proving and 39.4 KiB for verification. With k = 26, the same deck takes 166.1 ms and 113.5 ms with a 24.7 KB proof and 93.0 KiB proving peak allocation. A 13-card single-carrier package takes 36.6 ms and 25.4 ms at 5.4 KB. Proving and verification time, proof size, and peak memory all grow approximately linearly in n and k. The benchmark table reports representative rows; the full measurement grid is committed at paper/experiments/reconstruction_stark.csv.')
     add_table(doc,['n','k','Prove','Verify','Proof','Peak prove'],[
-        ('13','1','36.4 ms','25.8 ms','5.37 KB','20.0 KiB'),
-        ('26','1','69.7 ms','48.8 ms','9.94 KB','39.4 KiB'),
-        ('52','1','137.1 ms','94.6 ms','19.09 KB','78.0 KiB'),
-        ('52','13','153.9 ms','105.0 ms','21.78 KB','85.2 KiB'),
-        ('52','26','166.9 ms','115.6 ms','24.69 KB','93.0 KiB'),
+        ('13','1','36.6 ms','25.4 ms','5.37 KB','20.0 KiB'),
+        ('26','1','72.6 ms','48.2 ms','9.94 KB','39.4 KiB'),
+        ('52','1','136.3 ms','95.4 ms','19.09 KB','78.0 KiB'),
+        ('52','13','150.0 ms','104.7 ms','21.78 KB','85.2 KiB'),
+        ('52','26','166.1 ms','113.5 ms','24.69 KB','93.0 KiB'),
     ],widths=[0.5,0.5,1.0,1.0,1.1,1.35])
-    add_para(doc,'The same Rust reconstruction implementation is also compiled to wasm32 through client-wasm. The bridge returns a BrowserReconstructionV3Bundle containing the canonical Borsh statement and proof, decodes it, and verifies it with the production Poseidon transcript domain before reporting a benchmark row. On a release Node/V8 run (median of 7 samples), the full 52-card package with k = 13 takes 646 ms to prove and 471 ms to verify; the proof is 21.78 KB and the complete statement-plus-proof bundle is 27.75 KB. This is about 4.2 times the native proving time on the test machine but remains below one second in a JavaScript host. The full grid is committed at paper/experiments/reconstruction_wasm.csv and is regenerated by the commands above.')
+    add_para(doc,'The same Rust reconstruction implementation is also compiled to wasm32 through client-wasm. The bridge returns a BrowserReconstructionV3Bundle containing the canonical Borsh statement and proof, decodes it, and verifies it with the production Poseidon transcript domain before reporting a benchmark row. On a release Node/V8 run (median of 7 samples), the full 52-card package with k = 13 takes 646 ms to prove and 471 ms to verify; the proof is 21.78 KB and the complete statement-plus-proof bundle is 27.75 KB. This is about 4.2 times the native proving time on the test machine but remains below one second in a JavaScript host. The reference grid is committed at paper/experiments/reconstruction_wasm.csv; the reproduction runner stores a new grid separately. The host, toolchain, warm-up policy, command, and both native/WASM CSV hashes are recorded in paper/experiments/benchmark_metadata.json. These are Node/V8 host measurements, not Android/iOS or browser-device measurements; cold-start, P95, variance, peak memory, and network latency are not reported, so the result should not be interpreted as mobile real-time performance.')
     add_table(doc,['n','k','WASM prove','WASM verify','Proof','Bundle'],[
         ('13','1','153 ms','112 ms','5.37 KB','6.82 KB'),
         ('26','1','319 ms','216 ms','9.94 KB','12.65 KB'),
@@ -644,10 +646,11 @@ def build_zh():
     add_para(doc,'代码已统一使用 residual_carrier / residual_carriers；只有单 owner 解密 API 使用 owner_residual_carrier。ABI 字段名称已更新，但序列化字段顺序保持不变。当前 V3 producer 为每个 |U|=1 的 owner 构造 residual vector；若同一牌缺少两个或更多 token，不创建 removal-authorizing entry，canonical slot 在重建中保持不变。')
     p=doc.add_paragraph(); p.add_run('代码仓库：').bold=True; add_hyperlink(p,'https://github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
     add_para(doc,'复现命令如下：')
-    add_equation(doc,'cargo test --workspace\n(cd poker_protocol_lean && lake build PokerProtocolLean)\n(cd poker_protocol_lean && bash scripts/count_sorries.sh)\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark\n(cd client-wasm && wasm-pack test --node --release)\n(cd client-wasm && wasm-pack build --target nodejs --release)\nnode client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv')
-    add_para(doc,'参考实测（原生路径 StarkCurve、Poseidon-felt transcript、release 构建、7 次采样取中位）：52 张牌、k=13 个 carrier 的完整 package 证明 154 ms、验证 105 ms、证明体积 21.8 KB；证明峰值分配 87.2 KiB，验证峰值 39.4 KiB。k=26 时为 167 ms、116 ms、24.7 KB，证明峰值 93.0 KiB；13 张牌单 carrier 为 36 ms、26 ms、5.4 KB。耗时、证明体积与峰值内存均随 n 和 k 近似线性增长。')
-    add_table(doc,['n','k','证明','验证','Proof','证明峰值'],[('13','1','36.4 ms','25.8 ms','5.37 KB','20.0 KiB'),('26','1','69.7 ms','48.8 ms','9.94 KB','39.4 KiB'),('52','1','137.1 ms','94.6 ms','19.09 KB','78.0 KiB'),('52','13','153.9 ms','105.0 ms','21.78 KB','85.2 KiB'),('52','26','166.9 ms','115.6 ms','24.69 KB','93.0 KiB')],widths=[0.45,0.45,1.0,1.0,1.1,1.35])
-    add_para(doc,'同一 Rust 重建实现也通过 client-wasm 编译为 wasm32。桥接层返回由规范 Borsh statement 与 proof 组成的 BrowserReconstructionV3Bundle，随后重新解码，并用生产 Poseidon transcript 域验证，之后才输出基准行。在 release Node/V8 环境（7 次采样取中位）中，52 张牌、k=13 的完整 package 证明 646 ms、验证 471 ms；proof 为 21.78 KB，完整 statement+proof bundle 为 27.75 KB。相比测试机原生路径约慢 4.2 倍，但在 JavaScript host 中仍低于 1 秒。完整网格位于 paper/experiments/reconstruction_wasm.csv，由上述命令重建。')
+    add_equation(doc,'./scripts/install_repro_deps.sh\n./scripts/reproduce_paper.sh')
+    add_para(doc,'安装脚本在用户目录或仓库 .repro/toolchains 下配置锁定版本的 Rust、Lean、Node.js 与 wasm-pack，不调用 sudo；--check 只检查环境。复现脚本先核对已提交基线和源码哈希，再执行 Rust、WASM 与 Lean 验证，并将新测量写入 .repro/results，避免覆盖论文基线。每轮运行均在 run_metadata.json 中记录机器、工具版本、Git 状态和结果哈希。')
+    add_para(doc,'参考实测（原生路径 StarkCurve、生产 RECONSTRUCT_POSEIDON transcript 域、release 构建、7 次采样取中位）：52 张牌、k=13 个 carrier 的完整 package 证明 150.0 ms、验证 104.7 ms、证明体积 21.8 KB；证明峰值分配 85.2 KiB，验证峰值 39.4 KiB。k=26 时为 166.1 ms、113.5 ms、24.7 KB，证明峰值 93.0 KiB；13 张牌单 carrier 为 36.6 ms、25.4 ms、5.4 KB。耗时、证明体积与峰值内存均随 n 和 k 近似线性增长。')
+    add_table(doc,['n','k','证明','验证','Proof','证明峰值'],[('13','1','36.6 ms','25.4 ms','5.37 KB','20.0 KiB'),('26','1','72.6 ms','48.2 ms','9.94 KB','39.4 KiB'),('52','1','136.3 ms','95.4 ms','19.09 KB','78.0 KiB'),('52','13','150.0 ms','104.7 ms','21.78 KB','85.2 KiB'),('52','26','166.1 ms','113.5 ms','24.69 KB','93.0 KiB')],widths=[0.45,0.45,1.0,1.0,1.1,1.35])
+    add_para(doc,'同一 Rust 重建实现也通过 client-wasm 编译为 wasm32。桥接层返回由规范 Borsh statement 与 proof 组成的 BrowserReconstructionV3Bundle，随后重新解码，并用生产 Poseidon transcript 域验证，之后才输出基准行。在 release Node/V8 环境（7 次采样取中位）中，52 张牌、k=13 的完整 package 证明 646 ms、验证 471 ms；proof 为 21.78 KB，完整 statement+proof bundle 为 27.75 KB。相比测试机原生路径约慢 4.2 倍，但在 JavaScript host 中仍低于 1 秒。参考网格位于 paper/experiments/reconstruction_wasm.csv；复现脚本另存新一轮结果。机器、工具链、预热策略、命令和 native/WASM 两组 CSV 哈希记录于 paper/experiments/benchmark_metadata.json。该数据不是 Android/iOS 或浏览器实机测量；未报告冷启动、P95、方差、峰值内存和网络延迟，因此不能解释为移动端实时性能。')
     add_table(doc,['n','k','WASM 证明','WASM 验证','Proof','Bundle'],[('13','1','153 ms','112 ms','5.37 KB','6.82 KB'),('26','1','319 ms','216 ms','9.94 KB','12.65 KB'),('52','1','613 ms','425 ms','19.09 KB','24.29 KB'),('52','13','646 ms','471 ms','21.78 KB','27.75 KB'),('52','26','725 ms','501 ms','24.69 KB','31.49 KB')],widths=[0.4,0.4,1.0,1.0,1.0,1.0])
 
     doc.add_heading('9 局限与未来工作', level=1)

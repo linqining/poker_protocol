@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "wasm_measured_at": "2026-09-17T20:37:02+08:00",
+  "native_measured_at": "2026-09-18T00:54:18+08:00",
+  "metadata_recorded_at": "2026-09-18T01:05:56+08:00",
+  "git_revision": "3f20b524629394bc9466d17f9fdd47a88b7ea6a9",
+  "working_tree_dirty_at_native_measurement": true,
+  "benchmark": {
+    "command": "(cd client-wasm && wasm-pack build --target nodejs --release) && node client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv",
+    "samples_per_cell": 7,
+    "aggregation": "median after one untimed warm-up proof",
+    "timed_stages": ["prove", "verify"],
+    "clock": "js_sys::Date::now wall-clock milliseconds inside the wasm32 boundary",
+    "profile": "release",
+    "target": "wasm32-unknown-unknown",
+    "host": "Node.js/V8",
+    "csv_sha256": "c40e66b2a28a683b5d9dfeb5949fffcfd5c10dddd11761efb18112717b67080a",
+    "source_sha256": {
+      "client-wasm/src/lib.rs": "075d8cec464da273176f3a1587dfad866348233e9f4d0b0e71fc4bd77f9acabd",
+      "client-wasm/benchmark.mjs": "d117e789f679a6ce977c811589a3d1b2a3ad93b67a2d4e55f6892c7b0915f566"
+    }
+  },
+  "native_benchmark": {
+    "command": "cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark -- paper/experiments/reconstruction_stark.csv",
+    "samples_per_cell": 7,
+    "warmup_per_cell": 1,
+    "aggregation": "median",
+    "timed_stages": ["prove", "verify"],
+    "clock": "std::time::Instant wall-clock measurements",
+    "profile": "release",
+    "curve": "StarkCurve",
+    "transcript": "PoseidonFelt",
+    "csv_sha256": "e6755a02bddd802525b47a984fc599e035d0431a7db26cc58c10a6971fccfa26",
+    "source_sha256": {
+      "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "86104f267a69cbefcb0565b33912f6423a5cb34bbf87dec27bf847a39fd346b9"
+    }
+  },
+  "machine": {
+    "model": "Mac15,7",
+    "architecture": "arm64",
+    "cpu_cores": 12,
+    "os": "macOS Darwin 24.3.0"
+  },
+  "software": {
+    "node": "v24.4.1",
+    "v8": "13.6.233.10-node.17",
+    "rustc": "1.97.0-nightly (a5c825cd8 2026-04-14)",
+    "cargo": "1.97.0-nightly (eb94155a9 2026-04-09)",
+    "wasm_pack": "0.15.0",
+    "wasm_bindgen_cli": "0.2.127"
+  },
+  "scope_and_limits": [
+    "These are Node/V8 host measurements, not Chrome, Safari, Android, or iOS device measurements.",
+    "The CSV reports warm-start median wall time; cold-start, P95, variance, and peak memory were not recorded.",
+    "The benchmark validates the production Borsh/browser bundle boundary and proof acceptance; it is not an end-to-end network-latency measurement."
+  ]
+}

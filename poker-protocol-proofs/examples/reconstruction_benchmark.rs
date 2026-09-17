@@ -26,15 +26,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 
 use poker_protocol_core::{
-    CryptoTranscript, Curve, CurveScalar, ElGamalCiphertextGeneric, PoseidonFeltTranscript,
-    StarkCurve,
+    transcript_domains::RECONSTRUCT_POSEIDON, Curve, CurveScalar, ElGamalCiphertextGeneric,
+    PoseidonFeltTranscript, StarkCurve,
 };
 use poker_protocol_proofs::reconstruction::ReconstructProof;
 use rand_core::OsRng;
 
 const SAMPLES: usize = 7;
 const WARMUP: usize = 1;
-const TRANSCRIPT_LABEL: &[u8] = b"reconstruction-benchmark";
 
 // ============================================================
 // Counting allocator: peak concurrent allocated bytes per phase.
@@ -106,9 +105,7 @@ struct Fixture {
 
 fn fixture(n: usize, k: usize) -> Fixture {
     let cards = (0..n)
-        .map(|i| {
-            StarkCurve::hash_to_curve(format!("reconstruction-benchmark-card-{i}").as_bytes())
-        })
+        .map(|i| StarkCurve::hash_to_curve(format!("reconstruction-benchmark-card-{i}").as_bytes()))
         .collect::<Vec<_>>();
     let owner_sk = <<StarkCurve as Curve>::Scalar as CurveScalar>::random(&mut OsRng);
     let other_sk = <<StarkCurve as Curve>::Scalar as CurveScalar>::random(&mut OsRng);
@@ -134,7 +131,7 @@ fn fixture(n: usize, k: usize) -> Fixture {
 }
 
 fn run_prove(fixture: &Fixture, epoch: u64) -> Box<Package> {
-    let mut transcript = PoseidonFeltTranscript::new(TRANSCRIPT_LABEL);
+    let mut transcript = PoseidonFeltTranscript::new_domain(RECONSTRUCT_POSEIDON);
     let result = ReconstructProof::<StarkCurve>::prove(
         [7u8; 32],
         epoch,
@@ -152,7 +149,7 @@ fn run_prove(fixture: &Fixture, epoch: u64) -> Box<Package> {
 }
 
 fn run_verify(package: &Package) {
-    let mut transcript = PoseidonFeltTranscript::new(TRANSCRIPT_LABEL);
+    let mut transcript = PoseidonFeltTranscript::new_domain(RECONSTRUCT_POSEIDON);
     package
         .1
         .verify(&package.0, &mut transcript)
@@ -193,7 +190,9 @@ fn main() {
     );
 
     let csv_path = std::env::args().nth(1);
-    let mut csv = String::from("n,k,prove_us,verify_us,proof_bytes,statement_bytes,prove_peak_bytes,verify_peak_bytes\n");
+    let mut csv = String::from(
+        "n,k,prove_us,verify_us,proof_bytes,statement_bytes,prove_peak_bytes,verify_peak_bytes\n",
+    );
 
     for (n, k) in grid {
         let fixture = fixture(n, k);

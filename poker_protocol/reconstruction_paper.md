@@ -386,17 +386,15 @@ Lean 项目使用固定 Mathlib/VCV-io revision 和 `autoImplicit=false`。主�
 复现命令：
 
 ```bash
-cargo test --workspace
-(cd poker_protocol_lean && lake build PokerProtocolLean)
-(cd poker_protocol_lean && bash scripts/count_sorries.sh)
-(cd client-wasm && wasm-pack test --node --release)
-(cd client-wasm && wasm-pack build --target nodejs --release)
-node client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv
+./scripts/install_repro_deps.sh
+./scripts/reproduce_paper.sh
 ```
 
-实测使用 StarkCurve、Poseidon-felt transcript、release 构建并取 7 次采样中位数。`n=52,k=13` 的 prove/verify 为 153.9/105.0 ms，proof 21.78 KB，prove peak 85.2 KiB；`k=26` 为 166.9/115.6 ms、24.69 KB、93.0 KiB。完整网格位于 `paper/experiments/reconstruction_stark.csv`，结果显示耗时、证明体积和峰值分配随 `n,k` 近似线性增长。
+安装脚本在用户目录或仓库 `.repro/toolchains` 下配置锁定版本的 Rust、Lean、Node.js 与 `wasm-pack`，不调用 `sudo`；`--check` 只检查环境。复现脚本先核对已提交基线及源码哈希，再运行 Rust、WASM 和 Lean 验证，并将新测量写入 `.repro/results`，避免覆盖论文基线。每轮结果附带记录机器、工具版本、Git 状态和结果哈希的 `run_metadata.json`。
 
-WASM 侧复用同一 `ReconstructProof` 与 production transcript，输出 `BrowserReconstructionV3Bundle` 后先 Borsh 解码再验证。release Node/V8、7 次采样中位下，`n=52,k=13` 的 prove/verify 为 646/471 ms，proof 21.78 KB，完整 bundle 27.75 KB；`k=26` 为 725/501 ms、24.69 KB、31.49 KB。完整网格位于 `paper/experiments/reconstruction_wasm.csv`。
+实测使用 StarkCurve、production `RECONSTRUCT_POSEIDON` transcript 域、release 构建并取 7 次采样中位数。`n=52,k=13` 的 prove/verify 为 150.0/104.7 ms，proof 21.78 KB，prove peak 85.2 KiB；`k=26` 为 166.1/113.5 ms、24.69 KB、93.0 KiB。完整网格位于 `paper/experiments/reconstruction_stark.csv`，结果显示耗时、证明体积和峰值分配随 `n,k` 近似线性增长。
+
+WASM 侧复用同一 `ReconstructProof` 与 production transcript，输出 `BrowserReconstructionV3Bundle` 后先 Borsh 解码再验证。release Node/V8、7 次采样中位下，`n=52,k=13` 的 prove/verify 为 646/471 ms，proof 21.78 KB，完整 bundle 27.75 KB；`k=26` 为 725/501 ms、24.69 KB、31.49 KB。参考网格位于 `paper/experiments/reconstruction_wasm.csv`，机器、工具链、构建命令、预热策略以及 native/WASM 两组 CSV 哈希记录于 `paper/experiments/benchmark_metadata.json`；复现脚本另存新一轮结果。这些是 Node/V8 host 测量，不是 Chrome、Safari、Android 或 iOS 实机测量；当前未记录冷启动、P95、方差、峰值内存或网络端到端延迟，因此本文只主张 WASM wire boundary 和 JavaScript host 下的亚秒级结果，不主张移动端实时性能。
 
 ## 9. 限制与未来工作
 
@@ -406,6 +404,7 @@ WASM 侧复用同一 `ReconstructProof` 与 production transcript，输出 `Brow
 - 完整 UC 依赖可组合 FS-NIZK；标准模型需要 CRS extractable NIZK 或新证明。
 - 自适应腐化需要 erasure 或 non-committing 技术。
 - 多重持有由跨玩家 disjointness invariant 强制。
+- WASM 网格目前来自 Node/V8；Chrome/Safari 页面、Android/iOS 实机、冷启动/P95、峰值内存和网络端到端数据仍是待补实验，不应由当前表格外推。
 
 ## 10. 结论
 
