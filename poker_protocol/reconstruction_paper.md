@@ -53,7 +53,28 @@ C_i = Enc_P(0; v_i) 或 Enc_P(-m_i; v_i),
 
 心智扑克通常使用可加密曲线点、re-encryption shuffle、部分解密和 DLEQ/Chaum--Pedersen 证明。Bayer--Groth 提供短的隐藏置换证明；Schnorr、Chaum--Pedersen 和 generalized-Schnorr 证明线性关系知识；Fiat--Shamir 在 ROM 中把交互 Sigma protocol 转成 NIZK；UC 框架要求把证明、状态、调度和并发调用放入同一理想功能。
 
+Barnett--Smart [9] 给出后来广泛复用的 ElGamal mental-poker 基础和洗牌验证；Kurosawa 等人 [10] 与 Soo 等人 [11] 用 secret sharing 或可重排网络处理部分缺员/懒更新，但固定阈值与 coalition 恢复能力构成安全代价。较新的金融强制路线包括 Bentov 等人 [12]、Kaleidoscope [13] 和 ROYALE [14]；这些工作强化锁定、处罚和 UC 支付语义，但缺席处理主要通过 forfeit、超时或重新开局获得活性，而不是从认证 reveal-token 血统导出每个 residual carrier 的删除授权，也没有本文的逐槽 `0/-m_i` 语义。
+
 与这些组件相比，本文的目标不是新的 shuffle argument，而是 reconstruction 特有的槽位语义绑定：shuffle 只隐藏映射，逐槽 OR 限制明文，跨密钥联合证明连接 residual carrier，状态摘要认证历史血统。这个分层使每个组件可以被独立实现和形式化，再由组合定理连接。
+
+与 [7] 的对比需要区分活性与授权语义。先行工作解决 TTP-free dropout liveness；本文进一步把每个删除绑定到认证 singleton residual-carrier，并增加逐槽 `0/-m_i` OR proof、hidden carrier-to-slot map、exact coverage、多缺失密钥 residual 的保留策略，以及 Lean 机器检查的组合边界。
+
+在更早期的 TTP-free 方案中，Barnett--Smart 路线要求离场者披露自己的秘密层，因此不能处理恶意或意外离场；基于 secret sharing 的路线虽能容忍固定数量缺员，但足够大的 coalition 可恢复全部牌面信息。相反，[7] 通过 CDS 部分知识证明和 veto 因子实现无需离场者配合的继续游戏，是本工作最接近的活性先行方案。
+
+为了比较协议边界而不伪造运行数据，令 [7] 中活跃玩家数为 `N`，牌数为 `d=52`，历史发牌轮数为 `r`。其 dropout 后的重建需要重新生成整副牌：每个 face-down card 由 `N` 个 threshold-ElGamal 密文分量组成，公开牌组为 `dN` 个分量；每个玩家的 veto 层包含一组 `d` 个 re-masking pair、一个非 veto CDS 证明和 `r` 个 veto CDS 证明（每个均覆盖 `d` 个 Chaum--Pedersen 实例）；后续链式 re-masking 需要约 `dN^2` 个 Chaum--Pedersen 证明，再用 Barnett--Smart shuffle 证明处理 `dN` 个密文分量。作者完整论文 [8] 明确指出该 dropout 方案的效率仍需提升，且未给 dropout 路径的证明字节或运行时间实测。
+
+| 属性 | Dropout-tolerant TTP-free Mental Poker [7] | 本文 |
+|---|---|---|
+| 离场处理 | 玩家退出后继续运行 | deadline 或 crash 后继续运行 |
+| 离场后的牌组动作 | 从聚合公钥删除离场者份额并重建整副牌；其已抽牌回到牌组 | 只提交 state-bound reconstruction package；singleton owner-residual 精确移除，jointly keyed residual 保留 |
+| 公开牌组规模 | 每张牌 `N` 个密文分量，共 `dN` | `d` 个 canonical contribution，另有 `k` 个认证 residual carrier |
+| 证明关系规模 | 每玩家 `r+1` 个覆盖 `d` 实例的 CDS 证明；约 `dN^2` 个链式 CP 证明；再执行完整 shuffle proof | `k` 个跨密钥证明 + 1 个 Bayer--Groth + `d` 个槽位 OR |
+| 移除授权 | 协议级 dropout 恢复 | 认证 singleton residual-carrier 血统 |
+| 逐槽明文关系 | 未表述为零或负元隶属 | 每槽 `0/-m_i` OR proof |
+| 映射隐私 | 由协议组件隐藏 | hidden carrier-to-slot map + Bayer--Groth |
+| 多缺失密钥 | 未单列 carrier 类型 | jointly keyed residual 保留且不授权删除 |
+| 可复现实测 | 仅符号协议描述；无 dropout 路径 runtime/proof bytes | native + WASM `d,k` 网格与 CSV；`d=52,k=13` bundle 27.75 KB |
+| 形式化边界 | 论文密码学证明 | Lean 组合边界与显式假设 |
 
 ## 3. 模型与假设
 
@@ -200,13 +221,36 @@ B~_i = B_i + sum_{p in S_submit} C_{p,i}.
 
 未提交玩家是 no-op；超时影响 liveness，不允许提交者伪造他人的负贡献。在 `A8` 下，每个槽至多一个 negative branch。
 
+### 4.6 证明系统设计取舍
+
+协议刻意保留 Bayer--Groth 负责隐藏置换。它正是当前实现采用的成熟洗牌证明；用通用电路编译器替换它，改变的是 trusted-setup 边界和实现栈，而不是隔离本文新增的 reconstruction 语义。因此客户端构造由 Bayer--Groth、跨密钥 Sigma proof 和逐槽 OR proof 组成。
+
+贡献在于语义组合，而非宣称单个证明引擎新颖：residual-carrier 血统、跨密钥负元关系、exact coverage 和逐槽零/负元语义。透明的 Sigma 代数便于映射到 Lean 组件接口，并使浏览器端证明保持在实测亚秒级范围内。代价是 proof 大于 succinct 聚合论证；host 侧聚合仍是未来工程方向，本文不将其用作未经实测的性能对比。
+
 ## 5. Correctness 与 Standalone Security
 
 ### 定理 1（完备性）
 
-若 statement 满足认证状态条件，诚实玩家按 §4.2 生成 proof，则 verifier 接受，除去显式重采样的零挑战事件，概率界为 `O((n+k)/q)`。
+若 statement 满足认证状态条件，诚实玩家按 §4.2 生成 proof，则 verifier 接受，除去显式重采样的零挑战事件，概率界为 `O((n+k)q_H/q)`。
 
-**证明。** residual-carrier lineage 给出 `R_j=Enc_Q(m_{i(j)};r_j)`；跨密钥方程直接代入成立。Bayer--Groth 对正确 permutation/rerandomizer 完备。OR proof 的真实 branch 诚实响应，模拟 branch 由定义满足验证式，challenge share 之和等于全局 challenge。所有 statement 字段按相同顺序进入 transcript。□
+**证明。** 先证每个组件的 witness 确实存在。由 reveal-token lineage，
+`R_j=Enc_Q(m_{i(j)};r_j)=(r_j g,m_{i(j)}+r_j Q)`。诚实证明者解密得到唯一的 canonical card `m_{i(j)}`，采样 `v_j` 后构造
+`S_j=Enc_P(-m_{i(j)};v_j)=(v_j g,-m_{i(j)}+v_j P)`。代入跨密钥第三式：
+
+```text
+sk_Q R_j.c1 + v_j P
+  = sk_Q(r_j g)+v_jP = r_jQ+v_jP,
+R_j.c2+S_j.c2
+  = (m_{i(j)}+r_jQ)+(-m_{i(j)}+v_jP)
+  = r_jQ+v_jP.
+```
+
+因此三条跨密钥方程成立。对 `l=0,...,n-k-1`，确定性零贡献为
+`Z_l=Enc_P(0;l+1)`。证明者按选定的单射 `i(j)` 构造 permutation，并给出每个输出槽的 rerandomizer；因此 `(S||Z)` 到 canonical contributions 的 Bayer--Groth witness 存在，A4 的完备性给出 shuffle proof 接受。
+
+对槽位 `i`，若输入来自零贡献，则 `C_i.c1=v_i g` 且 `T_0=C_i.c2=v_i P`；若来自 `S_j`，则 `T_1=C_i.c2+m_{i(j)}=v_i P`。真实 branch 使用 `(v_i,commitment,response)` 诚实响应；模拟 branch 由选定的 challenge share 和 response 反向计算 commitment。两个 branch 的 challenge share 相加等于全局挑战，故 OR 验证方程成立。所有 statement 字段按相同 canonical 顺序进入 transcript，A6 保证不同组件的挑战互不混淆。
+
+唯一非完备事件是某个 Fiat--Shamir 挑战或 challenge share 为零导致响应等式退化，或模拟点已被对手预先查询。`k` 个跨密钥证明与 `n` 个 OR proof 的并集界为 `O((n+k)q_H/q)`。□
 
 ### 定理 2（知识可靠性）
 
@@ -217,7 +261,14 @@ B~_i = B_i + sum_{p in S_submit} C_{p,i}.
 3. `residualCarrierIndex` 单射；
 4. 每个 negative branch 对应 authenticated residual-carrier plaintext。
 
-**证明。** 对共享 transcript fork。Bayer--Groth fork 提取 permutation/rerandomizer；跨密钥 proof 提取同一 `(sk_Q,v_j)`；OR fork 提取该槽 branch randomness。将提取对象代入 Lean relation 得 residual-carrier 方程和槽位方程，再由 exact coverage 得 2--4。任一失败给出对应组件安全或 refinement 归约。□
+**证明。** 设 adversary 输出被 verifier 接受的 `(S,pi)`。对相同 statement 前缀 fork 到两个不同最终挑战。由 A6，前缀包含全部 statement 字段，因此两个 fork 使用同一 deck、carrier、contribution 和 transcript 状态。
+
+第一，A4 的 Bayer--Groth 特殊可靠性从 accepting shuffle proof 提取 permutation `pi` 和 rerandomizers `rho`。这证明 statement.contributions 是负贡献向量、确定性零贡献向量和 `(pi,rho)` 作用后的结果；若提取失败，直接得到 BG extractor 的失败事件。
+
+第二，对每个 `j`，跨密钥 Sigma proof 的两份 accepting transcript 提取同一 `(sk_Q,v_j)`。将 `sk_Q` 代入方程得
+`S_j=Enc_P(-Dec_Q(R_j);v_j)`。A7/refinement 保证 `R_j` 来自 authenticated state，因此其明文被绑定到历史手牌；若攻击者提交不满足该血统的 carrier，则归约为状态摘要伪造或 serialization refinement 失败。
+
+第三，对每个槽 `i`，OR proof 的两份 accepting transcript 提取 branch `b_i` 和 randomness `v_i`，并证明 `C_i` 的明文为 `0` 或 `-m_i`。与第一步提取的 permutation 合并，得到 `removed_i=true` 当且仅当某个已提取的 `R_j` 映射到槽 `i`。证明者在生成阶段先拒绝重复 residual plaintext，BG permutation 又是单射，所以 `residualCarrierIndex` 单射。任一提取失败计入 `eps_KS`；状态或字节映射失败计入 `eps_state+eps_ser`。□
 
 ### 定理 3（重建语义）
 
@@ -229,7 +280,17 @@ Dec_P(B~_i) =
   m_i,      若没有玩家持有 m_i.
 ```
 
-**证明。** 由定理 2，每个贡献明文属于 `{0,-m_i}`；exact coverage 保证对应 residual carrier 的槽得到负元。使用 ElGamal 同态性求和即可。□
+**证明。** 取一个提交者集合 `S_submit`，其证明均通过验证。对每个提交者应用定理 2。槽 `i` 的 contribution 明文属于 `{0,-m_i}`；只有当该提交者的某个 authenticated residual carrier 映射到 `i` 时才取负元。A8 保证跨玩家 residual-carrier 集不相交，因此同一 canonical card 至多收到一个负贡献。
+
+对槽 `i` 求和：
+
+```text
+Dec_P(B~_i)
+  = Dec_P(B_i + sum_{p in S_submit} C_{p,i})
+  = m_i + sum_{p in S_submit} plaintext(C_{p,i}).
+```
+
+若存在授权 carrier，上式为 `m_i-m_i=0`；若不存在，所有项为零，上式为 `m_i`。对 `|U|>=2` 的 jointly keyed residual，当前协议不生成 owner-residual witness，也不把它放入 removal-authorizing vector，因此对应槽只可能收到零贡献，牌在新 deck 中保留且从不解密。□
 
 ## 6. UC 理想功能与组合安全
 
@@ -249,21 +310,57 @@ Real protocol 从 `F_STATE` 获得 exact residual-carrier vector、`D_prev`、ca
 
 ### 6.4 条件 UC 定理
 
-**定理 4。** 在 `A1--A9` 下，若 BG、跨密钥和 OR 的 FS-NIZK 版本在 `F_RO` 中可提取、可模拟且可并发组合，则任意静态腐化 adversary/environment 对 real protocol 和 `F_RECON` 的区分度不超过各组件 ZK/KS 误差、DDH/fresh-DLog、state 和 serialization 误差及 `O((n+k)/q)`。
+**定理 4。** 在 `A1--A9` 下，若 BG、跨密钥和 OR 的 FS-NIZK 版本在 `F_RO` 中可提取、可模拟且可并发组合，则任意静态腐化 adversary/environment 对 real protocol 和 `F_RECON` 的区分度不超过
 
-模拟器对 corrupted proof 运行 extractor；对 honest proof 使用组件模拟器并按共享 transcript 编程 challenge；用 IND-CPA 和 fresh rerandomization hybrid 替换 honest contribution；对公开 ABI 字节逐字节转发。若恶意玩家尝试超出认证集合的负分支，归约到 state/proof/refinement 失败事件。由 UC composition theorem 得整体组合性；若只有 standalone NIZK，则结论限于同一 epoch 内固定顺序的一次调用。
+```text
+k*eps_DDH + eps_KS + eps_state + eps_ser
+  + O((n+k)*q_H/q).
+```
+
+其中 `eps_KS` 是所有腐化提交的组件知识可靠性（分叉）误差之和，`eps_state`、`eps_ser` 分别是认证状态与序列化误差，`q_H` 是对手随机预言机查询次数上界。
+
+**证明。** 证明由下面的模拟器构造、腐化提交提取和 `H0` 到 `H4` 的 hybrid 序列组成。
+
+**模拟器。** `S` 在内部运行 adversary `A`，把随机预言机实现为惰性采样表加上有限个编程点，并连同 `A7` 下字节一致的编码一起转发 `F_RECON` 的公开输出：deck size、carrier 数、密钥、epoch、digest、验证与 deadline 状态。腐化集合静态固定，因此 `S` 预先知道哪些提交需要模拟、哪些需要提取。除贡献向量外的每个 statement 字段都是公开或来自状态：context、epoch、`D_prev`、密钥与 cards 在两个世界中相同；residual carriers（含全部 jointly keyed carriers）由认证先前状态固定，在两个世界中同分布，且重建过程中从不解密。
+
+**诚实提交。** 对每个 owner-residual slot，模拟器抽取 `mu_j <- G`、`v_j <- Z_q`，令模拟负贡献 `S~_j=Enc_P(mu_j;v_j)`；确定性零贡献 `Z_l=Enc_P(0;l+1)` 与真实协议相同。随后抽取新鲜置换 `pi` 与 rerandomizer `rho`，把 canonical contributions 定义为重随机化洗牌 `C=[S~;Z]^(pi,rho)`。由构造存在完整 Bayer--Groth witness `(pi,rho)`，因此 `S` 直接运行诚实洗牌证明，不消耗 Bayer--Groth 的零知识性质。每个跨密钥证明由 HVZK 模拟产生：抽取 `z1,z2,e <- Z_q` 并计算承诺
+
+```text
+A1 = z1*g - e*Q
+A2 = z2*g - e*S~_j.c1
+A3 = z1*R_j.c1 + z2*P - e*(R_j.c2+S~_j.c2)
+H(tau) := e
+```
+
+其中 `tau` 是 canonical transcript point；三条验证等式恒成立。每个逐槽 OR 证明由 CDS 模拟产生：取挑战份额 `e0,e1` 满足 `e0+e1=e`，同时模拟两个分支并编程共享挑战。`A6` 的域分离保证编程点唯一；若对手已查询过即将编程的点，`S` 中止，总代价至多 `(n+k)*q_H/q`。
+
+**腐化提交。** `S` 原样转发对手 package bytes。被接受后，`S` 将 `A` 回卷到最后一个挑战，用新的编程挑战重放，并套用定理 2 的分叉提取器恢复置换、carrier 映射与全部分支 witness；提取失败受 `eps_KS` 约束。由定理 5，除非对手伪造状态摘要、组件证明或序列化 refinement（`eps_state+eps_ser`），提取出的负分支与认证 singleton missing-token derivation 完全一致；`S` 恰好将该集合提交给 `F_RECON`。未提交者在两个世界中都不产生消息；网络重排、丢弃与延迟经 deadline 语义转发。
+
+**Hybrid 论证。** 设 `H0` 为真实执行。
+
+1. `H0->H1`：用 `S` 的惰性表替换随机预言机。这是语法改动，两个视图相同。
+2. `H1->H2`：把每个诚实跨密钥证明替换为上述 HVZK 模拟。联合 Sigma 协议完美 HVZK（`ReconstructionJointSigma.lean` 的 `sigma_perfect_hvzk` 机器检查），差异仅来自编程中止，至多 `k*q_H/q`。
+3. `H2->H3`：把每个诚实逐槽 OR 证明替换为 CDS 模拟。OR 代数完美 HVZK（`ReconstructionSlotOr.lean` 的 `perfect_hvzk_algebraic`），附加代价至多 `n*q_H/q`。
+4. `H3->H4`：逐个把诚实负贡献明文 `-m_i(j)` 替换为随机 `mu_j`，每个 carrier 一跳。每跳把一个 ElGamal 挑战密文嵌入模拟向量，派生 canonical contribution 是该密文的新鲜重随机化，因此每跳给出 DDH（A2）下的 IND-CPA 区分器；`k` 跳共 `k*eps_DDH`。canonical contributions 与诚实 Bayer--Groth 证明由构造直接跟随模拟向量。
+5. `H4` 即与 `F_RECON` 和 `S` 的理想执行。各跳求和得到定理界；fresh-DLog 假设 `A3` 覆盖自上一轮继承的 jointly keyed carriers，它们在两个世界中同分布且从不被解密。
+
+若只有 standalone NIZK，则结论限于同一 epoch 内固定顺序的一次调用。
 
 ### 6.5 非己手牌 veto
 
 定义 `Veto(p,m)` 为玩家 `p` 的 accepted package 移除 `m`，但 `m` 不属于其 authenticated residual-carrier set。
 
-**定理 5。** 在 `A1,A4,A5,A6,A7,A8` 下，
+**定理 5。** 在 `A1,A4,A5,A6,A7,A8,A9` 下，
 
 ```text
 Pr[Veto(p,m)] <= eps_KS + eps_state + eps_ser.
 ```
 
 若 package 被接受，定理 2 给出 negative branch 及对应 residual-carrier plaintext。`D_prev` 的 exact-vector binding 把该 residual carrier 识别为 `p` 的认证手牌；否则攻击者伪造 state digest、joint/OR/BG proof 或 serialization refinement。若 `p` 不提交，则不存在其贡献，不能产生他人 negative branch。若两个玩家 residual-carrier sets 重叠或 owner secret 泄露，该定理前提失效。
+
+**证明。** 设 `Veto(p,m)` 发生但 `m` 不在 `p` 的 authenticated residual-carrier set 中。call context 和签名/会话绑定首先确定该 accepted package 归属于 `p`；若归属伪造，归约为认证失败。接受性允许对 package fork 并运行定理 2 的 extractor，得到某个 negative branch、其 randomness、carrier-to-slot 映射以及对应的 `R_j`。跨密钥可靠性给出 `R_j` 的明文为 `-plaintext(C_i)`；OR 可靠性给出 `plaintext(C_i)=-m`。因此 `R_j` 必须加密 `m`。
+
+精确向量状态绑定要求 `D_prev` 中的 `(p,R_j,m)` 三元组存在且 epoch/missing-token set 匹配。若不存在，则攻击者完成下列事件之一：伪造 `D_prev`（`eps_state`）、伪造跨密钥/OR/BG 证明并使 extractor 失败（`eps_KS`）、或让 Rust/AIR 字节串映射到错误的 Lean statement（`eps_ser`）。三者并集即为定理界。若 `p` 未提交，其 proof package 不进入聚合，事件不可能由 `p` 的提交造成。若 residual sets 重叠或 owner secret 在执行结束前泄露，则前提 A8/A9 失效，定理不适用。□
 
 ## 7. Lean 形式化
 
@@ -276,6 +373,7 @@ Lean 项目使用固定 Mathlib/VCV-io revision 和 `autoImplicit=false`。主�
 | 跨密钥 Sigma | `ReconstructionJointSigma.lean` | `relation_iff_cross_key`, `sigma_speciallySound`, `sigma_perfect_hvzk` | 共享 `(sk_Q,v)` 的联合证明 |
 | 槽位 OR | `ReconstructionSlotOr.lean` | `honest_accepts`, `specially_sound`, `perfect_hvzk_algebraic` | 完备、fork 提取与模拟 |
 | 组合层 | `ReconstructionSecurity.lean` | `verified_package_semantics` | 组件保证蕴含完整包语义 |
+| Veto 界 | `ReconstructionVeto.lean` | `veto_free_extraction`, `veto_error_bound_negligible` | 未授权槽位无法移除，误差并集可忽略 |
 
 `ReconstructionSecurity.ComponentInterface` 汇集 BG、FS、transcript、serialization、state 和 disjointness 的安全保证。`VerifiedPackage` 同时保存 public statement、提取 witness、公共有效性和组件保证。`verified_package_semantics` 由该包一次性导出 `ValidRelation`、exact residual-carrier coverage 和逐槽 `{0,-m_i}` 隶属关系。
 
@@ -283,17 +381,22 @@ Lean 项目使用固定 Mathlib/VCV-io revision 和 `autoImplicit=false`。主�
 
 ## 8. 实现与复现
 
-代码分为 `poker-protocol-core`（曲线、ElGamal、transcript）、`poker-protocol-bg`（Bayer--Groth）、`poker-protocol-proofs`（reconstruction proof）、`poker_protocol`（ABI/native adapter）和 `poker_protocol_lean`（形式化）。Native dispatch 当前使用 Stark curve/Poseidon 域；Ristretto wrapper 只构造 AIR/ABI submission，不在本仓库内验证 AIR archive。
+代码分为 `poker-protocol-core`（曲线、ElGamal、transcript）、`poker-protocol-bg`（Bayer--Groth）、`poker-protocol-proofs`（reconstruction proof）、`poker_protocol`（ABI/native adapter）、`client-wasm`（浏览器桥接与 WASM 基准）和 `poker_protocol_lean`（形式化）。Native dispatch 当前使用 Stark curve/Poseidon 域；Ristretto wrapper 只构造 AIR/ABI submission，不在本仓库内验证 AIR archive。
 
 复现命令：
 
 ```bash
 cargo test --workspace
-cd poker_protocol_lean && lake build PokerProtocolLean
-cd poker_protocol_lean && bash scripts/count_sorries.sh
+(cd poker_protocol_lean && lake build PokerProtocolLean)
+(cd poker_protocol_lean && bash scripts/count_sorries.sh)
+(cd client-wasm && wasm-pack test --node --release)
+(cd client-wasm && wasm-pack build --target nodejs --release)
+node client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv
 ```
 
-实验报告应给出曲线、transcript、release/dev mode、proof bytes、prove/verify 时间、峰值内存，以及 `k` 个跨密钥证明和 `n` 个 OR proof 的线性增长。
+实测使用 StarkCurve、Poseidon-felt transcript、release 构建并取 7 次采样中位数。`n=52,k=13` 的 prove/verify 为 153.9/105.0 ms，proof 21.78 KB，prove peak 85.2 KiB；`k=26` 为 166.9/115.6 ms、24.69 KB、93.0 KiB。完整网格位于 `paper/experiments/reconstruction_stark.csv`，结果显示耗时、证明体积和峰值分配随 `n,k` 近似线性增长。
+
+WASM 侧复用同一 `ReconstructProof` 与 production transcript，输出 `BrowserReconstructionV3Bundle` 后先 Borsh 解码再验证。release Node/V8、7 次采样中位下，`n=52,k=13` 的 prove/verify 为 646/471 ms，proof 21.78 KB，完整 bundle 27.75 KB；`k=26` 为 725/501 ms、24.69 KB、31.49 KB。完整网格位于 `paper/experiments/reconstruction_wasm.csv`。
 
 ## 9. 限制与未来工作
 
@@ -310,9 +413,17 @@ cd poker_protocol_lean && bash scripts/count_sorries.sh
 
 ## 参考文献
 
-* R. Canetti. “Universally Composable Security.” FOCS 2001.
-* S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” EUROCRYPT 2012.
-* D. Chaum and T. Pedersen. “Wallet Databases with Observers.” CRYPTO 1992.
-* R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” CRYPTO 1994.
-* A. Fiat and A. Shamir. “How to Prove Yourself.” CRYPTO 1986.
-* C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” CRYPTO 1989.
+* R. Canetti. “Universally Composable Security: A New Paradigm for Cryptographic Protocols.” In IEEE FOCS, pp. 136–145, 2001. doi:10.1109/SFCS.2001.959888.
+* S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” In EUROCRYPT, LNCS 7237, pp. 263–280, 2012. doi:10.1007/978-3-642-29011-4_17.
+* D. Chaum and T. P. Pedersen. “Wallet Databases with Observers.” In CRYPTO, LNCS 740, pp. 89–105, 1992. doi:10.1007/3-540-48071-4_7.
+* R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” In CRYPTO, LNCS 839, pp. 174–187, 1994. doi:10.1007/3-540-48658-5_19.
+* A. Fiat and A. Shamir. “How To Prove Yourself: Practical Solutions to Identification and Signature Problems.” In CRYPTO, LNCS 263, pp. 186–194, 1986. doi:10.1007/3-540-47721-7_12.
+* C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” In CRYPTO, LNCS 435, pp. 239–252, 1989. doi:10.1007/0-387-34805-0_22.
+* J. Castellà-Roca, F. Sebé, and J. Domingo-Ferrer. “Dropout-Tolerant TTP-Free Mental Poker.” In Trust, Privacy, and Security in Digital Business, LNCS 3592, pp. 30–40, 2005. doi:10.1007/11537878_4.
+* J. Castellà-Roca. “Contributions to Mental Poker.” PhD thesis, Universitat Autònoma de Barcelona, 2005.
+* A. Barnett and N. P. Smart. “Mental Poker Revisited.” In Cryptography and Coding, LNCS 2898, pp. 370–383, 2003. doi:10.1007/978-3-540-40974-8_29.
+* K. Kurosawa, Y. Katayama, and W. Ogata. “Reshufflable and Laziness Tolerant Mental Card Game Protocol.” IEICE Transactions on Fundamentals, 1997.
+* W. H. Soo, A. Samsudin, and A. Goh. “Efficient Mental Card Shuffling via Optimised Arbitrary-Sized Benes Permutation Network.” In Information Security, LNCS 2433, pp. 446–458, 2002. doi:10.1007/3-540-45811-5_35.
+* I. Bentov, R. Kumaresan, and A. Miller. “Instantaneous Decentralized Poker.” In ASIACRYPT, LNCS 10625, pp. 410–440, 2017. doi:10.1007/978-3-319-70697-9_15.
+* B. David, R. Dowsley, and M. Larangeira. “Kaleidoscope: An Efficient Poker Protocol with Payment Distribution and Penalty Enforcement.” In Financial Cryptography and Data Security, LNCS 10958, pp. 500–519, 2018. doi:10.1007/978-3-662-58387-6_27.
+* B. David, R. Dowsley, and M. Larangeira. “ROYALE: A Framework for Universally Composable Card Games with Financial Rewards and Penalties Enforcement.” In Financial Cryptography and Data Security, LNCS 11598, pp. 282–300, 2019. doi:10.1007/978-3-030-32101-7_18.

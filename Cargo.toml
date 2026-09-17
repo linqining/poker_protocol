@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "client-wasm",
     "poker_protocol",
     "poker-protocol-core",
     "poker-protocol-proofs",

@@ -8,12 +8,14 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
+import json
 import textwrap
 
 OUT = Path('/Users/mac/projects/poker_protocol/paper')
 OUT.mkdir(parents=True, exist_ok=True)
 ASSET = OUT / 'figures'
 ASSET.mkdir(exist_ok=True)
+METADATA_PATH = OUT / 'submission_metadata.json'
 
 NAVY = '17365D'
 BLUE = '2F75B5'
@@ -22,6 +24,32 @@ PALE = 'F6F8FB'
 MID = 'D9E2F3'
 GRAY = '666666'
 BLACK = '000000'
+
+DEFAULT_METADATA = {
+    'title': 'Composable Privacy-Preserving Deck Reconstruction for Mental Poker',
+    'subtitle': 'Slot semantics, cross-key proofs, and a machine-checked composition boundary',
+    'authors': [],
+    'corresponding_author': None,
+    'funding': None,
+    'acknowledgements': None,
+    'keywords': ['Mental Poker', 'zero knowledge', 'UC security', 'formal verification'],
+}
+
+def submission_metadata():
+    metadata = dict(DEFAULT_METADATA)
+    if METADATA_PATH.exists():
+        with METADATA_PATH.open(encoding='utf-8') as handle:
+            metadata.update(json.load(handle))
+    return metadata
+
+def author_block(metadata):
+    if not metadata.get('authors'):
+        return 'Author names and affiliations must be supplied before submission'
+    return '; '.join(metadata['authors'])
+
+def validate_submission_metadata(metadata):
+    if not metadata.get('authors'):
+        raise ValueError('paper/submission_metadata.json authors must be filled before DOCX generation')
 
 def set_cell_shading(cell, fill):
     tcPr = cell._tc.get_or_add_tcPr()
@@ -263,6 +291,7 @@ def add_table(doc, headers, rows, widths=None):
     return t
 
 def build():
+    metadata = submission_metadata(); validate_submission_metadata(metadata)
     make_figures()
     doc=Document(); setup_styles(doc)
     sec=doc.sections[0]; sec.top_margin=Inches(0.75); sec.bottom_margin=Inches(0.7); sec.left_margin=Inches(0.82); sec.right_margin=Inches(0.82)
@@ -272,14 +301,15 @@ def build():
     footer=sec.footer.paragraphs[0]; footer.alignment=WD_ALIGN_PARAGRAPH.CENTER; footer.add_run('Poker Protocol  •  '); add_page_field(footer)
     for r in footer.runs: r.font.size=Pt(8); r.font.color.rgb=RGBColor.from_string(GRAY)
     # title page
-    p=doc.add_paragraph(style='Title'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Composable Privacy Preserving Deck Reconstruction for Mental Poker')
-    p=doc.add_paragraph(style='Subtitle Custom'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('Slot semantics, cross-key proofs, and a machine-checked composition boundary')
-    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(25); p.add_run('17 September 2026  •  poker_protocol repository')
+    p=doc.add_paragraph(style='Title'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(metadata['title'])
+    p=doc.add_paragraph(style='Subtitle Custom'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(metadata['subtitle'])
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(25); p.add_run('Manuscript prepared for IEEE Transactions on Information Forensics and Security')
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(author_block(metadata))
+    for label, value in [('Corresponding author:', metadata.get('corresponding_author')), ('Funding:', metadata.get('funding')), ('Acknowledgements:', metadata.get('acknowledgements'))]:
+        if value:
+            p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; r=p.add_run(label+' '); r.bold=True; p.add_run(str(value))
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(4)
     p.add_run('Source repository: ').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
-    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(36)
-    r=p.add_run('Scope of the claim'); r.bold=True; r.font.color.rgb=RGBColor.from_string(NAVY)
-    add_para(doc,'The conditional UC theorem is stated in the random-oracle model and assumes the security of the Bayer–Groth, cross-key, and slot OR components, authenticated reveal-token state, and a byte-level refinement relation between the implementation and the formal model. Lean checks the residual-carrier lineage, algebraic reconstruction relation, cross-key Sigma protocol, slot OR protocol, and the composition theorem. Computational component security and implementation refinement remain explicit assumptions; they are not silently treated as algebraic facts.','Small Note')
     doc.add_page_break()
     # abstract + metadata
     doc.add_heading('Abstract', level=1)
@@ -287,9 +317,6 @@ def build():
     add_para(doc,'This paper presents a residual-ciphertext reconstruction protocol that lets the remaining table continue after a participant leaves. The reconstruction input is an authenticated state-bound residual carrier obtained by subtracting the reveal tokens that were actually submitted. With one missing token, the residual is encrypted under one owner key and that owner can decrypt it; with two or more missing tokens, the residual is encrypted under the sum of several keys and no individual player can decrypt it. Reconstruction nevertheless remains possible: only an authenticated owner-residual carrier may authorize a negative contribution, while a jointly keyed unknown card receives the zero branch and therefore remains in the freshly rebuilt canonical deck without being revealed.')
     add_para(doc,'For each canonical slot, the prover contributes an encryption under the aggregate public key of either zero or the negative of that slot’s card. A cross-key proof links every negative branch to an authenticated residual carrier; a hidden shuffle conceals the mapping; a two-branch OR proof enforces the per-slot plaintext relation; and a domain-separated transcript binds the table context, epoch, state digest, keys, cards, residual carriers, and contributions. Under the stated assumptions, an accepted package yields an extractable witness with exact carrier coverage. The Lean composition theorem composes these guarantees into public validity, authenticated residual coverage, and per-slot plaintext membership.')
     p=doc.add_paragraph(); p.paragraph_format.space_before=Pt(8); r=p.add_run('Keywords. '); r.bold=True; p.add_run('Mental Poker; verifiable shuffle; ElGamal; generalized Schnorr; zero knowledge; UC security; formal verification.')
-    doc.add_heading('Reading guide', level=1)
-    add_para(doc,'Sections 1–3 motivate the departure problem and state the algebraic and computational assumptions. Section 4 gives the protocol. Sections 5–6 state correctness, standalone security, and the conditional UC composition theorem. Section 7 explains the Lean boundary, while Sections 8–10 cover reproducibility, limitations, and conclusions.')
-
     doc.add_heading('1. Introduction and motivation', level=1)
     add_para(doc,'Mental Poker protocols use public-key encryption, re-encryption, and proofs of correct shuffling to let several players deal and play without revealing the deck. The basic multiplayer construction is cooperative: each player applies a private shuffle or masking step, and the next phase assumes that all required steps are completed. This assumption is reasonable for a synchronous toy protocol, but it is a serious availability problem for a real table. A player may disconnect, crash, or deliberately refuse to continue. If the cards still contain that player’s encryption layer, the remaining players cannot simply delete the layer or guess which cards belonged to the absent player. The deck then cannot be safely reconstructed.')
     add_para(doc,'The central contribution of this work is to separate card provenance from the absent user’s participation in the current round. During normal play, the table state records authenticated residual ciphertexts together with the reveal-token lineage that produced them. After one or more players fail to submit a token, an active participant can use each decryptable owner-residual carrier to construct a reconstruction proof. The proof removes exactly those authorized cards, preserves every other canonical card, and exposes neither the mapping nor the card values. A jointly keyed residual that no player can decrypt authorizes no negative branch, so its canonical card remains in the new deck. Thus the table can proceed without requiring every previous card plaintext to be known by an online player.')
@@ -302,7 +329,23 @@ def build():
 
     doc.add_heading('2. Background and related work', level=1)
     add_para(doc,'Classical Mental Poker constructions combine public-key encryption with successive private shuffles. Bayer–Groth gives a compact zero-knowledge argument for a hidden permutation and re-encryption [2]. Schnorr, Chaum–Pedersen, and partial-knowledge protocols establish the required linear and disjunctive relations [3,4,6], while Fiat–Shamir turns Sigma protocols into non-interactive proofs in the random-oracle model [5]. UC security accounts for state, scheduling, concurrency, and adversarial message delivery [1]. Castellà-Roca, Sebé, and Domingo-Ferrer specifically address dropout-tolerant, TTP-free Mental Poker [7]. Their construction is relevant to liveness, but it does not bind each prover-selected removal to authenticated per-card owner lineage in the manner required here; consequently, it leaves a possible path for a prover to veto a card that is not its own.')
+    add_para(doc,'Barnett–Smart [9] supplies the widely reused ElGamal mental-poker foundation and shuffle verification. Kurosawa et al. [10] and Soo et al. [11] tolerate bounded absence or lazy updates using secret sharing and rearrangeable networks, but the fixed threshold and coalition recovery capability are security costs. Newer financially enforced designs — Instantaneous Decentralized Poker [12], Kaleidoscope [13], and ROYALE [14] — strengthen collateral, penalties, and composable payment semantics. Their absence handling is primarily forfeiture, timeout, or restart; they do not derive per-carrier removal authorization from authenticated reveal-token lineage, nor do they prove the per-slot {0,−m_i} relation central to reconstruction.')
     add_para(doc,'Those ingredients do not by themselves solve the departure problem. A shuffle proof can show that an output is a re-encrypted permutation of an input, but it does not say that a particular output slot contains either the original card or an identity correction. Nor does it identify which correction is authorized by the authenticated history of the table. Our protocol adds the missing reconstruction layer: hidden shuffling protects the mapping, the slot OR proof restricts plaintexts, the cross-key proof links a negative contribution to an authenticated owner-residual carrier, and the state digest authenticates the card’s provenance.')
+    add_para(doc,'Earlier TTP-free routes either asked a departing player to reveal its secret layer or used secret sharing to tolerate a fixed number of absentees; the latter permits a sufficiently large coalition to recover the deck. The closest liveness construction [7] instead uses CDS partial-knowledge proofs and veto factors, so the remaining table can continue without the departed player’s cooperation.')
+    add_para(doc,'To compare protocol boundaries without inventing runtime numbers, let N denote active players in [7], d=52 cards, and r prior dealing rounds. Dropout recovery regenerates the whole deck: each face-down card consists of N threshold-ElGamal components, for dN public components. Each player’s veto layer publishes d re-masking pairs and one non-veto CDS argument plus r veto CDS arguments, each over d Chaum–Pedersen instances. The subsequent re-masking chain uses about dN² Chaum–Pedersen proofs, followed by a full Barnett–Smart shuffle argument over dN ciphertext components. The extended thesis [8] states that dropout-path efficiency still needs improvement and reports no dropout-specific proof-byte or runtime measurements.')
+    add_para(doc,'The comparison below summarizes the boundary with the closest dropout-tolerant construction. The comparison concerns the security object being proved: the earlier work provides a valuable liveness mechanism, while this paper adds authenticated per-card authorization and a machine-checked semantic bridge.')
+    add_table(doc,['Property','Dropout-tolerant TTP-free Mental Poker [7]','This work'],[
+        ('Dropout handling','Continues after a player leaves','Continues after deadline or crash'),
+        ('Post-departure deck action','Remove leaver key share and regenerate; leaver’s cards return','Submit a state-bound package; singleton residuals removed, jointly keyed residuals retained'),
+        ('Public deck size','N ciphertext components per card, dN total','d canonical contributions plus k authenticated carriers'),
+        ('Proof relation count','N(r+1) CDS arguments over d CP instances; about dN² chain CP proofs; then a full shuffle proof','k cross-key proofs + one Bayer–Groth + d slot OR proofs'),
+        ('Removal authorization','Protocol-level dropout recovery','Authenticated singleton residual-carrier lineage'),
+        ('Per-slot plaintext relation','Not stated as zero-or-negative membership','OR proof for 0 or −m_i at every slot'),
+        ('Mapping privacy','Hidden by protocol components','Hidden carrier-to-slot map plus BG proof'),
+        ('Formal assurance','Cryptographic proof in the paper','Lean checked composition boundary plus explicit assumptions'),
+        ('Multi-missing-key case','Not separated as a carrier class','Jointly keyed residual retained; no unauthorized removal'),
+        ('Measured evidence','Symbolic description only; no dropout runtime or proof bytes','Native and WASM d,k grids; d=52,k=13 bundle is 27.75 KB'),
+    ],widths=[1.45,2.55,2.2])
 
     doc.add_heading('3. Model and assumptions', level=1)
     add_para(doc,'Let q be a large prime, F_q the scalar field, and G a prime-order additive group with generator g. For a public key P = xg, define the additive ElGamal encryption and decryption functions as follows.')
@@ -349,17 +392,23 @@ def build():
     add_para(doc,'An absent or late participant contributes nothing. Under A8, at most one accepted contribution can carry the negative branch for a given authenticated residual slot. A participant cannot use a missed submission to authorize a negative contribution for a carrier outside the authenticated missing-key set.')
     add_figure(doc,ASSET/'fig_slot_semantics.png','Figure 3. Slot-local OR semantics and exact residual-carrier coverage. The global deck relation is obtained by composing these per-slot constraints with an injective carrier-to-slot map.')
 
+    doc.add_heading('4.6 Proof-system design rationale', level=2)
+    add_para(doc,'The protocol deliberately retains Bayer–Groth for permutation hiding. It is the mature shuffle argument used by the implementation, and replacing it with a generic circuit compiler would change both the trusted-setup boundary and the implementation stack rather than isolate the new reconstruction semantics. The client-side construction therefore composes Bayer–Groth with cross-key Sigma proofs and slot OR proofs.')
+    add_para(doc,'The contribution is this semantic composition, not a claim that the individual proof engines are new: authenticated residual-carrier lineage, a cross-key negative relation, exact coverage, and a zero-or-negative relation for every canonical slot. Transparent Sigma algebra also maps directly to the Lean component interface and keeps browser proving within the measured sub-second envelope. The resulting proofs are larger than a succinct aggregated argument; host-side aggregation remains future engineering work and is not used as an unmeasured performance comparison.')
+
     doc.add_heading('5. Correctness and standalone security', level=1)
     doc.add_heading('Theorem 1 (Completeness)', level=2)
-    add_para(doc,'If the statement satisfies the authenticated-state conditions and an honest prover follows Section 4.2, the verifier accepts except for explicit zero-challenge events, with failure probability bounded by O((n+k)/q).')
-    add_para(doc,'Proof sketch. Reveal-token lineage for each removal-authorizing carrier gives Rⱼ = Enc_Q(mᵢ₍ⱼ₎; rⱼ), where Q is the unique missing-token owner key, so the cross-key equation holds by direct substitution. A jointly keyed residual is absent from the removal-authorizing vector and induces the zero branch. Bayer–Groth is complete for the correct permutation and rerandomizers. The real OR branch is honest and the simulated branch satisfies its verification equation; the branch challenges sum to the global challenge. All statement fields enter the transcript in the same order.')
+    add_para(doc,'If the statement satisfies the authenticated-state conditions and an honest prover follows Section 4.2, the verifier accepts except for explicit zero-challenge events, with failure probability bounded by O((n+k)q_H/q).')
+    add_para(doc,'Proof. A witness exists for every component. Lineage gives Rⱼ = Enc_Q(mᵢ₍ⱼ₎; rⱼ). The honest prover decrypts the unique canonical card, samples vⱼ, and constructs Sⱼ = Enc_P(−mᵢ₍ⱼ₎; vⱼ). Substituting in the third cross-key equation gives sk_Q(rⱼg)+vⱼP = rⱼQ+vⱼP and mᵢ₍ⱼ₎+rⱼQ−mᵢ₍ⱼ₎+vⱼP = rⱼQ+vⱼP, so all three equations hold. The deterministic zero encryptions are Z_l = Enc_P(0; l+1), and the selected injective map defines a permutation and rerandomizers; hence a complete Bayer–Groth witness exists.')
+    add_para(doc,'For slot i, a zero input satisfies Cᵢ.c₁ = vᵢg and T₀ = Cᵢ.c₂ = vᵢP, while a negative input satisfies T₁ = Cᵢ.c₂+mᵢ = vᵢP. The real OR branch is answered honestly; the simulated branch computes its commitment from a chosen challenge share and response, and the two shares sum to the global challenge. Every statement field enters the transcript in the same canonical order. Failure therefore requires a zero challenge/share or a previously queried programmed point; across k cross-key proofs and n OR proofs the union is O((n+k)q_H/q).')
     doc.add_heading('Theorem 2 (Knowledge soundness)', level=2)
     add_para(doc,'Under A1, A4, A5, A6, and A7, an extractor for any accepted statement/proof returns a witness (removed, v, carrierIndex, …), except with the component security error, such that: (i) every slot contribution encrypts either 0 or −mᵢ; (ii) removedᵢ = true exactly when some authenticated carrier index maps to slot i; (iii) carrierIndex is injective; and (iv) every negative branch is linked to the authenticated residual-token derivation.')
-    add_para(doc,'Proof sketch. Forking the shared transcript extracts the Bayer–Groth permutation and rerandomizers, the owner-residual carrier relation witness, and the branch witness from each OR proof. The extracted objects satisfy the Lean relation; exact carrier coverage yields items (ii)–(iv). Any failure reduces to a component security failure or to a state/serialization refinement failure.')
+    add_para(doc,'Proof. Fork an accepted package at the same complete statement prefix to two distinct final challenges. A4 extracts a permutation and rerandomizers from the Bayer–Groth proof, showing that the canonical contributions are the stated shuffle of negative and deterministic-zero ciphertexts. A5 extracts the same (sk_Q,vⱼ) from each cross-key proof; substitution gives Sⱼ = Enc_P(−Dec_Q(Rⱼ);vⱼ). A5 also extracts the branch and randomness from every slot OR proof, proving plaintext membership in {0,−mᵢ}.')
+    add_para(doc,'Combining the extracted shuffle with the OR witnesses yields removedᵢ = true exactly when an extracted carrier maps to i. The prover rejects duplicate residual plaintexts and the extracted shuffle permutation is injective, so carrierIndex is injective. A7 and the byte refinement bind each accepted Rⱼ to the authenticated prior hand; otherwise the reduction forges the state digest or violates serialization. Extractor failure is counted in ε_KS, and the state/encoding failure is counted in ε_state+ε_ser.')
     doc.add_heading('Theorem 3 (Reconstruction semantics)', level=2)
     add_para(doc,'Let χᵢ = 1 exactly when an accepted submitter has an authenticated owner-residual carrier that authorizes removal of mᵢ in the current epoch. Under A8,')
     add_equation(doc,'Decₚ(B̃ᵢ) = 0  if χᵢ = 1;      Decₚ(B̃ᵢ) = mᵢ  if χᵢ = 0.')
-    add_para(doc,'This follows from Theorem 2, the per-slot plaintext relation, exact owner-residual coverage, and ElGamal homomorphism. In particular, |U| ≥ 2 implies χᵢ = 0 for that residual: nobody learns mᵢ, yet the fresh canonical base ensures that mᵢ remains in the rebuilt encrypted deck.')
+    add_para(doc,'Proof. Apply Theorem 2 to every accepted submitter. Each contribution for slot i encrypts 0 or −mᵢ, and only an authenticated carrier mapped to i can produce the negative plaintext. By A8, cross-player carrier sets are disjoint, so at most one accepted contribution is negative. ElGamal homomorphism gives Dec_P(B̃ᵢ)=mᵢ+Σ plaintext(Cₚ,ᵢ), which is 0 when an authorized carrier exists and mᵢ otherwise. For |U|≥2, no owner-residual witness is placed in the removal-authorizing vector, so every accepted contribution is zero and the card remains encrypted without being decrypted.')
 
     doc.add_heading('6. UC ideal functionality and composition', level=1)
     doc.add_heading('6.1 Hybrid model', level=2)
@@ -371,6 +420,7 @@ def build():
     add_para(doc,'The real protocol obtains the exact owner-residual vector, reveal-token lineage, previous digest, canonical deck, and aggregate key from authenticated state. The client runs ReconstructProof::prove; the verifier checks the statement and proof; the host performs homomorphic aggregation and validates call context, epoch, state digest, and the next shuffle input. A |U| ≥ 2 residual is not presented as an owner-residual input and therefore cannot authorize a negative contribution. An abort produces a no-op or timeout, never an arbitrary negative contribution.')
     doc.add_heading('6.4 Conditional UC theorem', level=2)
     add_para(doc,'Theorem 4. Under A1–A9, if the Bayer–Groth, cross-key, and slot OR Fiat–Shamir proofs are extractable, simulatable, and concurrently composable in the random-oracle hybrid, then every static adversary/environment has negligible distinguishing advantage between the real protocol and F_RECON. The bound is k·ε_DDH + ε_KS + ε_state + ε_ser + O((n+k)·q_H/q), where ε_KS is the component knowledge-soundness (forking) error summed over corrupted submissions, ε_state and ε_ser are the authenticated-state and serialization errors, and q_H bounds the adversary’s random-oracle queries.')
+    add_para(doc,'Proof. The simulator construction, corrupted-submission extractor, and H₀-to-H₄ hybrid sequence below establish the stated bound.')
     doc.add_heading('Simulator', level=3)
     add_para(doc,'The simulator S runs the adversary A internally, realizes the random oracle as a lazily sampled table plus a finite set of programmed points, and forwards F_RECON’s public outputs — deck size, carrier count, keys, epoch, digests, verification and deadline status — together with the byte-identical A7 encodings. The corruption set is static, so S knows in advance which submissions to simulate and which to extract. Every statement field except the contribution vector is public or state-sourced: context, epoch, D_prev, keys, and cards are identical in both worlds, and the residual carriers (including all jointly keyed carriers) are fixed by the authenticated prior state, are identically distributed in both worlds, and are never decrypted during reconstruction.')
     doc.add_heading('Honest submissions', level=3)
@@ -385,7 +435,8 @@ def build():
         p=doc.add_paragraph(style='List Number'); p.add_run(s)
     doc.add_heading('6.5 Vetoing another player’s card', level=2)
     add_para(doc,'Define Veto(p,m) as an accepted package by player p that removes m even though the authenticated residual-carrier derivation for p’s epoch does not authorize m.')
-    add_para(doc,'Theorem 5. Under A1, A4, A5, A6, A7, and A8, Pr[Veto(p,m)] ≤ ε_KS + ε_state + ε_ser. Acceptance gives the extracted negative branch and its owner-residual witness. Exact-vector state binding identifies that carrier with an authenticated singleton missing-token derivation; otherwise the adversary forged the state digest, a proof, or the serialization refinement. If p does not submit, no contribution from p exists. The bound does not apply when the authenticated missing-key invariant or owner-key secrecy fails.')
+    add_para(doc,'Theorem 5. Under A1, A4, A5, A6, A7, A8, and A9, Pr[Veto(p,m)] ≤ ε_KS + ε_state + ε_ser. Acceptance gives the extracted negative branch and its owner-residual witness. Exact-vector state binding identifies that carrier with an authenticated singleton missing-token derivation; otherwise the adversary forged the state digest, a proof, or the serialization refinement. If p does not submit, no contribution from p exists. The bound does not apply when the authenticated missing-key invariant or owner-key secrecy fails.')
+    add_para(doc,'Proof. Suppose Veto(p,m) occurs although m is not in p’s authenticated set. Call-context and session authentication attribute the accepted package to p. Fork that package and apply Theorem 2: the OR extractor gives plaintext −m for slot i, the cross-key extractor gives a carrier Rⱼ decrypting to m, and the shuffle extractor maps that carrier to i. Exact-vector state binding now requires the triple (p,Rⱼ,m), with the current epoch and missing-token set, to be present in D_prev. If it is absent, one of three failures occurred: D_prev was forged (ε_state), a component proof accepted but extraction failed (ε_KS), or implementation bytes were refined to the wrong Lean statement (ε_ser). The union gives the bound. If p submits nothing, its package cannot enter aggregation; overlapping carrier sets or pre-execution owner-key leakage violate A8/A9 and invalidate the premise.')
     add_figure(doc,ASSET/'fig_composition.png','Figure 4. The formalization exposes a precise machine-checked boundary. Group algebra and component interfaces feed the composition theorem; computational assumptions are then used by the conditional UC argument.')
 
     doc.add_heading('7. Lean formalization', level=1)
@@ -400,11 +451,26 @@ def build():
 
     doc.add_heading('8. Implementation and reproducibility', level=1)
     add_para(doc,'The code is organized as follows:')
-    add_table(doc,['Component','Role'],[('poker-protocol-core','Curve arithmetic, ElGamal, and transcripts.'),('poker-protocol-bg','Bayer–Groth shuffle component.'),('poker-protocol-proofs','Reconstruction, cross-key, OR, and related proofs.'),('poker_protocol','Native adapter, ABI, and game integration.'),('poker_protocol_lean','Formal specification and checked composition.')],widths=[2.1,4.0])
+    add_table(doc,['Component','Role'],[('poker-protocol-core','Curve arithmetic, ElGamal, and transcripts.'),('poker-protocol-bg','Bayer–Groth shuffle component.'),('poker-protocol-proofs','Reconstruction, cross-key, OR, and related proofs.'),('poker_protocol','Native adapter, ABI, and game integration.'),('client-wasm','Browser bridge and reproducible WASM benchmark.'),('poker_protocol_lean','Formal specification and checked composition.')],widths=[2.1,4.0])
     add_para(doc,'The native path uses the Stark-curve/Poseidon transcript domain. The Ristretto adapter constructs the public submission object; verification of an external AIR archive is outside this repository. The Move contract stores the partial ciphertext after subtracting submitted reveal tokens, while the AIR test helper derives the |U| = 1 owner-residual vector by subtracting every other seat’s token. When two or more tokens are missing, no owner-residual vector entry is created and the rebuilt canonical slot remains unchanged. The repository branch containing the paper and implementation is https://github.com/linqining/poker_protocol/tree/feat/paper.')
     add_para(doc,'To reproduce the checks:')
-    add_equation(doc,'cargo test --workspace\ncd poker_protocol_lean && lake build PokerProtocolLean\ncd poker_protocol_lean && bash scripts/count_sorries.sh\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark')
-    add_para(doc,'A reference run on the native path (StarkCurve, Poseidon-felt transcript, release build, median of 7 samples) proves and verifies a full 52-card package with k = 13 carriers in 154 ms and 105 ms with a 21.8 KB proof, and with k = 26 in 167 ms and 116 ms with a 24.7 KB proof; a 13-card single-carrier package takes 36 ms and 26 ms at 5.4 KB. Proving and verification time, proof size, and peak memory all grow linearly in n and k. The full measurement grid is committed with the repository at paper/experiments/reconstruction_stark.csv and is reproduced by: cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark.')
+    add_equation(doc,'cargo test --workspace\n(cd poker_protocol_lean && lake build PokerProtocolLean)\n(cd poker_protocol_lean && bash scripts/count_sorries.sh)\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark\n(cd client-wasm && wasm-pack test --node --release)\n(cd client-wasm && wasm-pack build --target nodejs --release)\nnode client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv')
+    add_para(doc,'A reference run on the native path (StarkCurve, Poseidon-felt transcript, release build, median of 7 samples) proves and verifies a full 52-card package with k = 13 carriers in 154 ms and 105 ms with a 21.8 KB proof; peak allocations are 87.2 KiB for proving and 39.4 KiB for verification. With k = 26, the same deck takes 167 ms and 116 ms with a 24.7 KB proof and 93.0 KiB proving peak allocation. A 13-card single-carrier package takes 36 ms and 26 ms at 5.4 KB. Proving and verification time, proof size, and peak memory all grow approximately linearly in n and k. The benchmark table reports representative rows; the full measurement grid is committed at paper/experiments/reconstruction_stark.csv.')
+    add_table(doc,['n','k','Prove','Verify','Proof','Peak prove'],[
+        ('13','1','36.4 ms','25.8 ms','5.37 KB','20.0 KiB'),
+        ('26','1','69.7 ms','48.8 ms','9.94 KB','39.4 KiB'),
+        ('52','1','137.1 ms','94.6 ms','19.09 KB','78.0 KiB'),
+        ('52','13','153.9 ms','105.0 ms','21.78 KB','85.2 KiB'),
+        ('52','26','166.9 ms','115.6 ms','24.69 KB','93.0 KiB'),
+    ],widths=[0.5,0.5,1.0,1.0,1.1,1.35])
+    add_para(doc,'The same Rust reconstruction implementation is also compiled to wasm32 through client-wasm. The bridge returns a BrowserReconstructionV3Bundle containing the canonical Borsh statement and proof, decodes it, and verifies it with the production Poseidon transcript domain before reporting a benchmark row. On a release Node/V8 run (median of 7 samples), the full 52-card package with k = 13 takes 646 ms to prove and 471 ms to verify; the proof is 21.78 KB and the complete statement-plus-proof bundle is 27.75 KB. This is about 4.2 times the native proving time on the test machine but remains below one second in a JavaScript host. The full grid is committed at paper/experiments/reconstruction_wasm.csv and is regenerated by the commands above.')
+    add_table(doc,['n','k','WASM prove','WASM verify','Proof','Bundle'],[
+        ('13','1','153 ms','112 ms','5.37 KB','6.82 KB'),
+        ('26','1','319 ms','216 ms','9.94 KB','12.65 KB'),
+        ('52','1','613 ms','425 ms','19.09 KB','24.29 KB'),
+        ('52','13','646 ms','471 ms','21.78 KB','27.75 KB'),
+        ('52','26','725 ms','501 ms','24.69 KB','31.49 KB'),
+    ],widths=[0.45,0.45,1.0,1.0,1.0,1.0])
 
     doc.add_heading('9. Limitations and future work', level=1)
     limits=['A malicious player that never submits is an availability event. Deadlines, deposits, or a replacement submitter are needed for an application-level policy.','Authenticated reveal-token lineage is essential. Without the residual derivation, the veto theorem does not hold.','The deck size, owner-residual carrier count, public keys, canonical cards, epoch, and state digest are public; the protocol does not hide these metadata.','A |U| ≥ 2 residual authorizes no removal in this construction, so the corresponding canonical card remains in the new deck. Removing such a jointly unknown card would require a threshold relation proof and a different authorization policy.','Full UC security depends on a composable Fiat–Shamir NIZK treatment. A standard-model instantiation would require an extractable NIZK or a new proof system.','Adaptive corruption requires erasures or non-committing techniques.','Multiple authorization of the same owner-residual carrier is excluded by the authenticated missing-key invariant.']
@@ -419,13 +485,14 @@ def build():
     add_para(doc,'The protocol abstractions and security boundaries therefore differ. Our construction derives a residual carrier from an authenticated, state-bound reveal-token transcript, proves exact coverage for the owner-residual subset, hides the carrier-to-slot mapping, and enforces a per-slot zero-or-negative plaintext relation. Only one missing token yields an owner-residual carrier that one participant can decrypt and use to authorize removal. Several missing tokens yield a jointly keyed carrier whose canonical card is retained without revealing its plaintext. Accordingly, [7] supports the dropout-tolerance motivation but does not establish the residual-carrier semantics, non-owner-veto bound, or conditional UC theorem stated here.')
 
     doc.add_heading('References', level=1)
-    refs=['R. Canetti. “Universally Composable Security.” FOCS 2001.','S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” EUROCRYPT 2012.','D. Chaum and T. Pedersen. “Wallet Databases with Observers.” CRYPTO 1992.','R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” CRYPTO 1994.','A. Fiat and A. Shamir. “How to Prove Yourself.” CRYPTO 1986.','C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” CRYPTO 1989.','J. Castellà-Roca, F. Sebé, and J. Domingo-Ferrer. “Dropout-tolerant TTP-free mental poker.” Trust and Privacy in Digital Business, 2005.']
+    refs=['R. Canetti. “Universally Composable Security: A New Paradigm for Cryptographic Protocols.” In IEEE FOCS, pp. 136–145, 2001. doi:10.1109/SFCS.2001.959888.','S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” In EUROCRYPT, LNCS 7237, pp. 263–280, 2012. doi:10.1007/978-3-642-29011-4_17.','D. Chaum and T. P. Pedersen. “Wallet Databases with Observers.” In CRYPTO, LNCS 740, pp. 89–105, 1992. doi:10.1007/3-540-48071-4_7.','R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” In CRYPTO, LNCS 839, pp. 174–187, 1994. doi:10.1007/3-540-48658-5_19.','A. Fiat and A. Shamir. “How To Prove Yourself: Practical Solutions to Identification and Signature Problems.” In CRYPTO, LNCS 263, pp. 186–194, 1986. doi:10.1007/3-540-47721-7_12.','C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” In CRYPTO, LNCS 435, pp. 239–252, 1989. doi:10.1007/0-387-34805-0_22.','J. Castellà-Roca, F. Sebé, and J. Domingo-Ferrer. “Dropout-Tolerant TTP-Free Mental Poker.” In Trust, Privacy, and Security in Digital Business, LNCS 3592, pp. 30–40, 2005. doi:10.1007/11537878_4.','J. Castellà-Roca. “Contributions to Mental Poker.” PhD thesis, Universitat Autònoma de Barcelona, 2005.','A. Barnett and N. P. Smart. “Mental Poker Revisited.” In Cryptography and Coding, LNCS 2898, pp. 370–383, 2003. doi:10.1007/978-3-540-40974-8_29.','K. Kurosawa, Y. Katayama, and W. Ogata. “Reshufflable and Laziness Tolerant Mental Card Game Protocol.” IEICE Transactions on Fundamentals, 1997.','W. H. Soo, A. Samsudin, and A. Goh. “Efficient Mental Card Shuffling via Optimised Arbitrary-Sized Benes Permutation Network.” In Information Security, LNCS 2433, pp. 446–458, 2002. doi:10.1007/3-540-45811-5_35.','I. Bentov, R. Kumaresan, and A. Miller. “Instantaneous Decentralized Poker.” In ASIACRYPT, LNCS 10625, pp. 410–440, 2017. doi:10.1007/978-3-319-70697-9_15.','B. David, R. Dowsley, and M. Larangeira. “Kaleidoscope: An Efficient Poker Protocol with Payment Distribution and Penalty Enforcement.” In Financial Cryptography and Data Security, LNCS 10958, pp. 500–519, 2018. doi:10.1007/978-3-662-58387-6_27.','B. David, R. Dowsley, and M. Larangeira. “ROYALE: A Framework for Universally Composable Card Games with Financial Rewards and Penalties Enforcement.” In Financial Cryptography and Data Security, LNCS 11598, pp. 282–300, 2019. doi:10.1007/978-3-030-32101-7_18.']
     add_references(doc, refs)
     # core properties
-    props=doc.core_properties; props.title='Composable Privacy Preserving Deck Reconstruction for Mental Poker'; props.subject='Cryptographic research paper'; props.author='poker_protocol research team'; props.keywords='Mental Poker, zero knowledge, UC security, formal verification'
+    props=doc.core_properties; props.title=metadata['title']; props.subject='Cryptographic research paper prepared for IEEE TIFS'; props.author=author_block(metadata); props.keywords=', '.join(metadata['keywords'])
     path=OUT/'composable_privacy_preserving_deck_reconstruction.docx'; doc.save(path); print(path)
 
 def build_zh():
+    metadata = submission_metadata(); validate_submission_metadata(metadata)
     make_figures()
     doc=Document(); setup_styles_zh(doc)
     sec=doc.sections[0]; sec.top_margin=Inches(0.75); sec.bottom_margin=Inches(0.7); sec.left_margin=Inches(0.82); sec.right_margin=Inches(0.82)
@@ -436,6 +503,7 @@ def build_zh():
 
     p=doc.add_paragraph(style='Title'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('面向心智扑克的可组合隐私保护牌组重建')
     p=doc.add_paragraph(style='Subtitle Custom'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('槽位语义 跨密钥证明与机器检查组合边界')
+    p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(author_block(metadata))
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(25); p.add_run('2026 年 9 月 17 日  •  poker_protocol 代码仓库')
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(4)
     p.add_run('代码仓库：').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
@@ -466,7 +534,12 @@ def build_zh():
 
     doc.add_heading('2 背景与相关工作', level=1)
     add_para(doc,'Bayer–Groth 提供隐藏置换与重加密的紧凑零知识论证 [2]。Schnorr、Chaum–Pedersen 和部分知识证明支持本文所需的线性关系与析取关系 [3,4,6]；Fiat–Shamir 在随机预言机模型中把 Sigma 协议转为非交互证明 [5]。Canetti 的 UC 框架用于描述状态、调度、并发和对手消息控制 [1]。')
+    add_para(doc,'Barnett–Smart [9] 提供被广泛复用的 ElGamal mental-poker 基础和洗牌验证。Kurosawa 等人 [10] 与 Soo 等人 [11] 分别用 secret sharing 和可重排网络处理有界缺员/懒更新，但固定阈值与 coalition 恢复能力构成安全代价。较新的金融强制路线包括 Instantaneous Decentralized Poker [12]、Kaleidoscope [13] 和 ROYALE [14]；它们强化锁定、处罚和可组合支付语义，但缺席处理主要是 forfeit、超时或重开，而不是从认证 reveal-token 血统导出逐 carrier 删除授权，也没有本文的逐槽 {0,−m_i} 语义。')
     add_para(doc,'Castellà-Roca、Sebé 和 Domingo-Ferrer 已研究无需可信第三方的 dropout-tolerant mental poker，并用零知识技术让游戏在玩家退出后继续 [7]。该方案可作为活性方面的参考，但其 prover 侧授权并未像本文一样把每个删除绑定到认证的 owner-residual 血统，因此存在 prover 否决非自己手牌的可能。本文与其目标相近，但安全边界不同：本文显式推导 residual carrier，区分 singleton 与 multi-key missing set，并增加逐槽语义、owner-residual 精确覆盖、跨密钥证明以及机器检查组合边界。')
+    add_para(doc,'更早的 TTP-free 路线要么要求离场者披露自己的秘密层，要么用 secret sharing 容忍固定数量缺员；后者的足够大 coalition 可恢复全部牌面信息。[7] 使用 CDS 部分知识证明和 veto 因子，使剩余玩家无需离场者配合也能继续，是本文最接近的活性先行方案。')
+    add_para(doc,'为避免伪造运行数据，这里比较协议边界。设 [7] 中活跃玩家数为 N、牌数 d=52、历史发牌轮数为 r。dropout 后需重建整副牌：每个 face-down card 由 N 个 threshold-ElGamal 分量组成，公开牌组共 dN 个分量；每个玩家发布 d 个 re-masking pair，并给出一个非 veto CDS 证明与 r 个 veto CDS 证明（每个覆盖 d 个 Chaum–Pedersen 实例）；后续链式 re-masking 约需 dN² 个 Chaum–Pedersen 证明，再用 Barnett–Smart shuffle 处理 dN 个密文分量。作者完整论文 [8] 明确指出 dropout 路径效率仍需提升，且未给 dropout 专用证明字节或运行时间。')
+    add_para(doc,'下表将本文与最接近的 dropout-tolerant 构造进行对比。比较对象是被证明的安全语义；先行工作对活性问题的贡献仍然成立，本文进一步加入逐牌授权和机器检查的语义边界。')
+    add_table(doc,['属性','Dropout-tolerant TTP-free Mental Poker [7]','本文'],[('离场处理','玩家退出后继续运行','deadline 或崩溃后继续运行'),('离场后的牌组动作','删除离场者 key share 并重建；其已抽牌回到牌组','提交 state-bound package；singleton residual 移除，jointly keyed residual 保留'),('公开牌组规模','每张牌 N 个密文分量，共 dN','d 个 canonical contribution，另有 k 个认证 residual carrier'),('证明关系规模','每玩家 r+1 个覆盖 d 实例的 CDS 证明；约 dN² 个链式 CP 证明；再执行完整 shuffle proof','k 个跨密钥证明 + 1 个 Bayer–Groth + d 个槽位 OR'),('移除授权','协议级 dropout 恢复','认证 singleton residual-carrier 血统'),('逐槽明文关系','未明确为零或负元隶属','每个槽位的 0 或 −m_i OR proof'),('映射隐私','由协议组件隐藏','hidden carrier-to-slot map 与 BG proof'),('形式化保证','论文中的密码学证明','Lean 组合边界与显式假设'),('多缺失密钥','未单列 carrier 类型','jointly keyed residual 保留，不授权删除'),('实测证据','仅符号描述；无 dropout runtime/proof bytes','native+WASM d,k 网格；d=52,k=13 bundle 27.75 KB')],widths=[1.15,2.7,2.35])
 
     doc.add_heading('3 模型与假设', level=1)
     add_para(doc,'设 q 为大素数，F_q 为标量域，G 为 q 阶加法群，g 为生成元。对公钥 P=xg，采用可加 ElGamal：')
@@ -512,16 +585,22 @@ def build_zh():
     add_equation(doc,'Bᵢ = Encₚ(mᵢ; i+1),      B̃ᵢ = Bᵢ + Σₚ∈S_submit Cₚ,ᵢ.')
     add_para(doc,'超时或未提交玩家没有贡献。A8 保证每个槽最多接受一个负分支。若同一张牌缺少两个或更多 reveal token，则没有 owner-residual removal authorization，故该槽只累加零贡献并保留 mᵢ。')
     add_figure(doc,ASSET/'fig_slot_semantics.png','图 3  逐槽 OR 语义与 owner-residual 精确覆盖共同保证每张认证可移除牌最多被移除一次，其余槽保持 canonical plaintext。')
+    doc.add_heading('4.6 证明系统设计取舍', level=2)
+    add_para(doc,'协议刻意保留 Bayer–Groth 负责隐藏置换。它正是当前实现采用的成熟洗牌证明；用通用电路编译器替换它，改变的是 trusted-setup 边界和实现栈，而不是隔离本文新增的 reconstruction 语义。因此客户端构造由 Bayer–Groth、跨密钥 Sigma proof 和逐槽 OR proof 组成。')
+    add_para(doc,'贡献在于语义组合，而非宣称单个证明引擎新颖：认证 residual-carrier 血统、跨密钥负元关系、exact coverage，以及每个 canonical slot 的零或负元关系。透明的 Sigma 代数便于映射到 Lean 组件接口，并使浏览器端证明保持在实测亚秒级范围内。代价是 proof 大于succinct 聚合论证；host 侧聚合仍是未来工程方向，本文不将其用作未经实测的性能对比。')
 
     doc.add_heading('5 正确性与独立安全性', level=1)
     doc.add_heading('定理 1 完备性', level=2)
-    add_para(doc,'若 statement 满足认证状态条件且诚实证明者执行第 4.2 节，则验证器除显式零挑战事件外均接受，失败概率至多为 O((n+k)/q)。owner-residual 血统给出正确跨密钥关系；jointly keyed residual 对应零分支；Bayer–Groth 和 OR 证明分别由其完备性成立。')
+    add_para(doc,'若 statement 满足认证状态条件且诚实证明者执行第 4.2 节，则验证器除显式零挑战事件外均接受，失败概率至多为 O((n+k)q_H/q)。')
+    add_para(doc,'证明。血统给出 Rⱼ=Enc_Q(mᵢ₍ⱼ₎;rⱼ)。诚实证明者解密唯一 canonical card，采样 vⱼ 并构造 Sⱼ=Enc_P(−mᵢ₍ⱼ₎;vⱼ)。代入第三跨密钥方程，两侧均等于 rⱼQ+vⱼP。确定性零密文为 Z_l=Enc_P(0;l+1)，选定的单射映射给出 permutation 与 rerandomizers，因此完整 Bayer–Groth witness 存在。')
+    add_para(doc,'对零输入，T₀=Cᵢ.c₂=vᵢP；对负输入，T₁=Cᵢ.c₂+mᵢ=vᵢP。真实 OR branch 诚实响应，模拟 branch 由 challenge share 与 response 反向构造，两个 share 之和为全局挑战。所有 statement 字段按 canonical 顺序进入 transcript。失败只能是零挑战/share 或编程点冲突，k 个跨密钥证明与 n 个 OR proof 的并集为 O((n+k)q_H/q)。')
     doc.add_heading('定理 2 知识可靠性', level=2)
-    add_para(doc,'在 A1、A4–A7 下，任何接受的 statement/proof 都可提取见证，使得每个槽位贡献加密 0 或 −mᵢ，removedᵢ 当且仅当某个认证 owner-residual index 映射到 i，映射为单射，并且每个负分支都与认证 singleton token derivation 相连。否则可归约到组件可靠性、状态认证或序列化 refinement 的失败。')
+    add_para(doc,'在 A1、A4–A7 下，任何接受的 statement/proof 都可提取见证，使得每个槽位贡献加密 0 或 −mᵢ，removedᵢ 当且仅当某个认证 owner-residual index 映射到 i，映射为单射，并且每个负分支都与认证 singleton token derivation 相连。')
+    add_para(doc,'证明。在完整 statement 前缀之后 fork 出两个不同最终挑战。A4 从 Bayer–Groth proof 提取 permutation 与 rerandomizers；A5 从每个跨密钥 proof 提取同一 (sk_Q,vⱼ)，代入得 Sⱼ=Enc_P(−Dec_Q(Rⱼ);vⱼ)；A5 再从每个 OR proof 提取 branch 与 randomness。与 shuffle witness 合并即得 removedᵢ 的精确条件。生成端拒绝重复 residual plaintext，且 shuffle permutation 单射，故 carrierIndex 单射。提取失败计入 ε_KS，状态与字节映射失败计入 ε_state+ε_ser。')
     doc.add_heading('定理 3 重建语义', level=2)
     add_para(doc,'令 χᵢ=1 当且仅当某个已接受提交者拥有授权移除 mᵢ 的认证 owner-residual carrier。则')
     add_equation(doc,'Decₚ(B̃ᵢ) = 0  若 χᵢ=1；      Decₚ(B̃ᵢ) = mᵢ  若 χᵢ=0.')
-    add_para(doc,'特别地，|U|≥2 时 χᵢ=0：无人知道旧密文明文，但新牌组仍正确保留 mᵢ。')
+    add_para(doc,'证明。对每个接受提交者应用定理 2：槽 i 的明文属于 {0,−mᵢ}，且只有映射到 i 的认证 carrier 才能产生负元。A8 保证跨玩家 carrier 集不相交，故同一槽至多一个负贡献。由同态性，Dec_P(B̃ᵢ)=mᵢ+Σ plaintext(Cₚ,ᵢ)，存在授权 carrier 时为 0，否则为 mᵢ。|U|≥2 时没有 owner-residual witness 进入 removal-authorizing vector，因此所有贡献为零，牌在不解密的条件下保留。')
 
     doc.add_heading('6 UC 理想功能与组合', level=1)
     doc.add_heading('6.1 混合模型', level=2)
@@ -530,6 +609,7 @@ def build_zh():
     add_para(doc,'功能以 sid=(context,table,hand,epoch,D_prev) 标识，从认证状态获得 residual derivation，但不泄露底层 plaintext。它等待 SUBMIT 或 deadline，仅删除成功提交者中由 singleton missing-token set 授权的牌；|U|≥2 的牌被保留。不一致或重叠的 removal authorization 输出 STATE_INVALID。')
     doc.add_heading('6.3 条件 UC 定理', level=2)
     add_para(doc,'定理 4　在 A1–A9 下，若 Bayer–Groth、跨密钥和槽位 OR 的 Fiat–Shamir 证明在随机预言机 hybrid 中可提取、可模拟且可并发组合，则任意静态对手/环境在 real protocol 与 F_RECON 之间的区分优势可忽略。界为 k·ε_DDH + ε_KS + ε_state + ε_ser + O((n+k)·q_H/q)，其中 ε_KS 为所有腐化提交的组件知识可靠性（分叉）误差之和，ε_state、ε_ser 为认证状态与序列化误差，q_H 为对手随机预言机查询次数上界。')
+    add_para(doc,'证明。下面的模拟器构造、腐化提交提取和 H₀到H₄ hybrid 序列给出所述误差界。')
     doc.add_heading('模拟器', level=3)
     add_para(doc,'模拟器 S 在内部运行对手 A，将随机预言机实现为惰性采样表加上有限个编程点，并连同 A7 下字节一致的编码一起转发 F_RECON 的公开输出——deck size、carrier 数、密钥、epoch、摘要、验证与 deadline 状态。腐化集合静态固定，S 预先知道哪些提交需要模拟、哪些需要提取。除贡献向量外的每个 statement 字段都是公开的或来自状态：context、epoch、D_prev、密钥与 cards 在两个世界中相同；residual carrier（含全部 jointly keyed carrier）由认证先前状态固定，在两个世界中同分布，且重建过程中从不被解密。')
     doc.add_heading('诚实提交', level=3)
@@ -543,7 +623,8 @@ def build_zh():
     for s in ['H₀→H₁：用 S 的惰性表替换随机预言机。纯语法改动，两个视图相同。','H₁→H₂：把每个诚实跨密钥证明替换为上述 HVZK 模拟。联合 Sigma 协议完美 HVZK（ReconstructionJointSigma.lean 的 sigma_perfect_hvzk 机器检查），视图差异仅来自编程中止，至多 k·q_H/q。','H₂→H₃：把每个诚实逐槽 OR 证明替换为 CDS 模拟。OR 代数完美 HVZK（ReconstructionSlotOr.lean 的 perfect_hvzk_algebraic），附加代价至多 n·q_H/q。','H₃→H₄：把每个诚实负贡献明文 −mᵢ₍ⱼ₎ 逐个替换为随机 μⱼ，每个 carrier 一跳。每跳把一个 ElGamal 挑战密文嵌入模拟向量，其派生的 canonical contribution 是该密文的新鲜重随机化，因此每跳都是 DDH（A2）下的 IND-CPA 区分器；k 跳共 k·ε_DDH。canonical contributions 与诚实的 Bayer–Groth 证明由构造直接跟随模拟向量。','H₄ 即与 F_RECON 和 S 的理想执行。对各跳求和即得定理界；fresh-DLog 假设 A3 覆盖自上一轮继承的 jointly keyed carrier——它们在两个世界中同分布，且在此从不被解密。']:
         doc.add_paragraph(s,style='List Number')
     doc.add_heading('6.4 非己牌否决', level=2)
-    add_para(doc,'定义 Veto(p,m) 为玩家 p 的接受 package 删除 m，但认证 singleton token derivation 未授权 p 删除 m。定理 5 给出 Pr[Veto(p,m)]≤ε_KS+ε_state+ε_ser。接受意味着提取到负分支及 owner-residual witness；若它不在认证状态中，则必须伪造状态摘要、证明或 serialization refinement。')
+    add_para(doc,'定义 Veto(p,m) 为玩家 p 的接受 package 删除 m，但认证 singleton token derivation 未授权 p 删除 m。在 A1、A4–A9 下，定理 5 给出 Pr[Veto(p,m)]≤ε_KS+ε_state+ε_ser。接受意味着提取到负分支及 owner-residual witness；若它不在认证状态中，则必须伪造状态摘要、证明或 serialization refinement。')
+    add_para(doc,'证明。设事件发生但 m 不在 p 的认证集合。call context 与会话认证先把 package 归属到 p。fork 后由定理 2 提取：OR witness 给出槽 i 明文 −m，跨密钥 witness 给出加密 m 的 Rⱼ，shuffle witness 把该 carrier 映射到 i。精确向量状态绑定要求 D_prev 含有当前 epoch/missing-token set 匹配的 (p,Rⱼ,m)。若不存在，则必定发生 D_prev 伪造（ε_state）、组件 proof 接受但提取失败（ε_KS）或字节 refinement 错误（ε_ser）之一；取并集即得界。p 未提交时其 package 不进入聚合；carrier 重叠或 owner key 提前泄露违反 A8/A9，前提失效。')
     add_figure(doc,ASSET/'fig_composition.png','图 4  Lean 形式化把群代数和组件接口组合为 verified_package_semantics；计算安全假设仍显式保留。')
 
     doc.add_heading('7 Lean 形式化', level=1)
@@ -559,12 +640,15 @@ def build_zh():
     add_para(doc,'Lean 不把 DDH、随机预言机安全、Bayer–Groth 知识可靠性或 Rust 字节级 refinement 当作群代数定理；这些条件进入 ComponentInterface 与 Reduction，从而保持信任边界可见。')
 
     doc.add_heading('8 实现与可复现性', level=1)
-    add_table(doc,['组件','职责'],[('poker-protocol-core','曲线、ElGamal 与 transcript。'),('poker-protocol-bg','Bayer–Groth shuffle。'),('poker-protocol-proofs','重建、跨密钥和 OR 证明。'),('poker_protocol','原生 adapter、ABI 与牌局集成。'),('poker_protocol_lean','形式规范与组合定理。')],widths=[2.1,4.0])
+    add_table(doc,['组件','职责'],[('poker-protocol-core','曲线、ElGamal 与 transcript。'),('poker-protocol-bg','Bayer–Groth shuffle。'),('poker-protocol-proofs','重建、跨密钥和 OR 证明。'),('poker_protocol','原生 adapter、ABI 与牌局集成。'),('client-wasm','浏览器桥接与可复现 WASM 基准。'),('poker_protocol_lean','形式规范与组合定理。')],widths=[2.1,4.0])
     add_para(doc,'代码已统一使用 residual_carrier / residual_carriers；只有单 owner 解密 API 使用 owner_residual_carrier。ABI 字段名称已更新，但序列化字段顺序保持不变。当前 V3 producer 为每个 |U|=1 的 owner 构造 residual vector；若同一牌缺少两个或更多 token，不创建 removal-authorizing entry，canonical slot 在重建中保持不变。')
     p=doc.add_paragraph(); p.add_run('代码仓库：').bold=True; add_hyperlink(p,'https://github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
     add_para(doc,'复现命令如下：')
-    add_equation(doc,'cargo test --workspace\ncd poker_protocol_lean && lake build PokerProtocolLean\ncd poker_protocol_lean && bash scripts/count_sorries.sh\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark')
-    add_para(doc,'参考实测（原生路径 StarkCurve、Poseidon-felt transcript、release 构建、7 次采样取中位）：52 张牌、k=13 个 carrier 的完整 package 证明 154 ms、验证 105 ms、证明体积 21.8 KB；k=26 时为 167 ms、116 ms、24.7 KB；13 张牌单 carrier 为 36 ms、26 ms、5.4 KB。证明/验证耗时、证明体积与峰值内存均随 n 和 k 线性增长。完整测量网格随仓库提交于 paper/experiments/reconstruction_stark.csv。')
+    add_equation(doc,'cargo test --workspace\n(cd poker_protocol_lean && lake build PokerProtocolLean)\n(cd poker_protocol_lean && bash scripts/count_sorries.sh)\ncargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark\n(cd client-wasm && wasm-pack test --node --release)\n(cd client-wasm && wasm-pack build --target nodejs --release)\nnode client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv')
+    add_para(doc,'参考实测（原生路径 StarkCurve、Poseidon-felt transcript、release 构建、7 次采样取中位）：52 张牌、k=13 个 carrier 的完整 package 证明 154 ms、验证 105 ms、证明体积 21.8 KB；证明峰值分配 87.2 KiB，验证峰值 39.4 KiB。k=26 时为 167 ms、116 ms、24.7 KB，证明峰值 93.0 KiB；13 张牌单 carrier 为 36 ms、26 ms、5.4 KB。耗时、证明体积与峰值内存均随 n 和 k 近似线性增长。')
+    add_table(doc,['n','k','证明','验证','Proof','证明峰值'],[('13','1','36.4 ms','25.8 ms','5.37 KB','20.0 KiB'),('26','1','69.7 ms','48.8 ms','9.94 KB','39.4 KiB'),('52','1','137.1 ms','94.6 ms','19.09 KB','78.0 KiB'),('52','13','153.9 ms','105.0 ms','21.78 KB','85.2 KiB'),('52','26','166.9 ms','115.6 ms','24.69 KB','93.0 KiB')],widths=[0.45,0.45,1.0,1.0,1.1,1.35])
+    add_para(doc,'同一 Rust 重建实现也通过 client-wasm 编译为 wasm32。桥接层返回由规范 Borsh statement 与 proof 组成的 BrowserReconstructionV3Bundle，随后重新解码，并用生产 Poseidon transcript 域验证，之后才输出基准行。在 release Node/V8 环境（7 次采样取中位）中，52 张牌、k=13 的完整 package 证明 646 ms、验证 471 ms；proof 为 21.78 KB，完整 statement+proof bundle 为 27.75 KB。相比测试机原生路径约慢 4.2 倍，但在 JavaScript host 中仍低于 1 秒。完整网格位于 paper/experiments/reconstruction_wasm.csv，由上述命令重建。')
+    add_table(doc,['n','k','WASM 证明','WASM 验证','Proof','Bundle'],[('13','1','153 ms','112 ms','5.37 KB','6.82 KB'),('26','1','319 ms','216 ms','9.94 KB','12.65 KB'),('52','1','613 ms','425 ms','19.09 KB','24.29 KB'),('52','13','646 ms','471 ms','21.78 KB','27.75 KB'),('52','26','725 ms','501 ms','24.69 KB','31.49 KB')],widths=[0.4,0.4,1.0,1.0,1.0,1.0])
 
     doc.add_heading('9 局限与未来工作', level=1)
     for s in ['恶意玩家不提交仍是应用层活性事件，需要 deadline、押金或替代策略。','认证 reveal-token 血统不可省略；缺少该条件时，非己牌否决定理不成立。','协议公开 deck size、owner-residual count、公钥、canonical cards、epoch 和 state digest。','本协议对 |U|≥2 的牌采取保留策略；若业务要求在无人知道明文时仍删除该牌，需要门限关系证明与不同授权策略。','完整 UC 安全依赖可组合 Fiat–Shamir NIZK 处理；标准模型需要可提取 NIZK 或新的证明系统。','自适应腐化需要擦除或 non-committing 技术。']:
@@ -579,9 +663,9 @@ def build_zh():
     add_para(doc,'两项工作的目标互补。先行工作确立 TTP-free dropout tolerance 的可行性；本文解释 singleton 与 multi-key missing set 如何改变 carrier 的可读性和授权语义，并通过认证血统排除 prover 对非己牌的未经授权否决。当前构造在 |U|≥2 时保留 canonical card 而不泄露它；若要删除 jointly unknown card，则需扩展为门限证明策略。')
 
     doc.add_heading('参考文献', level=1)
-    refs=['R. Canetti. “Universally Composable Security.” FOCS 2001.','S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” EUROCRYPT 2012.','D. Chaum and T. Pedersen. “Wallet Databases with Observers.” CRYPTO 1992.','R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” CRYPTO 1994.','A. Fiat and A. Shamir. “How to Prove Yourself.” CRYPTO 1986.','C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” CRYPTO 1989.','J. Castellà-Roca, F. Sebé, and J. Domingo-Ferrer. “Dropout-tolerant TTP-free mental poker.” Trust and Privacy in Digital Business, 2005.']
+    refs=['R. Canetti. “Universally Composable Security: A New Paradigm for Cryptographic Protocols.” In IEEE FOCS, pp. 136–145, 2001. doi:10.1109/SFCS.2001.959888.','S. Bayer and J. Groth. “Efficient Zero-Knowledge Argument for Correctness of a Shuffle.” In EUROCRYPT, LNCS 7237, pp. 263–280, 2012. doi:10.1007/978-3-642-29011-4_17.','D. Chaum and T. P. Pedersen. “Wallet Databases with Observers.” In CRYPTO, LNCS 740, pp. 89–105, 1992. doi:10.1007/3-540-48071-4_7.','R. Cramer, I. Damgård, and B. Schoenmakers. “Proofs of Partial Knowledge and Simplified Design of Witness Hiding Protocols.” In CRYPTO, LNCS 839, pp. 174–187, 1994. doi:10.1007/3-540-48658-5_19.','A. Fiat and A. Shamir. “How To Prove Yourself: Practical Solutions to Identification and Signature Problems.” In CRYPTO, LNCS 263, pp. 186–194, 1986. doi:10.1007/3-540-47721-7_12.','C.-P. Schnorr. “Efficient Identification and Signatures for Smart Cards.” In CRYPTO, LNCS 435, pp. 239–252, 1989. doi:10.1007/0-387-34805-0_22.','J. Castellà-Roca, F. Sebé, and J. Domingo-Ferrer. “Dropout-Tolerant TTP-Free Mental Poker.” In Trust, Privacy, and Security in Digital Business, LNCS 3592, pp. 30–40, 2005. doi:10.1007/11537878_4.','J. Castellà-Roca. “Contributions to Mental Poker.” PhD thesis, Universitat Autònoma de Barcelona, 2005.','A. Barnett and N. P. Smart. “Mental Poker Revisited.” In Cryptography and Coding, LNCS 2898, pp. 370–383, 2003. doi:10.1007/978-3-540-40974-8_29.','K. Kurosawa, Y. Katayama, and W. Ogata. “Reshufflable and Laziness Tolerant Mental Card Game Protocol.” IEICE Transactions on Fundamentals, 1997.','W. H. Soo, A. Samsudin, and A. Goh. “Efficient Mental Card Shuffling via Optimised Arbitrary-Sized Benes Permutation Network.” In Information Security, LNCS 2433, pp. 446–458, 2002. doi:10.1007/3-540-45811-5_35.','I. Bentov, R. Kumaresan, and A. Miller. “Instantaneous Decentralized Poker.” In ASIACRYPT, LNCS 10625, pp. 410–440, 2017. doi:10.1007/978-3-319-70697-9_15.','B. David, R. Dowsley, and M. Larangeira. “Kaleidoscope: An Efficient Poker Protocol with Payment Distribution and Penalty Enforcement.” In Financial Cryptography and Data Security, LNCS 10958, pp. 500–519, 2018. doi:10.1007/978-3-662-58387-6_27.','B. David, R. Dowsley, and M. Larangeira. “ROYALE: A Framework for Universally Composable Card Games with Financial Rewards and Penalties Enforcement.” In Financial Cryptography and Data Security, LNCS 11598, pp. 282–300, 2019. doi:10.1007/978-3-030-32101-7_18.']
     add_references(doc, refs)
-    props=doc.core_properties; props.title='面向心智扑克的可组合隐私保护牌组重建'; props.subject='密码学研究论文中文译本'; props.author='poker_protocol research team'; props.keywords='心智扑克, 零知识, UC 安全, 形式化验证'
+    props=doc.core_properties; props.title='面向心智扑克的可组合隐私保护牌组重建'; props.subject='密码学研究论文中文译本'; props.author=author_block(metadata); props.keywords='心智扑克, 零知识, UC 安全, 形式化验证'
     path=OUT/'composable_privacy_preserving_deck_reconstruction_zh.docx'; doc.save(path); print(path)
 
 if __name__=='__main__':

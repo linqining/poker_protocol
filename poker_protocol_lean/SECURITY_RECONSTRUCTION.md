@@ -17,7 +17,8 @@ It composes:
 2. the extracted relation and slot semantics (`Reconstruction`);
 3. the cross-key Sigma protocol (`ReconstructionJointSigma`);
 4. the slot OR protocol (`ReconstructionSlotOr`);
-5. production component guarantees and refinements (`ReconstructionSecurity`).
+5. the non-owner veto bound (`ReconstructionVeto`);
+6. production component guarantees and refinements (`ReconstructionSecurity`).
 
 `ReconstructionSecurity.verified_package_semantics` is the composed theorem:
 an accepted package yields public validity, exact residual_carrier coverage, and
@@ -48,7 +49,7 @@ For residual_carrier `R = Enc_Q(m;r)` and negative contribution
 Q = sk_Q*g
 S.c1 = v*g
 sk_Q*R.c1 + v*P = R.c2 + S.c2
-``+
+```
 
 This binds the two plaintexts without knowing `DL(R.c1)`.
 
@@ -80,6 +81,7 @@ semantics.
 | cross-key proof | `JointSigma.relation_iff_cross_key`, `sigma_complete`, `sigma_speciallySound`, `sigma_perfect_hvzk` |
 | slot OR proof | `SlotOr.honest_accepts`, `specially_sound`, `perfect_hvzk_algebraic` |
 | composed package | `Security.verified_package_semantics` |
+| non-owner veto bound | `Veto.veto_free_extraction`, `Veto.veto_error_bound_negligible` |
 
 Build and audit:
 

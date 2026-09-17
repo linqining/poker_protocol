@@ -33,6 +33,10 @@ pub mod precompile_abi {
     pub use poker_protocol_abi::*;
 }
 
+/// Self-contained verifier inputs for browser-generated proofs.
+#[cfg(feature = "borsh")]
+pub mod browser_proof_bundle;
+
 // Plan D 后 Stark 曲线是唯一世界，`stark-curve` feature 恒真（保留声明
 // 仅为兼容旧 feature 名）；不再 cfg 门控。
 #[cfg(feature = "borsh")]

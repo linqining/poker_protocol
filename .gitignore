@@ -5,5 +5,11 @@ poker_protocol_lean/.lake/
 .vscode/
 poker_protocol/paper/
 poker_protocol/paper/draft.md
-paper/
+paper/*
+!paper/experiments/
+paper/experiments/*
+!paper/experiments/reconstruction_stark.csv
+!paper/experiments/reconstruction_wasm.csv
+!paper/submission_checklist.md
+!paper/submission_metadata.json
 __pycache__/
