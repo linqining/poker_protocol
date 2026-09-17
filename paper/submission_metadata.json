@@ -1,7 +1,19 @@
 {
   "title": "Composable Privacy-Preserving Deck Reconstruction for Mental Poker",
   "subtitle": "Slot semantics, cross-key proofs, and a machine-checked composition boundary",
-  "authors": ["Qining Lin"],
+  "authors": [
+    {
+      "first_name": "Qining",
+      "last_name": "Lin",
+      "email": "linqining1994@gmail.com",
+      "affiliation": null,
+      "orcid": "0009-0001-4347-8771",
+      "is_corresponding": true,
+      "contribution": "Conceptualization, Methodology, Writing – original draft"
+    }
+  ],
+  "conflict_of_interest": "The authors declare no conflict of interest.",
+  "manuscript_type": "Original Article",
   "corresponding_author": "Qining Lin",
   "funding": null,
   "acknowledgements": null,

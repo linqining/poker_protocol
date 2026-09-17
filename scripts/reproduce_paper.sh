@@ -81,6 +81,7 @@ fi
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:${ELAN_HOME:-$HOME/.elan}/bin:$PATH"
 
 NATIVE_CSV="$OUTPUT_DIR/reconstruction_stark.csv"
+COMPONENT_CSV="$OUTPUT_DIR/reconstruction_components.csv"
 WASM_CSV="$OUTPUT_DIR/reconstruction_wasm.csv"
 
 cd "$REPO_ROOT"
@@ -91,7 +92,7 @@ cargo test --workspace --locked
 
 printf '[reproduce] measuring native reconstruction benchmark\n'
 cargo run --locked -p poker-protocol-proofs --release --features borsh \
-  --example reconstruction_benchmark -- "$NATIVE_CSV"
+  --example reconstruction_benchmark -- "$NATIVE_CSV" "$COMPONENT_CSV"
 
 printf '[reproduce] running WASM Node tests and release build\n'
 (cd client-wasm && wasm-pack test --node --release)

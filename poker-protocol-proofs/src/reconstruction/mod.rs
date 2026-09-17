@@ -16,7 +16,8 @@ pub use crate::error::VerificationError;
 pub use cross_key::CrossKeyNegationProof;
 pub use protocol::{
     apply_reconstruction_contributions, canonical_base_deck, ReconstructProof,
-    ReconstructionStatement, RECONSTRUCTION_PROOF_LABEL, RECONSTRUCTION_PROOF_VERSION,
+    ReconstructionProfile, ReconstructionStatement, RECONSTRUCTION_PROOF_LABEL,
+    RECONSTRUCTION_PROOF_VERSION,
 };
 pub(crate) use slot_or::ContributionBranch;
 pub use slot_or::SlotContributionOrProof;

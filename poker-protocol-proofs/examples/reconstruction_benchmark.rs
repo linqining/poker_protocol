@@ -29,7 +29,7 @@ use poker_protocol_core::{
     transcript_domains::RECONSTRUCT_POSEIDON, Curve, CurveScalar, ElGamalCiphertextGeneric,
     PoseidonFeltTranscript, StarkCurve,
 };
-use poker_protocol_proofs::reconstruction::ReconstructProof;
+use poker_protocol_proofs::reconstruction::{ReconstructProof, ReconstructionProfile};
 use rand_core::OsRng;
 
 const SAMPLES: usize = 7;
@@ -130,6 +130,26 @@ fn fixture(n: usize, k: usize) -> Fixture {
     }
 }
 
+fn run_prove_profile(fixture: &Fixture, epoch: u64) -> (Box<Package>, ReconstructionProfile) {
+    let mut transcript = PoseidonFeltTranscript::new_domain(RECONSTRUCT_POSEIDON);
+    let mut profile = ReconstructionProfile::default();
+    let result = ReconstructProof::<StarkCurve>::prove_with_profile(
+        [7u8; 32],
+        epoch,
+        [9u8; 32],
+        fixture.cards.clone(),
+        fixture.residual_carriers.clone(),
+        &fixture.owner_sk,
+        &fixture.owner_pk,
+        &fixture.aggregate_pk,
+        &mut OsRng,
+        &mut transcript,
+        Some(&mut profile),
+    )
+    .expect("honest reconstruction proof");
+    (Box::new(result), profile)
+}
+
 fn run_prove(fixture: &Fixture, epoch: u64) -> Box<Package> {
     let mut transcript = PoseidonFeltTranscript::new_domain(RECONSTRUCT_POSEIDON);
     let result = ReconstructProof::<StarkCurve>::prove(
@@ -146,6 +166,16 @@ fn run_prove(fixture: &Fixture, epoch: u64) -> Box<Package> {
     )
     .expect("honest reconstruction proof");
     Box::new(result)
+}
+
+fn run_verify_profile(package: &Package) -> ReconstructionProfile {
+    let mut transcript = PoseidonFeltTranscript::new_domain(RECONSTRUCT_POSEIDON);
+    let mut profile = ReconstructionProfile::default();
+    package
+        .1
+        .verify_with_profile(&package.0, &mut transcript, Some(&mut profile))
+        .expect("honest reconstruction proof verifies");
+    profile
 }
 
 fn run_verify(package: &Package) {
@@ -190,8 +220,12 @@ fn main() {
     );
 
     let csv_path = std::env::args().nth(1);
+    let profile_csv_path = std::env::args().nth(2);
     let mut csv = String::from(
         "n,k,prove_us,verify_us,proof_bytes,statement_bytes,prove_peak_bytes,verify_peak_bytes\n",
+    );
+    let mut profile_csv = String::from(
+        "n,k,residual_setup_ns,cross_key_ns,bayer_groth_ns,slot_or_ns,prove_total_ns,serialization_ns,verify_cross_key_ns,verify_bayer_groth_ns,verify_slot_or_ns,verify_total_ns\n",
     );
 
     for (n, k) in grid {
@@ -245,12 +279,62 @@ fn main() {
             verify_peak / 1024
         );
         csv.push_str(&format!(
-            "{n},{k},{prove_us},{verify_us},{proof_bytes},{statement_bytes},{prove_peak},{verify_peak}\n"
+            "{n},{k},{},{},{proof_bytes},{statement_bytes},{prove_peak},{verify_peak}\n",
+            prove_us,
+            verify_us,
+        ));
+
+        let mut prove_profile_totals = Vec::with_capacity(SAMPLES);
+        let mut prove_profiles = Vec::with_capacity(SAMPLES);
+        for sample in 0..SAMPLES {
+            let start = Instant::now();
+            let (profile_package, profile) = run_prove_profile(&fixture, 100 + sample as u64);
+            prove_profile_totals.push(start.elapsed().as_nanos());
+            prove_profiles.push(profile);
+            black_box(profile_package);
+        }
+        let mut verify_profile_totals = Vec::with_capacity(SAMPLES);
+        let mut verify_profiles = Vec::with_capacity(SAMPLES);
+        for _ in 0..SAMPLES {
+            let start = Instant::now();
+            verify_profiles.push(run_verify_profile(package.as_ref()));
+            verify_profile_totals.push(start.elapsed().as_nanos());
+        }
+        let mut serialization_times = Vec::with_capacity(SAMPLES);
+        for _ in 0..SAMPLES {
+            let serialization_start = Instant::now();
+            black_box(report_sizes(package.as_ref()));
+            serialization_times.push(serialization_start.elapsed().as_nanos());
+        }
+        let median_profile = |field: fn(&ReconstructionProfile) -> u128,
+                              samples: &[ReconstructionProfile]| {
+            let mut values = samples.iter().map(field).collect::<Vec<_>>();
+            median(&mut values)
+        };
+        let prove_total_ns = median(&mut prove_profile_totals);
+        let verify_total_ns = median(&mut verify_profile_totals);
+        let serialization_ns = median(&mut serialization_times);
+        profile_csv.push_str(&format!(
+            "{n},{k},{},{},{},{},{},{},{},{},{},{}\n",
+            median_profile(|p| p.residual_setup_ns, &prove_profiles),
+            median_profile(|p| p.cross_key_ns, &prove_profiles),
+            median_profile(|p| p.bayer_groth_ns, &prove_profiles),
+            median_profile(|p| p.slot_or_ns, &prove_profiles),
+            prove_total_ns,
+            serialization_ns,
+            median_profile(|p| p.verify_cross_key_ns, &verify_profiles),
+            median_profile(|p| p.verify_bayer_groth_ns, &verify_profiles),
+            median_profile(|p| p.verify_slot_or_ns, &verify_profiles),
+            verify_total_ns,
         ));
     }
 
     if let Some(path) = csv_path {
         std::fs::write(&path, csv).expect("write csv");
         eprintln!("csv written to {path}");
+    }
+    if let Some(path) = profile_csv_path {
+        std::fs::write(&path, profile_csv).expect("write profile csv");
+        eprintln!("profile csv written to {path}");
     }
 }

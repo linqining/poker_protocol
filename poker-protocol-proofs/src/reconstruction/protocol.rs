@@ -6,6 +6,7 @@ use poker_protocol_core::{
 };
 use rand_core::{CryptoRng, RngCore};
 use std::collections::{HashMap, HashSet};
+use std::time::Instant;
 
 const PROTOCOL_ID: &[u8] = b"poker/reconstruction";
 pub const RECONSTRUCTION_PROOF_VERSION: u8 = 3;
@@ -121,6 +122,20 @@ pub struct ReconstructProof<C: Curve> {
     pub slot_membership_proofs: Vec<SlotContributionOrProof<C>>,
 }
 
+/// Optional stage timings collected by the benchmark harness.  The default
+/// proving and verification APIs do not collect timings or change protocol
+/// bytes; callers opt in through `*_with_profile`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ReconstructionProfile {
+    pub residual_setup_ns: u128,
+    pub cross_key_ns: u128,
+    pub bayer_groth_ns: u128,
+    pub slot_or_ns: u128,
+    pub verify_cross_key_ns: u128,
+    pub verify_bayer_groth_ns: u128,
+    pub verify_slot_or_ns: u128,
+}
+
 fn append_ciphertext<C: Curve>(
     transcript: &mut impl CryptoTranscript,
     role: &[u8],
@@ -230,6 +245,38 @@ impl<C: Curve> ReconstructProof<C> {
         rng: &mut (impl CryptoRng + RngCore),
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(ReconstructionStatement<C>, Self), VerificationError> {
+        Self::prove_with_profile(
+            context_digest,
+            reconstruction_epoch,
+            prior_state_digest,
+            cards,
+            residual_carriers,
+            owner_sk,
+            owner_pk,
+            aggregate_pk,
+            rng,
+            transcript,
+            None,
+        )
+    }
+
+    /// Prove while optionally collecting stage timings for reproducibility
+    /// experiments.  `profile` is deliberately outside the proof object.
+    #[allow(clippy::too_many_arguments)]
+    pub fn prove_with_profile(
+        context_digest: [u8; 32],
+        reconstruction_epoch: u64,
+        prior_state_digest: [u8; 32],
+        cards: Vec<C::Point>,
+        residual_carriers: Vec<ElGamalCiphertextGeneric<C>>,
+        owner_sk: &C::Scalar,
+        owner_pk: &C::Point,
+        aggregate_pk: &C::Point,
+        rng: &mut (impl CryptoRng + RngCore),
+        transcript: &mut impl CryptoTranscript,
+        mut profile: Option<&mut ReconstructionProfile>,
+    ) -> Result<(ReconstructionStatement<C>, Self), VerificationError> {
+        let setup_start = profile.as_ref().map(|_| Instant::now());
         let n = cards.len();
         let k = residual_carriers.len();
         if n < 2 || k == 0 || k > n {
@@ -358,7 +405,11 @@ impl<C: Curve> ReconstructProof<C> {
         };
         statement.validate()?;
         statement.append_to_transcript(transcript);
+        if let (Some(start), Some(profile)) = (setup_start, profile.as_deref_mut()) {
+            profile.residual_setup_ns = start.elapsed().as_nanos();
+        }
 
+        let cross_key_start = profile.as_ref().map(|_| Instant::now());
         let mut cross_key_proofs = Vec::with_capacity(k);
         for j in 0..k {
             cross_key_proofs.push(CrossKeyNegationProof::prove(
@@ -372,7 +423,11 @@ impl<C: Curve> ReconstructProof<C> {
                 transcript,
             )?);
         }
+        if let (Some(start), Some(profile)) = (cross_key_start, profile.as_deref_mut()) {
+            profile.cross_key_ns = start.elapsed().as_nanos();
+        }
 
+        let bayer_groth_start = profile.as_ref().map(|_| Instant::now());
         let contribution_shuffle_proof = BayerGrothShuffleProof::prove(
             &shuffle_input,
             &statement.contributions,
@@ -382,7 +437,11 @@ impl<C: Curve> ReconstructProof<C> {
             rng,
             transcript,
         )?;
+        if let (Some(start), Some(profile)) = (bayer_groth_start, profile.as_deref_mut()) {
+            profile.bayer_groth_ns = start.elapsed().as_nanos();
+        }
 
+        let slot_or_start = profile.as_ref().map(|_| Instant::now());
         let mut slot_membership_proofs = Vec::with_capacity(n);
         for i in 0..n {
             slot_membership_proofs.push(SlotContributionOrProof::prove(
@@ -394,6 +453,9 @@ impl<C: Curve> ReconstructProof<C> {
                 rng,
                 transcript,
             )?);
+        }
+        if let (Some(start), Some(profile)) = (slot_or_start, profile.as_deref_mut()) {
+            profile.slot_or_ns = start.elapsed().as_nanos();
         }
 
         Ok((
@@ -412,6 +474,16 @@ impl<C: Curve> ReconstructProof<C> {
         statement: &ReconstructionStatement<C>,
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(), VerificationError> {
+        self.verify_with_profile(statement, transcript, None)
+    }
+
+    /// Verify while optionally collecting component timings for experiments.
+    pub fn verify_with_profile(
+        &self,
+        statement: &ReconstructionStatement<C>,
+        transcript: &mut impl CryptoTranscript,
+        mut profile: Option<&mut ReconstructionProfile>,
+    ) -> Result<(), VerificationError> {
         statement.validate()?;
         let n = statement.cards.len();
         let k = statement.residual_carriers.len();
@@ -427,6 +499,7 @@ impl<C: Curve> ReconstructProof<C> {
         }
 
         statement.append_to_transcript(transcript);
+        let cross_key_start = profile.as_ref().map(|_| Instant::now());
         for j in 0..k {
             self.cross_key_proofs[j]
                 .verify(
@@ -438,6 +511,9 @@ impl<C: Curve> ReconstructProof<C> {
                 )
                 .map_err(|_| VerificationError::InvalidProofAtPosition(j))?;
         }
+        if let (Some(start), Some(profile)) = (cross_key_start, profile.as_deref_mut()) {
+            profile.verify_cross_key_ns = start.elapsed().as_nanos();
+        }
 
         let zero_contributions =
             deterministic_zero_contributions::<C>(n - k, &statement.aggregate_pk)?;
@@ -447,13 +523,18 @@ impl<C: Curve> ReconstructProof<C> {
                 .iter()
                 .map(|(ciphertext, _)| ciphertext.clone()),
         );
+        let bayer_groth_start = profile.as_ref().map(|_| Instant::now());
         self.contribution_shuffle_proof.verify(
             &shuffle_input,
             &statement.contributions,
             &statement.aggregate_pk,
             transcript,
         )?;
+        if let (Some(start), Some(profile)) = (bayer_groth_start, profile.as_deref_mut()) {
+            profile.verify_bayer_groth_ns = start.elapsed().as_nanos();
+        }
 
+        let slot_or_start = profile.as_ref().map(|_| Instant::now());
         for i in 0..n {
             self.slot_membership_proofs[i]
                 .verify(
@@ -463,6 +544,9 @@ impl<C: Curve> ReconstructProof<C> {
                     transcript,
                 )
                 .map_err(|_| VerificationError::InvalidProofAtPosition(i))?;
+        }
+        if let (Some(start), Some(profile)) = (slot_or_start, profile.as_deref_mut()) {
+            profile.verify_slot_or_ns = start.elapsed().as_nanos();
         }
         Ok(())
     }

@@ -9,6 +9,7 @@ import { relative, resolve } from "node:path";
 const repoRoot = resolve(import.meta.dirname, "..");
 const metadataPath = resolve(repoRoot, "paper/experiments/benchmark_metadata.json");
 const nativeBaseline = resolve(repoRoot, "paper/experiments/reconstruction_stark.csv");
+const componentBaseline = resolve(repoRoot, "paper/experiments/reconstruction_components.csv");
 const wasmBaseline = resolve(repoRoot, "paper/experiments/reconstruction_wasm.csv");
 
 function fail(message) {
@@ -73,12 +74,18 @@ const wasmHeader = [
   "n", "k", "prove_ms", "verify_ms", "proof_bytes", "statement_bytes",
   "bundle_bytes", "samples",
 ];
+const componentHeader = [
+  "n", "k", "residual_setup_ns", "cross_key_ns", "bayer_groth_ns", "slot_or_ns",
+  "prove_total_ns", "serialization_ns", "verify_cross_key_ns", "verify_bayer_groth_ns",
+  "verify_slot_or_ns", "verify_total_ns",
+];
 
 const mode = process.argv[2];
 if (mode === "--committed") {
   const metadata = JSON.parse(readFileSync(metadataPath, "utf8"));
   const checks = [
     [nativeBaseline, metadata.native_benchmark.csv_sha256],
+    [componentBaseline, metadata.native_benchmark.component_csv_sha256],
     [wasmBaseline, metadata.benchmark.csv_sha256],
     ...Object.entries(metadata.native_benchmark.source_sha256).map(([path, hash]) => [resolve(repoRoot, path), hash]),
     ...Object.entries(metadata.benchmark.source_sha256).map(([path, hash]) => [resolve(repoRoot, path), hash]),
@@ -90,6 +97,7 @@ if (mode === "--committed") {
     }
   }
   parseCsv(nativeBaseline, nativeHeader);
+  parseCsv(componentBaseline, componentHeader);
   parseCsv(wasmBaseline, wasmHeader);
   console.log(`[repro-verify] committed artifacts match ${metadataPath}`);
 } else if (mode === "--generated") {
@@ -99,18 +107,36 @@ if (mode === "--committed") {
   }
   const nativePath = resolve(process.argv[3]);
   const wasmPath = resolve(process.argv[4]);
+  const componentPath = resolve(nativePath, "../reconstruction_components.csv");
   const samples = process.argv[6];
   const nativeRows = parseCsv(nativePath, nativeHeader);
+  const componentRows = parseCsv(componentPath, componentHeader);
   const wasmRows = parseCsv(wasmPath, wasmHeader);
   const nativeReference = parseCsv(nativeBaseline, nativeHeader);
   const wasmReference = parseCsv(wasmBaseline, wasmHeader);
 
   requirePositiveNumbers(nativeRows, nativeHeader.slice(2), nativePath);
   requirePositiveNumbers(wasmRows, wasmHeader.slice(2), wasmPath);
+  requirePositiveNumbers(componentRows, componentHeader.slice(2), componentPath);
   requireSameGrid(nativeRows, nativeReference, nativePath);
+  requireSameGrid(componentRows, parseCsv(componentBaseline, componentHeader), componentPath);
   requireSameGrid(wasmRows, wasmReference, wasmPath);
 
   for (let index = 0; index < nativeRows.length; index += 1) {
+    const component = componentRows[index];
+    const proveParts = ["residual_setup_ns", "cross_key_ns", "bayer_groth_ns", "slot_or_ns"];
+    const verifyParts = ["verify_cross_key_ns", "verify_bayer_groth_ns", "verify_slot_or_ns"];
+    for (const key of [...proveParts, ...verifyParts]) {
+      const total = key.startsWith("verify_") ? Number(component.verify_total_ns) : Number(component.prove_total_ns);
+      if (Number(component[key]) > total) {
+        fail(`${componentPath}:${index + 2} ${key} exceeds its total`);
+      }
+    }
+    const proveSum = proveParts.reduce((sum, key) => sum + Number(component[key]), 0);
+    const verifySum = verifyParts.reduce((sum, key) => sum + Number(component[key]), 0);
+    if (proveSum > Number(component.prove_total_ns) * 1.25 || verifySum > Number(component.verify_total_ns) * 1.25) {
+      fail(`${componentPath}:${index + 2} component sum exceeds 25% timing-overhead tolerance`);
+    }
     for (const column of ["proof_bytes", "statement_bytes"]) {
       if (nativeRows[index][column] !== nativeReference[index][column]) {
         fail(`${nativePath}:${index + 2} changed deterministic ${column}`);
@@ -149,6 +175,8 @@ if (mode === "--committed") {
       results: {
         native_csv: relative(repoRoot, nativePath),
         native_csv_sha256: sha256(nativePath),
+        component_csv: relative(repoRoot, componentPath),
+        component_csv_sha256: sha256(componentPath),
         wasm_csv: relative(repoRoot, wasmPath),
         wasm_csv_sha256: sha256(wasmPath),
       },
