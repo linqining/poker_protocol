@@ -21,7 +21,7 @@
     }
   },
   "native_benchmark": {
-    "command": "cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark -- paper/experiments/reconstruction_stark.csv",
+    "command": "cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark -- paper/experiments/reconstruction_stark.csv paper/experiments/reconstruction_components.csv",
     "samples_per_cell": 7,
     "warmup_per_cell": 1,
     "aggregation": "median",
@@ -31,8 +31,25 @@
     "curve": "StarkCurve",
     "transcript": "PoseidonFelt",
     "csv_sha256": "e6755a02bddd802525b47a984fc599e035d0431a7db26cc58c10a6971fccfa26",
+    "component_csv": "paper/experiments/reconstruction_components.csv",
+    "component_csv_sha256": "0435529f5bb65f0fb4651dfb12753b239f8ad8f9484c1b18cdec311f412ecbe7",
+    "component_profile": {
+      "timed_stages": [
+        "residual_setup",
+        "cross_key",
+        "bayer_groth",
+        "slot_or",
+        "serialization",
+        "verify_cross_key",
+        "verify_bayer_groth",
+        "verify_slot_or"
+      ],
+      "aggregation": "median over 7 samples; nanoseconds in component CSV",
+      "clock": "std::time::Instant wall-clock measurements",
+      "sum_tolerance": "component sums may exceed total by at most 25 percent because stages are timed in separate calls"
+    },
     "source_sha256": {
-      "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "86104f267a69cbefcb0565b33912f6423a5cb34bbf87dec27bf847a39fd346b9"
+      "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "591fe40cf91bcc2a083cdaa475018b42787c00d7e57943ebd75575f11c01b798"
     }
   },
   "machine": {
