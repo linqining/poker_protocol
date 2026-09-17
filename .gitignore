@@ -15,3 +15,4 @@ paper/experiments/*
 !paper/submission_metadata.json
 __pycache__/
 .repro/
+poker_protocol/reconstruction_paper.md
