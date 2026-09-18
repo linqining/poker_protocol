@@ -35,6 +35,8 @@ DEFAULT_METADATA = {
     'keywords': ['Mental Poker', 'zero knowledge', 'UC security', 'formal verification'],
 }
 
+REPOSITORY_URL = 'https://github.com/linqining/poker_protocol'
+
 TABLE_INDEX = 0
 TABLE_LABEL = 'TABLE'
 TWO_COLUMN_BODY = False
@@ -58,6 +60,23 @@ def author_block(metadata):
         affiliation = author.get('affiliation')
         rendered.append(f'{name} ({affiliation})' if affiliation else name)
     return '; '.join(rendered)
+
+def author_identity_lines(metadata):
+    lines = []
+    for author in metadata.get('authors', []):
+        if not isinstance(author, dict):
+            continue
+        name = ' '.join(part for part in [author.get('first_name'), author.get('last_name')] if part)
+        details = []
+        if author.get('email'):
+            details.append(author['email'])
+        if author.get('orcid'):
+            details.append(f"ORCID {author['orcid']}")
+        if author.get('is_corresponding'):
+            details.append('corresponding author')
+        if name and details:
+            lines.append(f"{name}: " + ' · '.join(details))
+    return lines
 
 def validate_submission_metadata(metadata):
     if not metadata.get('authors'):
@@ -377,11 +396,20 @@ def build():
     p=doc.add_paragraph(style='Subtitle Custom'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(metadata['subtitle'])
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(25); p.add_run('Manuscript prepared for IEEE Transactions on Information Forensics and Security')
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(author_block(metadata))
-    for label, value in [('Corresponding author:', metadata.get('corresponding_author')), ('Funding:', metadata.get('funding')), ('Acknowledgements:', metadata.get('acknowledgements'))]:
+    structured_corresponding = any(
+        isinstance(author, dict) and author.get('is_corresponding')
+        for author in metadata.get('authors', [])
+    )
+    metadata_lines = [('Funding:', metadata.get('funding')), ('Acknowledgements:', metadata.get('acknowledgements'))]
+    if not structured_corresponding:
+        metadata_lines.insert(0, ('Corresponding author:', metadata.get('corresponding_author')))
+    for label, value in metadata_lines:
         if value:
             p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; r=p.add_run(label+' '); r.bold=True; p.add_run(str(value))
+    for identity_line in author_identity_lines(metadata):
+        p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(identity_line)
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(4)
-    p.add_run('Source repository: ').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
+    p.add_run('Source repository: ').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol',REPOSITORY_URL)
     body_sec = doc.add_section(WD_SECTION.NEW_PAGE)
     body_sec.top_margin=Inches(0.62); body_sec.bottom_margin=Inches(0.62); body_sec.left_margin=Inches(0.7); body_sec.right_margin=Inches(0.7)
     set_two_columns(body_sec)
@@ -533,7 +561,7 @@ def build():
     add_para(doc,'The code is organized as follows:')
     next_table_caption('Implementation components')
     add_table(doc,['Component','Role'],[('poker-protocol-core','Curve arithmetic, ElGamal, and transcripts.'),('poker-protocol-bg','Bayer–Groth shuffle component.'),('poker-protocol-proofs','Reconstruction, cross-key, OR, and related proofs.'),('poker_protocol','Native adapter, ABI, and game integration.'),('client-wasm','Browser bridge and reproducible WASM benchmark.'),('poker_protocol_lean','Formal specification and checked composition.')],widths=[2.1,4.0])
-    add_para(doc,'The native path uses the Stark-curve/Poseidon transcript domain. The Ristretto adapter constructs the public submission object; verification of an external AIR archive is outside this repository. The Move contract stores the partial ciphertext after subtracting submitted reveal tokens, while the AIR test helper derives the |U| = 1 owner-residual vector by subtracting every other seat’s token. When two or more tokens are missing, no owner-residual vector entry is created and the rebuilt canonical slot remains unchanged. The repository branch containing the paper and implementation is https://github.com/linqining/poker_protocol/tree/feat/paper.')
+    add_para(doc,f'The native path uses the Stark-curve/Poseidon transcript domain. The Ristretto adapter constructs the public submission object; verification of an external AIR archive is outside this repository. The Move contract stores the partial ciphertext after subtracting submitted reveal tokens, while the AIR test helper derives the |U| = 1 owner-residual vector by subtracting every other seat’s token. When two or more tokens are missing, no owner-residual vector entry is created and the rebuilt canonical slot remains unchanged. The paper and implementation repository is {REPOSITORY_URL}.')
     add_para(doc,'To reproduce the checks:')
     add_equation(doc,'./scripts/install_repro_deps.sh\n./scripts/reproduce_paper.sh')
     add_para(doc,'The installer configures pinned Rust, Lean, Node.js, wasm-pack, Circom 2.2.3, and snarkjs 0.7.5 versions in user-writable locations without sudo; CIRCOM_BIN can select an explicit compatible compiler. The runner verifies the committed baseline and source hashes, executes the Rust, WASM, Lean, scoped-baseline, and refinement checks, and writes fresh timing grids under .repro/results rather than replacing the paper baselines. Each run records the host, tool versions, Git state, and result hashes in run_metadata.json.')
@@ -593,8 +621,10 @@ def build_zh():
     p=doc.add_paragraph(style='Subtitle Custom'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run('槽位语义 跨密钥证明与机器检查组合边界')
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(author_block(metadata))
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(25); p.add_run('2026 年 9 月 17 日  •  poker_protocol 代码仓库')
+    for identity_line in author_identity_lines(metadata):
+        p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(identity_line)
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(4)
-    p.add_run('代码仓库：').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
+    p.add_run('代码仓库：').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol',REPOSITORY_URL)
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(36)
     r=p.add_run('主张边界'); r.bold=True; r.font.color.rgb=RGBColor.from_string(BLACK)
     add_para(doc,'本文的条件 UC 定理在随机预言机模型下成立，并显式依赖 Bayer–Groth、跨密钥证明、槽位 OR 证明、认证 reveal-token 状态，以及实现与形式模型之间的字节级 refinement。Lean 检查 residual-carrier 血统、代数重建关系、跨密钥 Sigma 协议、槽位 OR 协议和组合定理；组件的计算安全性与实现 refinement 仍是明确假设，而不是由群代数自动推出的结论。','Small Note')
@@ -730,7 +760,7 @@ def build_zh():
     doc.add_heading('8 实现与可复现性', level=1)
     add_table(doc,['组件','职责'],[('poker-protocol-core','曲线、ElGamal 与 transcript。'),('poker-protocol-bg','Bayer–Groth shuffle。'),('poker-protocol-proofs','重建、跨密钥和 OR 证明。'),('poker_protocol','原生 adapter、ABI 与牌局集成。'),('client-wasm','浏览器桥接与可复现 WASM 基准。'),('poker_protocol_lean','形式规范与组合定理。')],widths=[2.1,4.0])
     add_para(doc,'代码已统一使用 residual_carrier / residual_carriers；只有单 owner 解密 API 使用 owner_residual_carrier。ABI 字段名称已更新，但序列化字段顺序保持不变。当前 V3 producer 为每个 |U|=1 的 owner 构造 residual vector；若同一牌缺少两个或更多 token，不创建 removal-authorizing entry，canonical slot 在重建中保持不变。')
-    p=doc.add_paragraph(); p.add_run('代码仓库：').bold=True; add_hyperlink(p,'https://github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
+    p=doc.add_paragraph(); p.add_run('代码仓库：').bold=True; add_hyperlink(p,REPOSITORY_URL,REPOSITORY_URL)
     add_para(doc,'复现命令如下：')
     add_equation(doc,'./scripts/install_repro_deps.sh\n./scripts/reproduce_paper.sh')
     add_para(doc,'安装脚本在用户目录或仓库 .repro/toolchains 下配置锁定版本的 Rust、Lean、Node.js 与 wasm-pack，不调用 sudo；--check 只检查环境。复现脚本先核对已提交基线和源码哈希，再执行 Rust、WASM 与 Lean 验证，并将新测量写入 .repro/results，避免覆盖论文基线。每轮运行均在 run_metadata.json 中记录机器、工具版本、Git 状态和结果哈希。')

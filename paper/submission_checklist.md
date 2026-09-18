@@ -19,9 +19,9 @@ IEEE submission.
 | Non-owner veto theorem | Complete | `ReconstructionVeto.veto_free_extraction` and `veto_error_bound_negligible` | Confirm |
 | Related-work comparison | Complete | Quantitative `d,N,r` boundary comparison with dropout-tolerant TTP-free mental poker | Confirm |
 | Bibliography | Complete | 14 entries with venue, volume/pages where available, and DOI where available | Confirm |
-| Submission metadata | Pending author input | `paper/submission_metadata.json`; author name is present, but affiliations, corresponding-author contact, ORCID, funding, and acknowledgements are not finalized | Supply/confirm metadata |
-| Final pre-render regression | Current draft passed; repeat after metadata | Rust, WASM, Lean, zero-sorry, baseline-hash, generated-grid, syntax, and diff checks passed on 2026-09-18 | Re-run after metadata is finalized |
-| English and Chinese DOCX | Current drafts rendered; final rerender pending metadata | The English draft renders to 13 pages in two columns; the Chinese draft contains complete extractable text and renders to 12 pages | Rerender after metadata and final regression |
+| Submission metadata | Author identity complete; affiliation remains null | `paper/submission_metadata.json` contains Qining Lin, corresponding-author email, ORCID, contribution, manuscript type, and conflict-of-interest statement; affiliation, funding, and acknowledgements are null | Add an affiliation only if applicable; otherwise confirm null values before submission |
+| Final pre-render regression | Passed with current metadata | Rust, WASM, Lean, zero-sorry, baseline-hash, generated-grid, syntax, and diff checks passed on 2026-09-18 | Re-run only after further manuscript or metadata changes |
+| English and Chinese DOCX | Regenerated with current metadata | The English draft renders to 13 pages in two columns; the Chinese draft contains complete extractable text and renders to 12 pages | Rerender after any further metadata or template changes |
 
 Reproduce the non-DOCX verification with:
 
@@ -52,8 +52,8 @@ experiments are run and their environment records are added separately.
 
 | Priority | Item | Current status | Completion criterion |
 | --- | --- | --- | --- |
-| P0 | Author metadata | Blocked on author input | Affiliation, corresponding-author email, ORCID, author order, funding, and acknowledgements are confirmed |
-| P0 | IEEE TIFS packaging | Draft two-column package complete; official template transfer remains | `paper/composable_privacy_preserving_deck_reconstruction.docx` renders as a 13-page two-column English manuscript with numbered/captioned tables and figures; final IEEE Word/LaTeX template transfer and author metadata remain |
+| P0 | Author metadata | Corresponding-author identity complete; affiliation remains null | Confirm that no affiliation, funding, or acknowledgements should be listed; do not invent missing fields |
+| P0 | IEEE TIFS packaging | Draft two-column package complete; official template transfer remains | `paper/composable_privacy_preserving_deck_reconstruction.docx` renders as a 13-page two-column English manuscript with numbered/captioned tables and figures; final IEEE Word/LaTeX template transfer and affiliation confirmation remain |
 | P0 | Equation objects | Pending final IEEE template transfer | Current DOCX uses centered, readable equation paragraphs; convert them to native OMML or template-native equations during final Word/LaTeX packaging and re-run visual QA |
 | P0 | Claim discipline | Complete for current data | Node/V8 results remain explicitly separated from browser/mobile-device claims |
 | P1 | Browser and mobile measurements | Missing | Desktop Chrome plus at least one Android Chrome and one iPhone Safari device report warm/cold latency, P50/P95 or spread, and environment metadata |
