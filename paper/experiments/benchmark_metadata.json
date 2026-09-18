@@ -52,6 +52,13 @@
       "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "591fe40cf91bcc2a083cdaa475018b42787c00d7e57943ebd75575f11c01b798"
     }
   },
+  "scoped_baseline": {
+    "json": "paper/experiments/circom_slot_baseline.json",
+    "json_sha256": "98e57e4b8e0247c4c25b0963534a3fd1a2d52e516c690701a37853c4139a85d0",
+    "command": "node scripts/run_circom_slot_baseline.mjs paper/experiments/circom_slot_baseline.json",
+    "scope": "single-slot arithmetic selector relation only; excludes ElGamal, shuffle, cross-key proofs, authenticated state, and dropout composition",
+    "toolchain": "Circom 2.2.3, snarkjs 0.7.5, BN128, local throwaway Powers of Tau"
+  },
   "machine": {
     "model": "Mac15,7",
     "architecture": "arm64",

@@ -8,7 +8,11 @@ RUST_TOOLCHAIN="$(sed -n 's/^channel = "\([^"]*\)"/\1/p' "$REPO_ROOT/rust-toolch
 LEAN_TOOLCHAIN="$(tr -d '[:space:]' < "$REPO_ROOT/poker_protocol_lean/lean-toolchain")"
 NODE_VERSION="24.4.1"
 WASM_PACK_VERSION="0.15.0"
+SNARKJS_VERSION="0.7.5"
+CIRCOM_VERSION="2.2.3"
 TOOLS_DIR="${REPRO_TOOLS_DIR:-$REPO_ROOT/.repro/toolchains}"
+SNARKJS_DIR="$TOOLS_DIR/snarkjs"
+CIRCOM_DIR="$TOOLS_DIR/circom-$CIRCOM_VERSION"
 MODE="install"
 
 [ -n "$RUST_TOOLCHAIN" ] || { printf 'error: rust-toolchain.toml has no channel\n' >&2; exit 1; }
@@ -26,6 +30,7 @@ Environment:
   CARGO_HOME       rustup/cargo home (default: $HOME/.cargo)
   RUSTUP_HOME      rustup state directory (default: $HOME/.rustup)
   ELAN_HOME        elan home (default: $HOME/.elan)
+  CIRCOM_BIN       Optional path to Circom 2.2.3; otherwise installed locally
 EOF
 }
 
@@ -112,6 +117,30 @@ activate_pinned_node() {
   fi
 }
 
+activate_pinned_circom() {
+  if [ -z "${CIRCOM_BIN:-}" ] && [ -x "$CIRCOM_DIR/bin/circom" ]; then
+    CIRCOM_BIN="$CIRCOM_DIR/bin/circom"
+    export CIRCOM_BIN
+  fi
+}
+
+circom_version_is_pinned() {
+  local binary="${CIRCOM_BIN:-circom}"
+  command -v "$binary" >/dev/null 2>&1 && \
+    [ "$("$binary" --version 2>/dev/null | head -n 1)" = "circom compiler $CIRCOM_VERSION" ]
+}
+
+install_pinned_circom() {
+  info "installing Circom $CIRCOM_VERSION under $CIRCOM_DIR"
+  mkdir -p "$CIRCOM_DIR"
+  cargo "+$RUST_TOOLCHAIN" install \
+    --git https://github.com/iden3/circom.git \
+    --tag "v$CIRCOM_VERSION" \
+    --locked --root "$CIRCOM_DIR" --force circom
+  CIRCOM_BIN="$CIRCOM_DIR/bin/circom"
+  export CIRCOM_BIN
+}
+
 install_pinned_node() {
   command -v curl >/dev/null 2>&1 || die "curl is required to install Node.js"
   command -v tar >/dev/null 2>&1 || die "tar is required to install Node.js"
@@ -159,6 +188,7 @@ install_elan() {
 
 load_user_paths
 activate_pinned_node
+activate_pinned_circom
 
 require_command git "git is required (macOS: install Xcode Command Line Tools; Linux: install git)"
 require_command cc "a C linker is required (macOS: run xcode-select --install; Linux: install build-essential)"
@@ -196,6 +226,17 @@ if [ "$MODE" = "install" ]; then
     install_pinned_node
   fi
 
+  if [ ! -x "$SNARKJS_DIR/node_modules/.bin/snarkjs" ]; then
+    command -v npm >/dev/null 2>&1 || die "npm is required to install snarkjs"
+    info "installing snarkjs $SNARKJS_VERSION under $SNARKJS_DIR"
+    mkdir -p "$SNARKJS_DIR"
+    npm install --prefix "$SNARKJS_DIR" --no-package-lock --ignore-scripts "snarkjs@$SNARKJS_VERSION"
+  fi
+
+  if ! circom_version_is_pinned; then
+    install_pinned_circom
+  fi
+
   if ! command -v elan >/dev/null 2>&1; then
     info "installing elan in the user account"
     install_elan
@@ -221,6 +262,10 @@ command_version_is wasm-pack "wasm-pack $WASM_PACK_VERSION" || \
   die "wasm-pack $WASM_PACK_VERSION is required; run this script without --check"
 command_version_is node "v$NODE_VERSION" || \
   die "Node.js v$NODE_VERSION is required; run this script without --check"
+[ -x "$SNARKJS_DIR/node_modules/.bin/snarkjs" ] || \
+  die "snarkjs $SNARKJS_VERSION is missing; run this script without --check"
+circom_version_is_pinned || \
+  die "Circom $CIRCOM_VERSION is required; run this script without --check or set CIRCOM_BIN"
 command -v elan >/dev/null 2>&1 || die "elan is missing; run this script without --check"
 elan toolchain list | grep -F "$LEAN_TOOLCHAIN" >/dev/null 2>&1 || \
   die "Lean $LEAN_TOOLCHAIN is missing; run this script without --check"
@@ -230,6 +275,8 @@ info "Cargo: $(rustup run "$RUST_TOOLCHAIN" cargo --version)"
 info "WASM target: wasm32-unknown-unknown"
 info "$(wasm-pack --version)"
 info "Node.js: $(node --version)"
+info "snarkjs: $($SNARKJS_DIR/node_modules/.bin/snarkjs --version 2>/dev/null | head -n 1)"
+info "Circom: $(${CIRCOM_BIN:-circom} --version 2>/dev/null | head -n 1)"
 info "$(elan run "$LEAN_TOOLCHAIN" lean --version | head -n 1)"
 info "$(elan run "$LEAN_TOOLCHAIN" lake --version | head -n 1)"
 info "dependency check passed"

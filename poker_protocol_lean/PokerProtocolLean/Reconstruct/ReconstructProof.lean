@@ -4,6 +4,7 @@ import PokerProtocolLean.Reconstruct.ReconstructionJointSigma
 import PokerProtocolLean.Reconstruct.ReconstructionSlotOr
 import PokerProtocolLean.Reconstruct.ReconstructionSecurity
 import PokerProtocolLean.Reconstruct.ReconstructionVeto
+import PokerProtocolLean.Reconstruct.RefinementVectors
 
 /-!
 # Reconstruction proof entry point

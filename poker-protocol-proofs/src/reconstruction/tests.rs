@@ -166,6 +166,25 @@ fn reconstruction_rejects_wrong_context_epoch_and_prior_state() {
 }
 
 #[test]
+fn reconstruction_shared_refinement_vector() {
+    let vector: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../paper/experiments/reconstruction_refinement_vector.json"
+    ))
+    .unwrap();
+    const REMOVED_BITMAP: [bool; 8] =
+        [false, true, false, false, true, false, false, false];
+    assert_eq!(vector["version"].as_u64(), Some(super::RECONSTRUCTION_PROOF_VERSION as u64));
+    assert_eq!(vector["reconstruction_epoch"].as_u64(), Some(11));
+    assert_eq!(vector["card_count"].as_u64(), Some(8));
+    assert_eq!(vector["residual_carrier_count"].as_u64(), Some(2));
+    assert_eq!(vector["removed_bitmap"].as_str(), Some("01001000"));
+    assert_eq!(
+        REMOVED_BITMAP.iter().filter(|removed| **removed).count(),
+        vector["residual_carrier_count"].as_u64().unwrap() as usize
+    );
+}
+
+#[test]
 fn slot_or_rejects_cross_slot_plaintext() {
     let card_a = RistrettoCurve::hash_to_curve(b"reconstruction-attack-a");
     let card_b = RistrettoCurve::hash_to_curve(b"reconstruction-attack-b");

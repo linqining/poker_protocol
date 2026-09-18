@@ -79,6 +79,9 @@ if [ -x "$LOCAL_NODE_DIR/bin/node" ]; then
   export PATH="$LOCAL_NODE_DIR/bin:$PATH"
 fi
 export PATH="${CARGO_HOME:-$HOME/.cargo}/bin:${ELAN_HOME:-$HOME/.elan}/bin:$PATH"
+if [ -x "$TOOLS_DIR/snarkjs/node_modules/.bin/snarkjs" ]; then
+  export SNARKJS_BIN="$TOOLS_DIR/snarkjs/node_modules/.bin/snarkjs"
+fi
 
 NATIVE_CSV="$OUTPUT_DIR/reconstruction_stark.csv"
 COMPONENT_CSV="$OUTPUT_DIR/reconstruction_components.csv"
@@ -109,6 +112,8 @@ node scripts/run_circom_slot_baseline.mjs "$BASELINE_JSON"
 printf '[reproduce] building Lean model and checking for placeholders\n'
 (cd poker_protocol_lean && lake build PokerProtocolLean)
 (cd poker_protocol_lean && bash scripts/count_sorries.sh)
+printf '[reproduce] checking shared Rust--Lean refinement vector\n'
+scripts/check_refinement_vectors.sh
 
 node scripts/verify_reproduction.mjs \
   --generated "$NATIVE_CSV" "$WASM_CSV" --samples "$SAMPLES" \

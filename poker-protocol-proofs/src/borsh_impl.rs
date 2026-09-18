@@ -687,6 +687,31 @@ mod tests {
                 &mut FiatShamirTranscript::new(b"borsh-reconstruction"),
             )
             .unwrap();
+
+        let mut truncated = statement_bytes.clone();
+        truncated.pop();
+        assert!(borsh::from_slice::<ReconstructionStatement<StarkCurve>>(&truncated).is_err());
+
+        let mut trailing = statement_bytes.clone();
+        trailing.push(0);
+        assert!(borsh::from_slice::<ReconstructionStatement<StarkCurve>>(&trailing).is_err());
+
+        // Layout prefix: version (1), context digest (32), epoch (8), prior
+        // state digest (32). Swapping the two digests is still decodable but
+        // must invalidate the Fiat--Shamir binding.
+        let mut reordered = statement_bytes.clone();
+        let context = reordered[1..33].to_vec();
+        let prior_state = reordered[41..73].to_vec();
+        reordered[1..33].copy_from_slice(&prior_state);
+        reordered[41..73].copy_from_slice(&context);
+        let reordered_statement: ReconstructionStatement<StarkCurve> =
+            borsh::from_slice(&reordered).unwrap();
+        assert!(recovered_proof
+            .verify(
+                &reordered_statement,
+                &mut FiatShamirTranscript::new(b"borsh-reconstruction"),
+            )
+            .is_err());
     }
 
     #[test]

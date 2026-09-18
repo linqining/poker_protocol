@@ -10,6 +10,9 @@ paper/*
 paper/experiments/*
 !paper/experiments/reconstruction_stark.csv
 !paper/experiments/reconstruction_wasm.csv
+!paper/experiments/reconstruction_components.csv
+!paper/experiments/circom_slot_baseline.json
+!paper/experiments/reconstruction_refinement_vector.json
 !paper/experiments/benchmark_metadata.json
 !paper/submission_checklist.md
 !paper/submission_metadata.json

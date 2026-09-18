@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "baseline": "circom-groth16-single-slot",
+  "circuit": "paper/baselines/circom_slot_relation.circom",
+  "circom_version": "circom compiler 2.2.3",
+  "snarkjs_version": "0.7.5",
+  "curve": "bn128",
+  "setup": "local throwaway Powers of Tau contribution; performance-only, not a production ceremony",
+  "constraints": 2,
+  "proof_bytes": 808,
+  "public_signal_bytes": 90,
+  "witness_ms": 69.022458,
+  "prove_ms": 270.438375,
+  "verify_ms": 228.552375,
+  "input": {
+    "card": "7",
+    "selector_private": "1",
+    "out": "-7 mod bn128 field"
+  },
+  "unsupported_semantics": [
+    "ElGamal ciphertext arithmetic and residual decryption",
+    "cross-key proofs",
+    "hidden carrier-to-slot mapping and Bayer-Groth shuffle",
+    "authenticated state binding and reconstruction epochs",
+    "dropout handling and multi-slot composition"
+  ],
+  "commands": {
+    "compile": "circom 2.2.3 --r1cs --wasm --sym",
+    "setup": "snarkjs powersoftau new/contribute/prepare phase2; groth16 setup; zkey contribute",
+    "prove": "snarkjs wtns calculate + groth16 prove",
+    "verify": "snarkjs groth16 verify"
+  }
+}

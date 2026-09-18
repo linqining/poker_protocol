@@ -35,6 +35,10 @@ DEFAULT_METADATA = {
     'keywords': ['Mental Poker', 'zero knowledge', 'UC security', 'formal verification'],
 }
 
+TABLE_INDEX = 0
+TABLE_LABEL = 'TABLE'
+TWO_COLUMN_BODY = False
+
 def submission_metadata():
     metadata = dict(DEFAULT_METADATA)
     if METADATA_PATH.exists():
@@ -45,7 +49,15 @@ def submission_metadata():
 def author_block(metadata):
     if not metadata.get('authors'):
         return 'Author names and affiliations must be supplied before submission'
-    return '; '.join(metadata['authors'])
+    rendered = []
+    for author in metadata['authors']:
+        if isinstance(author, str):
+            rendered.append(author)
+            continue
+        name = ' '.join(part for part in [author.get('first_name'), author.get('last_name')] if part)
+        affiliation = author.get('affiliation')
+        rendered.append(f'{name} ({affiliation})' if affiliation else name)
+    return '; '.join(rendered)
 
 def validate_submission_metadata(metadata):
     if not metadata.get('authors'):
@@ -259,9 +271,14 @@ def add_references(doc, refs):
         p.add_run(f'[{index}] {ref}')
 
 def add_equation(doc, text):
-    p=doc.add_paragraph(style='Equation'); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.add_run(text); return p
+    p = doc.add_paragraph(style='Equation')
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.add_run(text)
+    return p
 
-def add_figure(doc, path, caption, width=6.25):
+def add_figure(doc, path, caption, width=None):
+    if width is None:
+        width = 3.18 if TWO_COLUMN_BODY else 6.25
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_before=Pt(6); p.paragraph_format.space_after=Pt(2)
     run = p.add_run(); run.add_picture(str(path),width=Inches(width))
     drawing = run._r.find(qn('w:drawing'))
@@ -273,25 +290,79 @@ def add_figure(doc, path, caption, width=6.25):
     c=doc.add_paragraph(style='Caption Custom'); c.alignment=WD_ALIGN_PARAGRAPH.CENTER; c.add_run(caption)
 
 def add_table(doc, headers, rows, widths=None):
-    t=doc.add_table(rows=1, cols=len(headers)); t.alignment=WD_TABLE_ALIGNMENT.CENTER; t.style='Table Grid'
+    global TABLE_INDEX
+    caption = getattr(add_table, '_caption', None)
+    if caption and TABLE_LABEL:
+        TABLE_INDEX += 1
+        roman = ['I','II','III','IV','V','VI','VII','VIII','IX','X'][TABLE_INDEX - 1]
+        p = doc.add_paragraph(style='Caption Custom')
+        p.paragraph_format.keep_with_next = True
+        p.add_run(f'{TABLE_LABEL} {roman}. {caption}')
+        add_table._caption = None
+    t=doc.add_table(rows=1, cols=len(headers)); t.alignment=WD_TABLE_ALIGNMENT.CENTER; t.style='Table Grid'; t.autofit=False
     hdr=t.rows[0]; set_repeat_table_header(hdr); set_row_cant_split(hdr)
     for j,h in enumerate(headers):
         cell=hdr.cells[j]; set_cell_shading(cell,NAVY); set_cell_border(cell); set_cell_margins(cell)
         cell.vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER
-        p=cell.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; r=p.add_run(h); r.bold=True; r.font.color.rgb=RGBColor(255,255,255); r.font.size=Pt(9.5)
+        p=cell.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER; r=p.add_run(h); r.bold=True; r.font.color.rgb=RGBColor(255,255,255); r.font.size=Pt(7.4 if TWO_COLUMN_BODY else 9.5)
     for i,row in enumerate(rows):
         added_row=t.add_row(); set_row_cant_split(added_row); cells=added_row.cells
         for j,val in enumerate(row):
             cell=cells[j]; set_cell_border(cell); set_cell_margins(cell); cell.vertical_alignment=WD_CELL_VERTICAL_ALIGNMENT.CENTER
             if i%2==1: set_cell_shading(cell,'F7F9FC')
-            p=cell.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.LEFT; r=p.add_run(val); r.font.size=Pt(9.2)
+            p=cell.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.LEFT; r=p.add_run(val); r.font.size=Pt(7.1 if TWO_COLUMN_BODY else 9.2)
     if widths:
+        if TWO_COLUMN_BODY and sum(widths) > 3.18:
+            scale = 3.18 / sum(widths)
+            widths = [w * scale for w in widths]
+        if TWO_COLUMN_BODY and widths:
+            min_first = 0.48 if headers[0] in ('No.', 'ID') else 0.34
+            if widths[0] < min_first:
+                deficit = min_first - widths[0]
+                widths[0] = min_first
+                donor = max(range(1, len(widths)), key=lambda i: widths[i])
+                widths[donor] = max(0.30, widths[donor] - deficit)
+        # python-docx cell.width alone leaves tblGrid at its default page
+        # width. Write all three OOXML width representations explicitly so
+        # column layout is honored by both Word and LibreOffice.
+        widths_twips = [max(240, int(round(w * 1440))) for w in widths]
+        tbl = t._tbl
+        tbl_pr = tbl.tblPr
+        tbl_w = tbl_pr.find(qn('w:tblW'))
+        if tbl_w is None:
+            tbl_w = OxmlElement('w:tblW'); tbl_pr.append(tbl_w)
+        tbl_w.set(qn('w:type'), 'dxa'); tbl_w.set(qn('w:w'), str(sum(widths_twips)))
+        grid = tbl.tblGrid
+        for child in list(grid):
+            grid.remove(child)
+        for w in widths_twips:
+            col = OxmlElement('w:gridCol'); col.set(qn('w:w'), str(w)); grid.append(col)
         for row in t.rows:
             for cell,w in zip(row.cells,widths): cell.width=Inches(w)
+            for cell,w_twips in zip(row.cells,widths_twips):
+                tc_pr = cell._tc.get_or_add_tcPr()
+                tc_w = tc_pr.find(qn('w:tcW'))
+                if tc_w is None:
+                    tc_w = OxmlElement('w:tcW'); tc_pr.append(tc_w)
+                tc_w.set(qn('w:type'), 'dxa'); tc_w.set(qn('w:w'), str(w_twips))
     doc.add_paragraph().paragraph_format.space_after=Pt(1)
     return t
 
+def next_table_caption(caption):
+    add_table._caption = caption
+
+def set_two_columns(section, space_twips=360):
+    sect_pr = section._sectPr
+    cols = sect_pr.find(qn('w:cols'))
+    if cols is None:
+        cols = OxmlElement('w:cols')
+        sect_pr.append(cols)
+    cols.set(qn('w:num'), '2')
+    cols.set(qn('w:space'), str(space_twips))
+
 def build():
+    global TABLE_INDEX, TABLE_LABEL, TWO_COLUMN_BODY
+    TABLE_INDEX = 0; TABLE_LABEL = 'TABLE'; add_table._caption = None
     metadata = submission_metadata(); validate_submission_metadata(metadata)
     make_figures()
     doc=Document(); setup_styles(doc)
@@ -311,7 +382,10 @@ def build():
             p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; r=p.add_run(label+' '); r.bold=True; p.add_run(str(value))
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER; p.paragraph_format.space_after=Pt(4)
     p.add_run('Source repository: ').bold=True; add_hyperlink(p,'github.com/linqining/poker_protocol/tree/feat/paper','https://github.com/linqining/poker_protocol/tree/feat/paper')
-    doc.add_page_break()
+    body_sec = doc.add_section(WD_SECTION.NEW_PAGE)
+    body_sec.top_margin=Inches(0.62); body_sec.bottom_margin=Inches(0.62); body_sec.left_margin=Inches(0.7); body_sec.right_margin=Inches(0.7)
+    set_two_columns(body_sec)
+    TWO_COLUMN_BODY = True
     # abstract + metadata
     doc.add_heading('Abstract', level=1)
     add_para(doc,'Mental Poker encrypts and shuffles a deck so that no single participant learns the complete order or contents. A multiplayer shuffle normally requires every participant to perform its step. If a participant leaves or stops responding, the table can become unable to reconstruct the next deck: the remaining players must remove the departed participant’s cards without learning or altering the other cards, yet the departed participant can no longer cooperate. The shuffle mechanism alone does not solve this liveness gap.')
@@ -325,6 +399,7 @@ def build():
     add_para(doc,'The difficult part is slot semantics. A proof of a ciphertext multiset or of a global linear sum is insufficient: compensating ciphertexts can make the sum look correct while changing an individual slot. The protocol therefore proves the allowed plaintext relation independently for every slot, and separately proves that each negative branch is linked to an authenticated residual carrier.')
     doc.add_heading('Contributions', level=2)
     contributions=[('1','Reveal-token derivation','We derive the residual carrier by subtracting submitted reveal tokens and distinguish the owner-residual and jointly keyed cases.'),('2','Liveness-aware reconstruction','Authenticated residual carriers allow an active table to rebuild after non-participation; a deadline is a no-op event, not a plaintext disclosure.'),('3','Aggregate-key encryption','All contributions use the same aggregate key P, so the reconstructed deck retains the standard ElGamal shape.'),('4','Cross-key negation proof','For an authenticated carrier and a negative contribution under P, the prover proves the required ciphertext relation without exposing the card or its mapping.'),('5','Per-slot OR semantics','Each canonical slot is proven to contain either an encryption of zero or an encryption of the slot’s negative card.'),('6','State and transcript binding','The table context, epoch, previous-state digest, public keys, canonical cards, residual carriers, and contributions are bound into a domain-separated transcript.'),('7','Composable security model','We give an ideal functionality, a real protocol, and a conditional UC composition theorem for static corruption.'),('8','Machine-checked composition','Lean derives end-to-end package semantics from explicit component and refinement interfaces.')]
+    next_table_caption('Summary of contributions')
     add_table(doc,['No.','Contribution','Statement'],contributions,widths=[0.42,1.55,4.15])
     add_figure(doc,ASSET/'fig_protocol.png','Figure 1. The reconstruction path separates authenticated provenance from current-round participation. A missed deadline contributes no fresh proof and therefore has no effect on the aggregate deck.')
 
@@ -335,6 +410,7 @@ def build():
     add_para(doc,'Earlier TTP-free routes either asked a departing player to reveal its secret layer or used secret sharing to tolerate a fixed number of absentees; the latter permits a sufficiently large coalition to recover the deck. The closest liveness construction [7] instead uses CDS partial-knowledge proofs and veto factors, so the remaining table can continue without the departed player’s cooperation.')
     add_para(doc,'To compare protocol boundaries without inventing runtime numbers, let N denote active players in [7], d=52 cards, and r prior dealing rounds. Dropout recovery regenerates the whole deck: each face-down card consists of N threshold-ElGamal components, for dN public components. Each player’s veto layer publishes d re-masking pairs and one non-veto CDS argument plus r veto CDS arguments, each over d Chaum–Pedersen instances. The subsequent re-masking chain uses about dN² Chaum–Pedersen proofs, followed by a full Barnett–Smart shuffle argument over dN ciphertext components. The extended thesis [8] states that dropout-path efficiency still needs improvement and reports no dropout-specific proof-byte or runtime measurements.')
     add_para(doc,'The comparison below summarizes the boundary with the closest dropout-tolerant construction. The comparison concerns the security object being proved: the earlier work provides a valuable liveness mechanism, while this paper adds authenticated per-card authorization and a machine-checked semantic bridge.')
+    next_table_caption('Comparison with the closest dropout-tolerant construction')
     add_table(doc,['Property','Dropout-tolerant TTP-free Mental Poker [7]','This work'],[
         ('Dropout handling','Continues after a player leaves','Continues after deadline or crash'),
         ('Post-departure deck action','Remove leaver key share and regenerate; leaver’s cards return','Submit a state-bound package; singleton residuals removed, jointly keyed residuals retained'),
@@ -367,6 +443,7 @@ def build():
     add_para(doc,'For |U| = 1, sk_U is the owner secret key and the current code checks the relation after owner decryption. For |U| ≥ 2, the current protocol deliberately does not instantiate this negative relation: the slot takes the zero branch and the canonical card is retained. A deployment that instead wished to remove a jointly unknown card would need a distributed generalized-Schnorr or threshold relation proof; that stronger policy is outside the present construction. Thus reconstruction remains live even when every online player is unable to read the old ciphertext.')
     add_figure(doc,ASSET/'fig_residual_derivation.png','Figure 2. Reveal-token subtraction produces a residual ciphertext. One missing token gives an owner-residual specialization; multiple missing tokens give a jointly keyed carrier that remains usable for reconstruction without becoming readable to any individual player.')
     assumptions=[('A1','Group and encoding','The curve implementation accepts only the prime-order subgroup and canonical encodings, and implements group operations correctly.'),('A2','Encryption privacy','ElGamal is IND-CPA secure under DDH or an equivalent assumption.'),('A3','Residual privacy','Every jointly keyed residual retains at least one honest, secret, uniform masking layer unless the protocol intentionally enters the plaintext/redeal path; privacy uses the corresponding fresh-discrete-log hardness assumption.'),('A4','Hidden shuffle','The Bayer–Groth component is complete, knowledge sound, and zero knowledge.'),('A5','Linear proofs','The cross-key and slot OR Sigma protocols are complete and specially sound, with perfect honest-verifier zero knowledge; their Fiat–Shamir transforms are secure in the random-oracle model.'),('A6','Transcript composition','Shared-challenge resampling and sequential composition do not create cross-component attacks, and transcript domains are separated and canonicalized.'),('A7','Authenticated state and refinement','The previous state digest cannot be forged, reveal-token proofs are bound to the card and epoch, and the Rust/AIR byte encoding refines the Lean statement.'),('A8','Authenticated missing-key sets','A negative contribution is accepted only for an authenticated singleton missing-token set. A residual with two or more missing keys authorizes only the zero branch, so its card remains in the rebuilt deck.'),('A9','Corruption model','Corruption is static, and an honest owner key or residual masking layer is not revealed before the execution ends.')]
+    next_table_caption('Security assumptions and operational meaning')
     add_table(doc,['ID','Assumption','Operational meaning'],assumptions,widths=[0.42,1.55,4.15])
 
     doc.add_heading('4. Protocol', level=1)
@@ -443,21 +520,25 @@ def build():
     doc.add_heading('7. Lean formalization', level=1)
     add_para(doc,'The Lean development separates the algebraic specification from the computational assumptions supplied by the implementation.')
     lean_rows=[('Residual lineage','ResidualCarrierProvenance.lean','Residual carrier from authenticated prior state'),('Reconstruction relation','Reconstruction.lean','Slot relation and unique removal semantics'),('Cross-key Sigma','ReconstructionJointSigma.lean','Cross-key relation, completeness, soundness, and HVZK'),('Slot OR','ReconstructionSlotOr.lean','Completeness, soundness, and algebraic HVZK'),('Composition boundary','ReconstructionSecurity.lean','End-to-end package semantics under component interfaces'),('Veto bound','ReconstructionVeto.lean','Non-owner veto impossibility and negligible error union bound')]
+    next_table_caption('Lean modules and checked results')
     add_table(doc,['Layer','File','Checked result'],lean_rows,widths=[1.3,1.75,3.07])
     add_para(doc,'The algebraic Statement contains the aggregate key, the authenticated residual-key description, canonical cards, residual ciphertexts, and contributions. The Witness contains the removed-slot bitmap, contribution randomness, carrier-to-slot map, residual randomness, injectivity, and exact-coverage condition. Relation states the reveal-token subtraction equations and the per-slot contribution equations. The one-owner witness is the concrete specialization currently implemented by the AIR producer.')
     add_para(doc,'ComponentInterface records the external guarantees for hidden shuffle, Fiat–Shamir forking, sequential zero knowledge, transcript binding, Rust-to-Lean serialization, authenticated state, and cross-player disjointness. Reduction connects those guarantees to the concrete implementation’s prove, verify, extraction, and view functions.')
     add_para(doc,'The main composition theorem is verified_package_semantics. Given a VerifiedPackage containing a well-formed statement, an extracted witness, the algebraic relation, and a proof that the component interface holds, it derives in one theorem: (i) ValidRelation for the public statement and witness; (ii) exact correspondence between removed i = true and an authenticated residual-carrier index; and (iii) the zero-or-negative-card membership equation for every contribution.')
+    add_para(doc,'The Rust–Lean refinement evidence is intentionally scoped. Both sides consume paper/experiments/reconstruction_refinement_vector.json, fixing version 3, epoch 11, an eight-card statement, two residual carriers, and bitmap 01001000. Rust checks the vector together with Borsh statement/proof round trips, truncation, trailing-field, digest-reordering, epoch-replay, foreign-card, and swapped-key mutations; Lean checks the same shape in RefinementVectors.vector_shape. The script scripts/check_refinement_vectors.sh runs the Rust test, Lean build, no-sorry audit, and cross-language constant comparison. This is a machine-checked semantic composition boundary, not a byte-level proof of every Rust path.')
     add_para(doc,'Thus Lean checks the semantic bridge used by the paper’s security argument. It does not claim that DDH, random-oracle security, Bayer–Groth knowledge soundness, or byte-level implementation refinement are consequences of group algebra. Those facts enter as explicit fields of ComponentInterface and Reduction, which makes the trust boundary visible and auditable.')
     add_para(doc,'The repository’s Lean checks include a no-sorry audit and an axiom audit for the principal reconstruction results. The audit reports only the trusted Lean foundations used by imported libraries and no protocol-specific axiom.')
 
     doc.add_heading('8. Implementation and reproducibility', level=1)
     add_para(doc,'The code is organized as follows:')
+    next_table_caption('Implementation components')
     add_table(doc,['Component','Role'],[('poker-protocol-core','Curve arithmetic, ElGamal, and transcripts.'),('poker-protocol-bg','Bayer–Groth shuffle component.'),('poker-protocol-proofs','Reconstruction, cross-key, OR, and related proofs.'),('poker_protocol','Native adapter, ABI, and game integration.'),('client-wasm','Browser bridge and reproducible WASM benchmark.'),('poker_protocol_lean','Formal specification and checked composition.')],widths=[2.1,4.0])
     add_para(doc,'The native path uses the Stark-curve/Poseidon transcript domain. The Ristretto adapter constructs the public submission object; verification of an external AIR archive is outside this repository. The Move contract stores the partial ciphertext after subtracting submitted reveal tokens, while the AIR test helper derives the |U| = 1 owner-residual vector by subtracting every other seat’s token. When two or more tokens are missing, no owner-residual vector entry is created and the rebuilt canonical slot remains unchanged. The repository branch containing the paper and implementation is https://github.com/linqining/poker_protocol/tree/feat/paper.')
     add_para(doc,'To reproduce the checks:')
     add_equation(doc,'./scripts/install_repro_deps.sh\n./scripts/reproduce_paper.sh')
-    add_para(doc,'The installer configures the pinned Rust, Lean, Node.js, and wasm-pack versions in user-writable locations without sudo; --check performs a read-only environment audit. The runner verifies the committed baseline and source hashes, executes the Rust, WASM, and Lean checks, and writes fresh timing grids under .repro/results rather than replacing the paper baselines. Each run records the host, tool versions, Git state, and result hashes in run_metadata.json.')
+    add_para(doc,'The installer configures pinned Rust, Lean, Node.js, wasm-pack, Circom 2.2.3, and snarkjs 0.7.5 versions in user-writable locations without sudo; CIRCOM_BIN can select an explicit compatible compiler. The runner verifies the committed baseline and source hashes, executes the Rust, WASM, Lean, scoped-baseline, and refinement checks, and writes fresh timing grids under .repro/results rather than replacing the paper baselines. Each run records the host, tool versions, Git state, and result hashes in run_metadata.json.')
     add_para(doc,'A reference run on the native path (StarkCurve, production RECONSTRUCT_POSEIDON transcript domain, release build, median of 7 samples) proves and verifies a full 52-card package with k = 13 carriers in 150.0 ms and 104.7 ms with a 21.8 KB proof; peak allocations are 85.2 KiB for proving and 39.4 KiB for verification. With k = 26, the same deck takes 166.1 ms and 113.5 ms with a 24.7 KB proof and 93.0 KiB proving peak allocation. A 13-card single-carrier package takes 36.6 ms and 25.4 ms at 5.4 KB. Proving and verification time, proof size, and peak memory all grow approximately linearly in n and k. The benchmark table reports representative rows; the full measurement grid is committed at paper/experiments/reconstruction_stark.csv.')
+    next_table_caption('Native reconstruction benchmark, median of seven release samples')
     add_table(doc,['n','k','Prove','Verify','Proof','Peak prove'],[
         ('13','1','36.6 ms','25.4 ms','5.37 KB','20.0 KiB'),
         ('26','1','72.6 ms','48.2 ms','9.94 KB','39.4 KiB'),
@@ -465,7 +546,10 @@ def build():
         ('52','13','150.0 ms','104.7 ms','21.78 KB','85.2 KiB'),
         ('52','26','166.1 ms','113.5 ms','24.69 KB','93.0 KiB'),
     ],widths=[0.5,0.5,1.0,1.0,1.1,1.35])
+    add_para(doc,'Component profiling separates the native wall time into residual/setup and statement construction, cross-key proofs, Bayer–Groth shuffle, per-slot OR proofs, Borsh serialization, and the three corresponding verification stages. For n = 52, k = 13, the median proving components are 17.5 ms, 11.3 ms, 63.5 ms, and 54.7 ms respectively; verification components are 9.5 ms, 45.7 ms, and 41.7 ms. These are observational stage timings sampled in separate calls, so their sums may differ from the end-to-end timer. The complete grid is committed at paper/experiments/reconstruction_components.csv.')
+    add_para(doc,'As a scoped fairness baseline, we compile a single-slot Circom relation with a private Boolean selector and public field values satisfying out = selector·(−card), then run Groth16 over BN128 with snarkjs 0.7.5. The measured circuit has 2 constraints, an 808-byte proof in the recorded run, 270.4 ms proving, and 228.6 ms verification. This baseline intentionally excludes ElGamal ciphertexts, residual decryption, hidden carrier-to-slot mapping, Bayer–Groth, cross-key proofs, authenticated state, and dropout composition; it is not a claim that Groth16 implements the complete protocol. The circuit, setup commands, unsupported-semantics list, and JSON result are in paper/baselines and paper/experiments/circom_slot_baseline.json.')
     add_para(doc,'The same Rust reconstruction implementation is also compiled to wasm32 through client-wasm. The bridge returns a BrowserReconstructionV3Bundle containing the canonical Borsh statement and proof, decodes it, and verifies it with the production Poseidon transcript domain before reporting a benchmark row. On a release Node/V8 run (median of 7 samples), the full 52-card package with k = 13 takes 646 ms to prove and 471 ms to verify; the proof is 21.78 KB and the complete statement-plus-proof bundle is 27.75 KB. This is about 4.2 times the native proving time on the test machine but remains below one second in a JavaScript host. The reference grid is committed at paper/experiments/reconstruction_wasm.csv; the reproduction runner stores a new grid separately. The host, toolchain, warm-up policy, command, and both native/WASM CSV hashes are recorded in paper/experiments/benchmark_metadata.json. These are Node/V8 host measurements, not Android/iOS or browser-device measurements; cold-start, P95, variance, peak memory, and network latency are not reported, so the result should not be interpreted as mobile real-time performance.')
+    next_table_caption('WASM reconstruction benchmark on Node/V8, median of seven samples')
     add_table(doc,['n','k','WASM prove','WASM verify','Proof','Bundle'],[
         ('13','1','153 ms','112 ms','5.37 KB','6.82 KB'),
         ('26','1','319 ms','216 ms','9.94 KB','12.65 KB'),
@@ -494,6 +578,8 @@ def build():
     path=OUT/'composable_privacy_preserving_deck_reconstruction.docx'; doc.save(path); print(path)
 
 def build_zh():
+    global TWO_COLUMN_BODY
+    TWO_COLUMN_BODY = False
     metadata = submission_metadata(); validate_submission_metadata(metadata)
     make_figures()
     doc=Document(); setup_styles_zh(doc)

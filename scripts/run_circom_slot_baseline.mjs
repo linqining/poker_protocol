@@ -13,7 +13,10 @@ mkdirSync(workDir, { recursive: true });
 mkdirSync(dirname(outputPath), { recursive: true });
 
 const circom = process.env.CIRCOM_BIN ?? "circom";
-const snarkjs = ["npx", ["--yes", "snarkjs@0.7.5"]];
+const snarkjsBinary = process.env.SNARKJS_BIN;
+const snarkjs = snarkjsBinary
+  ? [snarkjsBinary, []]
+  : ["npx", ["--yes", "snarkjs@0.7.5"]];
 
 function run(command, args, options = {}) {
   const start = hrtime.bigint();

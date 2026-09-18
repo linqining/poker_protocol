@@ -1,0 +1,10 @@
+{
+  "version": 3,
+  "reconstruction_epoch": 11,
+  "card_count": 8,
+  "residual_carrier_count": 2,
+  "removed_bitmap": "01001000",
+  "context_digest_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+  "prior_state_digest_hex": "0909090909090909090909090909090909090909090909090909090909090909",
+  "scope": "shared semantic fixture; Rust Borsh/proof tests and Lean relation tests consume the same constants"
+}

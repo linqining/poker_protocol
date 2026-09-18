@@ -21,7 +21,7 @@ IEEE submission.
 | Bibliography | Complete | 14 entries with venue, volume/pages where available, and DOI where available | Confirm |
 | Submission metadata | Pending author input | `paper/submission_metadata.json`; author name is present, but affiliations, corresponding-author contact, ORCID, funding, and acknowledgements are not finalized | Supply/confirm metadata |
 | Final pre-render regression | Current draft passed; repeat after metadata | Rust, WASM, Lean, zero-sorry, baseline-hash, generated-grid, syntax, and diff checks passed on 2026-09-18 | Re-run after metadata is finalized |
-| English and Chinese DOCX | Current drafts rendered; final rerender pending metadata | The English draft renders to 18 pages with zero accessibility findings; the Chinese draft contains complete extractable text and renders to 12 pages | Rerender after metadata and final regression |
+| English and Chinese DOCX | Current drafts rendered; final rerender pending metadata | The English draft renders to 13 pages in two columns; the Chinese draft contains complete extractable text and renders to 12 pages | Rerender after metadata and final regression |
 
 Reproduce the non-DOCX verification with:
 
@@ -31,7 +31,7 @@ Reproduce the non-DOCX verification with:
 ```
 
 The installer is user-space only and pins the recorded Rust, Lean, Node.js,
-and `wasm-pack` versions. The reproduction runner preserves the committed
+`wasm-pack`, Circom 2.2.3, and snarkjs 0.7.5 versions. The reproduction runner preserves the committed
 paper CSV files, verifies their recorded hashes, emits fresh measurements
 under `.repro/results/`, and validates the new parameter grids and canonical
 proof/statement sizes. Each run also records the host, tool versions, Git
@@ -53,11 +53,12 @@ experiments are run and their environment records are added separately.
 | Priority | Item | Current status | Completion criterion |
 | --- | --- | --- | --- |
 | P0 | Author metadata | Blocked on author input | Affiliation, corresponding-author email, ORCID, author order, funding, and acknowledgements are confirmed |
-| P0 | IEEE TIFS packaging | Not started | English manuscript is transferred to the current IEEE journal template with numbered/captioned tables and figures, IEEE references, vector or 300-DPI figures, and a final page-count check |
+| P0 | IEEE TIFS packaging | Draft two-column package complete; official template transfer remains | `paper/composable_privacy_preserving_deck_reconstruction.docx` renders as a 13-page two-column English manuscript with numbered/captioned tables and figures; final IEEE Word/LaTeX template transfer and author metadata remain |
+| P0 | Equation objects | Pending final IEEE template transfer | Current DOCX uses centered, readable equation paragraphs; convert them to native OMML or template-native equations during final Word/LaTeX packaging and re-run visual QA |
 | P0 | Claim discipline | Complete for current data | Node/V8 results remain explicitly separated from browser/mobile-device claims |
 | P1 | Browser and mobile measurements | Missing | Desktop Chrome plus at least one Android Chrome and one iPhone Safari device report warm/cold latency, P50/P95 or spread, and environment metadata |
-| P1 | Measured baseline | Missing | A functionally scoped comparison reports proving time, verification time, proof bytes, setup assumptions, and unsupported semantics for a Circom/Groth16 or PLONK baseline, or a defensible closest published implementation |
-| P1 | Component profiling | Missing | Native and WASM runs separately report fixture/statement construction, cross-key proofs, Bayer--Groth, slot OR, serialization, and verification |
+| P1 | Measured baseline | Complete, explicitly scoped | `paper/experiments/circom_slot_baseline.json` reports Circom 2.2.3/snarkjs 0.7.5/BN128, 2 constraints, proof bytes, witness/prove/verify times, setup assumptions, and unsupported semantics for the single-slot relation |
+| P1 | Component profiling | Complete for native path | `reconstruction_components.csv` reports native residual/setup, cross-key, Bayer--Groth, slot OR, serialization, and verification stages; WASM remains an end-to-end Node/V8 measurement because the wasm32 standard library does not expose `std::time::Instant` for this internal profiler |
 | P1 | Security-theorem tightening | Partial | The paper either supplies a concrete concurrently composable NIZK instantiation/reduction or narrows the UC claim to the exact hybrid assumption without suggesting end-to-end formal verification |
-| P1 | Rust-to-Lean refinement | Assumed interface | Canonical serialization and statement/relation conformance receive executable cross-language vectors or a checked refinement argument |
+| P1 | Rust-to-Lean refinement | Partial, executable semantic boundary | `paper/experiments/reconstruction_refinement_vector.json`, Rust shared-vector test, Lean `RefinementVectors.vector_shape`, Borsh round-trip tests, mutation cases, and `scripts/check_refinement_vectors.sh`; this remains a semantic boundary, not full Rust byte-level refinement |
 | P2 | Continuous verification | Pinned install and end-to-end local reproduction scripts complete; CI is missing | CI should invoke `scripts/reproduce_paper.sh` or equivalent Rust, WASM, Lean, and zero-sorry jobs on the pinned toolchains |
