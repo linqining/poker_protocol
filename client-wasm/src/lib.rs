@@ -106,9 +106,40 @@ fn bundle_bytes(package: &Package) -> Result<(Vec<u8>, Vec<u8>, Vec<u8>), JsValu
     Ok((proof_bytes, statement_bytes, bundle_bytes))
 }
 
-fn median(values: &mut [f64]) -> f64 {
-    values.sort_by(|left, right| left.partial_cmp(right).expect("finite timing"));
-    values[values.len() / 2]
+#[derive(Debug, Clone, Copy)]
+struct TimingStats {
+    median: f64,
+    mean: f64,
+    stddev: f64,
+    p95: f64,
+}
+
+fn timing_stats(values: &[f64]) -> TimingStats {
+    assert!(!values.is_empty());
+    let mut sorted = values.to_vec();
+    sorted.sort_by(|left, right| left.partial_cmp(right).expect("finite timing"));
+    let mean = sorted.iter().sum::<f64>() / sorted.len() as f64;
+    let variance = if sorted.len() > 1 {
+        sorted
+            .iter()
+            .map(|value| {
+                let delta = *value - mean;
+                delta * delta
+            })
+            .sum::<f64>()
+            / (sorted.len() - 1) as f64
+    } else {
+        0.0
+    };
+    let p95_index = ((sorted.len() as f64 * 0.95).ceil() as usize)
+        .saturating_sub(1)
+        .min(sorted.len() - 1);
+    TimingStats {
+        median: sorted[sorted.len() / 2],
+        mean,
+        stddev: variance.sqrt(),
+        p95: sorted[p95_index],
+    }
 }
 
 fn wasm_now_ms() -> f64 {
@@ -135,7 +166,13 @@ pub struct ReconstructionMetrics {
     k: usize,
     samples: usize,
     prove_ms: f64,
+    prove_mean_ms: f64,
+    prove_stddev_ms: f64,
+    prove_p95_ms: f64,
     verify_ms: f64,
+    verify_mean_ms: f64,
+    verify_stddev_ms: f64,
+    verify_p95_ms: f64,
     proof_bytes: usize,
     statement_bytes: usize,
     bundle_bytes: usize,
@@ -160,8 +197,32 @@ impl ReconstructionMetrics {
         self.prove_ms
     }
     #[wasm_bindgen(getter)]
+    pub fn prove_mean_ms(&self) -> f64 {
+        self.prove_mean_ms
+    }
+    #[wasm_bindgen(getter)]
+    pub fn prove_stddev_ms(&self) -> f64 {
+        self.prove_stddev_ms
+    }
+    #[wasm_bindgen(getter)]
+    pub fn prove_p95_ms(&self) -> f64 {
+        self.prove_p95_ms
+    }
+    #[wasm_bindgen(getter)]
     pub fn verify_ms(&self) -> f64 {
         self.verify_ms
+    }
+    #[wasm_bindgen(getter)]
+    pub fn verify_mean_ms(&self) -> f64 {
+        self.verify_mean_ms
+    }
+    #[wasm_bindgen(getter)]
+    pub fn verify_stddev_ms(&self) -> f64 {
+        self.verify_stddev_ms
+    }
+    #[wasm_bindgen(getter)]
+    pub fn verify_p95_ms(&self) -> f64 {
+        self.verify_p95_ms
     }
     #[wasm_bindgen(getter)]
     pub fn proof_bytes(&self) -> usize {
@@ -220,12 +281,20 @@ pub fn run_reconstruction_benchmark(
         .verify()
         .map_err(|err| JsValue::from_str(&err.to_string()))?;
 
+    let prove_stats = timing_stats(&prove_times);
+    let verify_stats = timing_stats(&verify_times);
     Ok(ReconstructionMetrics {
         n,
         k,
         samples,
-        prove_ms: median(&mut prove_times),
-        verify_ms: median(&mut verify_times),
+        prove_ms: prove_stats.median,
+        prove_mean_ms: prove_stats.mean,
+        prove_stddev_ms: prove_stats.stddev,
+        prove_p95_ms: prove_stats.p95,
+        verify_ms: verify_stats.median,
+        verify_mean_ms: verify_stats.mean,
+        verify_stddev_ms: verify_stats.stddev,
+        verify_p95_ms: verify_stats.p95,
         proof_bytes: proof_bytes.len(),
         statement_bytes: statement_bytes.len(),
         bundle_bytes: bundle_bytes.len(),
@@ -239,16 +308,22 @@ pub fn reconstruction_benchmark_csv(samples: usize) -> Result<String, JsValue> {
     const GRID: &[(usize, &[usize])] =
         &[(13, &[1, 4, 13]), (26, &[1, 4, 13]), (52, &[1, 4, 13, 26])];
     let mut csv =
-        String::from("n,k,prove_ms,verify_ms,proof_bytes,statement_bytes,bundle_bytes,samples\n");
+        String::from("n,k,prove_median_ms,prove_mean_ms,prove_stddev_ms,prove_p95_ms,verify_median_ms,verify_mean_ms,verify_stddev_ms,verify_p95_ms,proof_bytes,statement_bytes,bundle_bytes,samples\n");
     for (n, ks) in GRID {
         for k in *ks {
             let metrics = run_reconstruction_benchmark(*n, *k, samples)?;
             csv.push_str(&format!(
-                "{},{},{:.3},{:.3},{},{},{},{}\n",
+                "{},{},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{:.3},{},{},{},{}\n",
                 metrics.n,
                 metrics.k,
                 metrics.prove_ms,
+                metrics.prove_mean_ms,
+                metrics.prove_stddev_ms,
+                metrics.prove_p95_ms,
                 metrics.verify_ms,
+                metrics.verify_mean_ms,
+                metrics.verify_stddev_ms,
+                metrics.verify_p95_ms,
                 metrics.proof_bytes,
                 metrics.statement_bytes,
                 metrics.bundle_bytes,

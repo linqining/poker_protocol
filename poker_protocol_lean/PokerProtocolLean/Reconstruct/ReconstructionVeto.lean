@@ -31,7 +31,7 @@ This file machine-checks the three layers of that claim:
 The bound genuinely does not apply when the authenticated missing-key
 invariant or owner-key secrecy fails: `hnoCarrier` below is the invariant, and
 it is supplied by `ComponentInterface.authenticatedPriorState` plus
-`transcriptStatementBinding` in the concrete instantiation.
+`sessionStatementBinding` in the concrete or ideal-NIZK instantiation.
 -/
 
 namespace PokerProtocolLean.Reconstruct.Reconstruction.Veto

@@ -1,6 +1,6 @@
 {
-  "title": "Composable Privacy-Preserving Deck Reconstruction for Mental Poker",
-  "subtitle": "Slot semantics, cross-key proofs, and a machine-checked composition boundary",
+  "title": "Authenticated Privacy-Preserving Deck Reconstruction for Mental Poker",
+  "subtitle": "Exact carrier coverage, slot semantics, and a machine-checked composition boundary",
   "authors": [
     {
       "first_name": "Qining",
@@ -20,7 +20,7 @@
   "keywords": [
     "Mental Poker",
     "zero knowledge",
-    "UC security",
+    "non-interactive zero knowledge",
     "formal verification"
   ]
 }

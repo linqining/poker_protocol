@@ -8,17 +8,17 @@ import PokerProtocolLean.Reconstruct.ReconstructionSlotOr
 
 The algebraic relation, joint cross-key Σ protocol, and slot OR algebra are
 machine checked in concrete modules. The production Rust proof additionally
-contains Bayer--Groth and applies Fiat--Shamir to a shared sequential
-transcript. This file gives that production package a machine-checked
-composition interface: once component security and byte/state refinement hold,
-the reconstruction relation and all slot semantics follow without another
-protocol-specific axiom.
+contains Bayer--Groth and applies Fiat--Shamir to a cumulative sequential
+transcript. The paper's composition theorem is instead stated in an ideal
+session-bound NIZK hybrid for the aggregate reconstruction relation; it does
+not claim that the Rust Fiat--Shamir bytes realize concurrent UC NIZK. This
+file exposes both the concrete component obligations and that ideal interface.
 
 The composed interface separates:
 
 1. Bayer--Groth permutation and rerandomization security;
-2. cross-key and per-slot OR extraction/simulation security;
-3. injective statement/transcript encoding;
+2. concrete cross-key and per-slot OR extraction/simulation security;
+3. an ideal NIZK interface and injective session/statement encoding;
 4. authenticated prior-state provenance and cross-player disjointness.
 
 The concrete implementation discharges those fields through checked decoders,
@@ -39,9 +39,9 @@ structure ComponentInterface where
   bayerGrothPerfectCompleteness : Prop
   bayerGrothKnowledgeSoundness : Prop
   bayerGrothZeroKnowledge : Prop
-  fiatShamirForkingInROM : Prop
-  sequentialCompositionZK : Prop
-  transcriptStatementBinding : Prop
+  concretePackageExtraction : Prop
+  idealNizkAggregateRelation : Prop
+  sessionStatementBinding : Prop
   rustLeanSerializationRefinement : Prop
   authenticatedPriorState : Prop
   crossPlayerResidualCarrierDisjointness : Prop
@@ -51,9 +51,9 @@ def ComponentInterface.Hold (a : ComponentInterface) : Prop :=
   a.bayerGrothPerfectCompleteness ∧
   a.bayerGrothKnowledgeSoundness ∧
   a.bayerGrothZeroKnowledge ∧
-  a.fiatShamirForkingInROM ∧
-  a.sequentialCompositionZK ∧
-  a.transcriptStatementBinding ∧
+  a.concretePackageExtraction ∧
+  a.idealNizkAggregateRelation ∧
+  a.sessionStatementBinding ∧
   a.rustLeanSerializationRefinement ∧
   a.authenticatedPriorState ∧
   a.crossPlayerResidualCarrierDisjointness
@@ -119,8 +119,8 @@ theorem knowledge_soundness_under_components
   exact ⟨wit, hextract, hrel,
     accepted_contribution_is_zero_or_negative_card F G stmt wit hrel⟩
 
-/-- Conditional computational zero knowledge for the exact non-interactive
-view, under the explicitly supplied ROM/composition/refinement components. -/
+/-- Conditional computational zero knowledge for the supplied implementation
+view. The ideal-NIZK-to-UC realization remains an external component obligation. -/
 theorem zero_knowledge_under_components
     {Proof View : Type} (impl : Implementation F G Proof View)
     (components : ComponentInterface)

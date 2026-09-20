@@ -64,7 +64,8 @@ tool versions, Git state, and result hashes. Use `--output-dir DIR` to select
 an output directory.
 
 The native and WASM benchmarks use the production `RECONSTRUCT_POSEIDON`
-transcript domain and report warm-start medians over seven samples. The
+transcript domain and report the median, arithmetic mean, sample standard
+deviation, and nearest-rank P95 over 30 warm-start samples. The
 committed WASM grid is a Node/V8 host measurement; browser-page and mobile
 device performance are not implied. See
 `paper/experiments/benchmark_metadata.json` for versions, hashes, and limits.

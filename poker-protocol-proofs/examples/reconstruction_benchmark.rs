@@ -4,7 +4,7 @@
 //! Bayer--Groth contribution shuffle, per-slot OR proofs) on the native
 //! StarkCurve + Poseidon-felt transcript path (the production domain):
 //!
-//! - prove / verify wall time (median over samples),
+//! - prove / verify wall time (median, mean, sample standard deviation, P95),
 //! - serialized proof and statement size (borsh, requires `--features borsh`),
 //! - peak allocated bytes per phase, via a counting global allocator.
 //!
@@ -32,7 +32,7 @@ use poker_protocol_core::{
 use poker_protocol_proofs::reconstruction::{ReconstructProof, ReconstructionProfile};
 use rand_core::OsRng;
 
-const SAMPLES: usize = 7;
+const SAMPLES: usize = 30;
 const WARMUP: usize = 1;
 
 // ============================================================
@@ -191,6 +191,42 @@ fn median(samples: &mut [u128]) -> u128 {
     samples[samples.len() / 2]
 }
 
+#[derive(Debug, Clone, Copy)]
+struct TimingStats {
+    median: u128,
+    mean: f64,
+    stddev: f64,
+    p95: u128,
+}
+
+fn timing_stats(samples: &[u128]) -> TimingStats {
+    assert!(!samples.is_empty());
+    let mut sorted = samples.to_vec();
+    sorted.sort_unstable();
+    let mean = sorted.iter().map(|value| *value as f64).sum::<f64>() / sorted.len() as f64;
+    let variance = if sorted.len() > 1 {
+        sorted
+            .iter()
+            .map(|value| {
+                let delta = *value as f64 - mean;
+                delta * delta
+            })
+            .sum::<f64>()
+            / (sorted.len() - 1) as f64
+    } else {
+        0.0
+    };
+    let p95_index = ((sorted.len() as f64 * 0.95).ceil() as usize)
+        .saturating_sub(1)
+        .min(sorted.len() - 1);
+    TimingStats {
+        median: sorted[sorted.len() / 2],
+        mean,
+        stddev: variance.sqrt(),
+        p95: sorted[p95_index],
+    }
+}
+
 #[cfg(feature = "borsh")]
 fn report_sizes(package: &Package) -> (usize, usize) {
     let statement_bytes = borsh::to_vec(&package.0).expect("statement borsh");
@@ -213,7 +249,7 @@ fn main() {
     .flat_map(|(n, ks)| ks.iter().map(move |k| (*n, *k)))
     .collect();
 
-    println!("curve=StarkCurve transcript=PoseidonFelt samples={SAMPLES} (median) release build");
+    println!("curve=StarkCurve transcript=PoseidonFelt samples={SAMPLES} release build");
     println!(
         "{:>4} {:>4} {:>12} {:>12} {:>10} {:>10} {:>14} {:>14}",
         "n", "k", "prove_us", "verify_us", "proof_B", "stmt_B", "prove_peak_KiB", "verify_peak_KiB"
@@ -222,7 +258,7 @@ fn main() {
     let csv_path = std::env::args().nth(1);
     let profile_csv_path = std::env::args().nth(2);
     let mut csv = String::from(
-        "n,k,prove_us,verify_us,proof_bytes,statement_bytes,prove_peak_bytes,verify_peak_bytes\n",
+        "n,k,prove_median_us,prove_mean_us,prove_stddev_us,prove_p95_us,verify_median_us,verify_mean_us,verify_stddev_us,verify_p95_us,proof_bytes,statement_bytes,prove_peak_bytes,verify_peak_bytes,samples\n",
     );
     let mut profile_csv = String::from(
         "n,k,residual_setup_ns,cross_key_ns,bayer_groth_ns,slot_or_ns,prove_total_ns,serialization_ns,verify_cross_key_ns,verify_bayer_groth_ns,verify_slot_or_ns,verify_total_ns\n",
@@ -262,8 +298,8 @@ fn main() {
             verify_times.push(start.elapsed().as_micros());
             verify_peak = verify_peak.max(take_peak());
         }
-        let prove_us = median(&mut prove_times);
-        let verify_us = median(&mut verify_times);
+        let prove_stats = timing_stats(&prove_times);
+        let verify_stats = timing_stats(&verify_times);
         let (proof_bytes, statement_bytes) = report_sizes(package.as_ref());
         black_box(package.as_ref());
 
@@ -271,17 +307,23 @@ fn main() {
             "{:>4} {:>4} {:>12} {:>12} {:>10} {:>10} {:>14} {:>14}",
             n,
             k,
-            prove_us,
-            verify_us,
+            prove_stats.median,
+            verify_stats.median,
             proof_bytes,
             statement_bytes,
             prove_peak / 1024,
             verify_peak / 1024
         );
         csv.push_str(&format!(
-            "{n},{k},{},{},{proof_bytes},{statement_bytes},{prove_peak},{verify_peak}\n",
-            prove_us,
-            verify_us,
+            "{n},{k},{},{:.3},{:.3},{},{},{:.3},{:.3},{},{proof_bytes},{statement_bytes},{prove_peak},{verify_peak},{SAMPLES}\n",
+            prove_stats.median,
+            prove_stats.mean,
+            prove_stats.stddev,
+            prove_stats.p95,
+            verify_stats.median,
+            verify_stats.mean,
+            verify_stats.stddev,
+            verify_stats.p95,
         ));
 
         let mut prove_profile_totals = Vec::with_capacity(SAMPLES);

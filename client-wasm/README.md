@@ -11,7 +11,7 @@ wasm-pack build client-wasm --target web --release
 # Build a Node/V8 package and emit the paper's WASM benchmark grid.
 (cd client-wasm && wasm-pack build --target nodejs --release)
 mkdir -p .repro/results/manual
-node client-wasm/benchmark.mjs 7 .repro/results/manual/reconstruction_wasm.csv
+node client-wasm/benchmark.mjs 30 .repro/results/manual/reconstruction_wasm.csv
 ```
 
 For a pinned clean environment and the full paper verification, run
@@ -19,8 +19,9 @@ For a pinned clean environment and the full paper verification, run
 repository root. The full script writes fresh measurements to `.repro/`
 instead of replacing the committed reference CSV.
 
-The benchmark returns median prove/verify wall time and canonical Borsh sizes
-for `n` cards and `k` owner-residual carriers. Its first package is also
+The benchmark returns median, mean, sample-standard-deviation, and P95
+prove/verify wall time together with canonical Borsh sizes for `n` cards and
+`k` owner-residual carriers. Its first package is also
 decoded through `BrowserReconstructionV3Bundle` and re-verified, so each run
 checks the browser-to-host wire boundary as well as proof acceptance.
 

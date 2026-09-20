@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SAMPLES=7
+SAMPLES=30
 INSTALL_DEPS=false
 OUTPUT_DIR=""
 
@@ -16,7 +16,7 @@ Options:
   --install           Install missing pinned dependencies before running
   --output-dir DIR    Write new CSV files to DIR
                       (default: .repro/results/<UTC timestamp>)
-  --samples N         WASM samples per grid cell (default: 7)
+  --samples N         WASM samples per grid cell (default: 30)
   -h, --help          Show this help
 
 The script never overwrites the committed paper benchmark CSV files.

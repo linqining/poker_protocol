@@ -51,6 +51,17 @@ function requirePositiveNumbers(rows, columns, path) {
   }
 }
 
+function requireNonNegativeNumbers(rows, columns, path) {
+  for (const [index, row] of rows.entries()) {
+    for (const column of columns) {
+      const value = Number(row[column]);
+      if (!Number.isFinite(value) || value < 0) {
+        fail(`${path}:${index + 2} has invalid ${column}: ${row[column]}`);
+      }
+    }
+  }
+}
+
 function gridKey(row) {
   return `${row.n},${row.k}`;
 }
@@ -68,12 +79,14 @@ function requireSameGrid(actual, baseline, path) {
 }
 
 const nativeHeader = [
-  "n", "k", "prove_us", "verify_us", "proof_bytes", "statement_bytes",
-  "prove_peak_bytes", "verify_peak_bytes",
+  "n", "k", "prove_median_us", "prove_mean_us", "prove_stddev_us", "prove_p95_us",
+  "verify_median_us", "verify_mean_us", "verify_stddev_us", "verify_p95_us",
+  "proof_bytes", "statement_bytes", "prove_peak_bytes", "verify_peak_bytes", "samples",
 ];
 const wasmHeader = [
-  "n", "k", "prove_ms", "verify_ms", "proof_bytes", "statement_bytes",
-  "bundle_bytes", "samples",
+  "n", "k", "prove_median_ms", "prove_mean_ms", "prove_stddev_ms", "prove_p95_ms",
+  "verify_median_ms", "verify_mean_ms", "verify_stddev_ms", "verify_p95_ms",
+  "proof_bytes", "statement_bytes", "bundle_bytes", "samples",
 ];
 const componentHeader = [
   "n", "k", "residual_setup_ns", "cross_key_ns", "bayer_groth_ns", "slot_or_ns",
@@ -134,8 +147,18 @@ if (mode === "--baseline") {
   const nativeReference = parseCsv(nativeBaseline, nativeHeader);
   const wasmReference = parseCsv(wasmBaseline, wasmHeader);
 
-  requirePositiveNumbers(nativeRows, nativeHeader.slice(2), nativePath);
-  requirePositiveNumbers(wasmRows, wasmHeader.slice(2), wasmPath);
+  requirePositiveNumbers(
+    nativeRows,
+    nativeHeader.slice(2).filter((column) => !column.endsWith("stddev_us")),
+    nativePath,
+  );
+  requireNonNegativeNumbers(nativeRows, ["prove_stddev_us", "verify_stddev_us"], nativePath);
+  requirePositiveNumbers(
+    wasmRows,
+    wasmHeader.slice(2).filter((column) => !column.endsWith("stddev_ms")),
+    wasmPath,
+  );
+  requireNonNegativeNumbers(wasmRows, ["prove_stddev_ms", "verify_stddev_ms"], wasmPath);
   requirePositiveNumbers(componentRows, componentHeader.slice(2), componentPath);
   requireSameGrid(nativeRows, nativeReference, nativePath);
   requireSameGrid(componentRows, parseCsv(componentBaseline, componentHeader), componentPath);
@@ -173,6 +196,9 @@ if (mode === "--baseline") {
     }
     if (wasmRows[index].samples !== samples) {
       fail(`${wasmPath}:${index + 2} records ${wasmRows[index].samples} samples; expected ${samples}`);
+    }
+    if (nativeRows[index].samples !== "30") {
+      fail(`${nativePath}:${index + 2} records ${nativeRows[index].samples} samples; expected 30`);
     }
   }
   console.log(`[repro-verify] generated native SHA-256: ${sha256(nativePath)}`);

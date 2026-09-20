@@ -1,38 +1,38 @@
 {
   "schema_version": 1,
-  "wasm_measured_at": "2026-09-17T20:37:02+08:00",
-  "native_measured_at": "2026-09-18T00:54:18+08:00",
-  "metadata_recorded_at": "2026-09-18T01:05:56+08:00",
-  "git_revision": "3f20b524629394bc9466d17f9fdd47a88b7ea6a9",
+  "wasm_measured_at": "2026-09-20T14:37:30+08:00",
+  "native_measured_at": "2026-09-20T14:37:30+08:00",
+  "metadata_recorded_at": "2026-09-20T14:37:30+08:00",
+  "git_revision": "fe29745edf0f59eaca5a327b2157f5ce5a35e9f7",
   "working_tree_dirty_at_native_measurement": true,
   "benchmark": {
-    "command": "(cd client-wasm && wasm-pack build --target nodejs --release) && node client-wasm/benchmark.mjs 7 paper/experiments/reconstruction_wasm.csv",
-    "samples_per_cell": 7,
-    "aggregation": "median after one untimed warm-up proof",
+    "command": "(cd client-wasm && wasm-pack build --target nodejs --release) && node client-wasm/benchmark.mjs 30 paper/experiments/reconstruction_wasm.csv",
+    "samples_per_cell": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 after one untimed warm-up proof",
     "timed_stages": ["prove", "verify"],
     "clock": "js_sys::Date::now wall-clock milliseconds inside the wasm32 boundary",
     "profile": "release",
     "target": "wasm32-unknown-unknown",
     "host": "Node.js/V8",
-    "csv_sha256": "c40e66b2a28a683b5d9dfeb5949fffcfd5c10dddd11761efb18112717b67080a",
+    "csv_sha256": "9d8f42966ae76cfc73308a25a20abf47998f7ef2a6b517b919643b14bf3285fa",
     "source_sha256": {
-      "client-wasm/src/lib.rs": "075d8cec464da273176f3a1587dfad866348233e9f4d0b0e71fc4bd77f9acabd",
-      "client-wasm/benchmark.mjs": "d117e789f679a6ce977c811589a3d1b2a3ad93b67a2d4e55f6892c7b0915f566"
+      "client-wasm/src/lib.rs": "03530968cbdf030baea93b8c17e9a2e890d26698cfc39df0af9f59a60df28b9c",
+      "client-wasm/benchmark.mjs": "ad13f0b7a8474a57252b21e9519dfab93e4247dfc8820040db3d01f76a9583e4"
     }
   },
   "native_benchmark": {
     "command": "cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_benchmark -- paper/experiments/reconstruction_stark.csv paper/experiments/reconstruction_components.csv",
-    "samples_per_cell": 7,
+    "samples_per_cell": 30,
     "warmup_per_cell": 1,
-    "aggregation": "median",
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95",
     "timed_stages": ["prove", "verify"],
     "clock": "std::time::Instant wall-clock measurements",
     "profile": "release",
     "curve": "StarkCurve",
     "transcript": "PoseidonFelt",
-    "csv_sha256": "e6755a02bddd802525b47a984fc599e035d0431a7db26cc58c10a6971fccfa26",
+    "csv_sha256": "2034927367f61d8a1c884eefb5bdc0316c3aab6252f8f21389c4fc2b105b20c5",
     "component_csv": "paper/experiments/reconstruction_components.csv",
-    "component_csv_sha256": "0435529f5bb65f0fb4651dfb12753b239f8ad8f9484c1b18cdec311f412ecbe7",
+    "component_csv_sha256": "6b662aaca1d6c4943791b9105faba9608d89d76e283585e1c71ec08540eb6e98",
     "component_profile": {
       "timed_stages": [
         "residual_setup",
@@ -44,12 +44,12 @@
         "verify_bayer_groth",
         "verify_slot_or"
       ],
-      "aggregation": "median over 7 samples; nanoseconds in component CSV",
+      "aggregation": "median over 30 samples; nanoseconds in component CSV",
       "clock": "std::time::Instant wall-clock measurements",
       "sum_tolerance": "component sums may exceed total by at most 25 percent because stages are timed in separate calls"
     },
     "source_sha256": {
-      "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "591fe40cf91bcc2a083cdaa475018b42787c00d7e57943ebd75575f11c01b798"
+      "poker-protocol-proofs/examples/reconstruction_benchmark.rs": "599cc8db9949e77499f620fa498888876f46dc4b773c16f762f79e83c5c7f286"
     }
   },
   "scoped_baseline": {
@@ -75,7 +75,7 @@
   },
   "scope_and_limits": [
     "These are Node/V8 host measurements, not Chrome, Safari, Android, or iOS device measurements.",
-    "The CSV reports warm-start median wall time; cold-start, P95, variance, and peak memory were not recorded.",
+    "The CSV reports warm-start median, mean, sample standard deviation, and P95 wall time; true cold module initialization and browser peak memory were not recorded.",
     "The benchmark validates the production Borsh/browser bundle boundary and proof acceptance; it is not an end-to-end network-latency measurement."
   ]
 }
