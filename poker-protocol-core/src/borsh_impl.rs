@@ -11,6 +11,7 @@
 //! （字节布局不变；错误文案以 proofs 份现行为准）——防"client-wasm
 //! 48 字节事故"类漂移重演。
 
+use crate::backend::Bn254Curve;
 use crate::curve::{CurvePoint, CurveScalar};
 use crate::stark_curve::{StarkCurve, StarkPoint, StarkScalar};
 use crate::ElGamalCiphertextGeneric;
@@ -20,13 +21,14 @@ use borsh::{BorshDeserialize, BorshSerialize};
 pub const STARK_POINT_COMPRESSED_LEN: usize = 32;
 /// Stark 标量字节数（大端序，Move 兼容）。
 pub const STARK_SCALAR_LEN: usize = 32;
+/// BN254 compressed G1 point length.
+pub const BN254_POINT_COMPRESSED_LEN: usize = 32;
+/// BN254 scalar length (big-endian wire form).
+pub const BN254_SCALAR_LEN: usize = 32;
 
 /// 写 32B 压缩点。
 #[inline]
-pub fn write_stark_point<W: borsh::io::Write>(
-    p: &StarkPoint,
-    w: &mut W,
-) -> borsh::io::Result<()> {
+pub fn write_stark_point<W: borsh::io::Write>(p: &StarkPoint, w: &mut W) -> borsh::io::Result<()> {
     let bytes = CurvePoint::compress(p);
     w.write_all(bytes.as_ref())
 }
@@ -84,6 +86,67 @@ impl BorshDeserialize for ElGamalCiphertextGeneric<StarkCurve> {
     }
 }
 
+#[inline]
+pub fn write_bn254_point<W: borsh::io::Write>(
+    p: &<Bn254Curve as crate::curve::Curve>::Point,
+    w: &mut W,
+) -> borsh::io::Result<()> {
+    let bytes = CurvePoint::compress(p);
+    w.write_all(bytes.as_ref())
+}
+
+#[inline]
+pub fn read_bn254_point<R: borsh::io::Read>(
+    r: &mut R,
+) -> borsh::io::Result<<Bn254Curve as crate::curve::Curve>::Point> {
+    let mut bytes = [0u8; BN254_POINT_COMPRESSED_LEN];
+    r.read_exact(&mut bytes)?;
+    CurvePoint::from_compressed(&bytes).ok_or_else(|| {
+        borsh::io::Error::new(
+            borsh::io::ErrorKind::InvalidData,
+            "invalid compressed BN254 G1 point",
+        )
+    })
+}
+
+#[inline]
+pub fn write_bn254_scalar<W: borsh::io::Write>(
+    s: &<Bn254Curve as crate::curve::Curve>::Scalar,
+    w: &mut W,
+) -> borsh::io::Result<()> {
+    let bytes = CurveScalar::as_bytes(s);
+    w.write_all(&bytes)
+}
+
+#[inline]
+pub fn read_bn254_scalar<R: borsh::io::Read>(
+    r: &mut R,
+) -> borsh::io::Result<<Bn254Curve as crate::curve::Curve>::Scalar> {
+    let mut bytes = [0u8; BN254_SCALAR_LEN];
+    r.read_exact(&mut bytes)?;
+    CurveScalar::from_canonical_bytes(&bytes).ok_or_else(|| {
+        borsh::io::Error::new(
+            borsh::io::ErrorKind::InvalidData,
+            "non-canonical BN254 scalar",
+        )
+    })
+}
+
+impl BorshSerialize for ElGamalCiphertextGeneric<Bn254Curve> {
+    fn serialize<W: borsh::io::Write>(&self, writer: &mut W) -> borsh::io::Result<()> {
+        write_bn254_point(&self.c1, writer)?;
+        write_bn254_point(&self.c2, writer)
+    }
+}
+
+impl BorshDeserialize for ElGamalCiphertextGeneric<Bn254Curve> {
+    fn deserialize_reader<R: borsh::io::Read>(reader: &mut R) -> borsh::io::Result<Self> {
+        let c1 = read_bn254_point(reader)?;
+        let c2 = read_bn254_point(reader)?;
+        Ok(Self { c1, c2 })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -99,7 +162,10 @@ mod tests {
         expected[31] = 42;
         assert_eq!(buf, expected);
         let mut cursor = std::io::Cursor::new(buf);
-        assert_eq!(read_stark_scalar(&mut cursor).unwrap(), StarkScalar::from_u64(42));
+        assert_eq!(
+            read_stark_scalar(&mut cursor).unwrap(),
+            StarkScalar::from_u64(42)
+        );
     }
 
     /// 点字节布局 KAT：恒等元 = 全零 32B；生成元压缩 roundtrip。

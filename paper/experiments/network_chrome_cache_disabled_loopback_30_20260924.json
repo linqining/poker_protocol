@@ -1,0 +1,3273 @@
+{
+  "schema_version": 1,
+  "kind": "cold-network-aggregate",
+  "label": "chrome-cache-disabled-loopback-30",
+  "run_count": 30,
+  "environment": {
+    "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4a39404d-a5fc-48fa-834e-479cb35d14cb",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "platform": "MacIntel",
+    "ua_platform": "macOS",
+    "ua_mobile": false,
+    "hardware_concurrency": 12,
+    "device_memory_gb": 32,
+    "protocol": "http/1.1",
+    "effective_connection_type": "4g"
+  },
+  "collection": {
+    "protocol": "Chrome DevTools Protocol",
+    "browser_executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "browser_version": "Chrome/153.0.8010.53",
+    "user_agent_version": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "headless": true,
+    "cache_disabled": true,
+    "browser_cache_cleared_before_each_run": true,
+    "chrome_arguments": [
+      "--user-data-dir=/var/folders/bx/qlb25tzd7nxg75d4pnl7d2xw0000gn/T/poker-network-profile-tY0WE4",
+      "--remote-debugging-port=0",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-extensions",
+      "--disable-background-networking",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-keep-alive",
+      "--remote-allow-origins=*",
+      "--headless=new",
+      "--disable-gpu"
+    ],
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "cache-disabled local-loopback network load; not a cold TCP connection, LAN, or Internet measurement",
+    "node": "v24.19.0",
+    "recorded_at": "2026-09-23T20:30:05.206Z"
+  },
+  "summary": {
+    "browser_transfer_bytes_total": {
+      "median": 264119,
+      "mean": 264119,
+      "sample_stddev": 0,
+      "p95": 264119,
+      "min": 264119,
+      "max": 264119
+    },
+    "server_bytes_total": {
+      "median": 263219,
+      "mean": 263219,
+      "sample_stddev": 0,
+      "p95": 263219,
+      "min": 263219,
+      "max": 263219
+    },
+    "wasm_transfer_bytes": {
+      "median": 243942,
+      "mean": 243942,
+      "sample_stddev": 0,
+      "p95": 243942,
+      "min": 243942,
+      "max": 243942
+    },
+    "javascript_transfer_bytes": {
+      "median": 14899,
+      "mean": 14899,
+      "sample_stddev": 0,
+      "p95": 14899,
+      "min": 14899,
+      "max": 14899
+    },
+    "html_transfer_bytes": {
+      "median": 5278,
+      "mean": 5278,
+      "sample_stddev": 0,
+      "p95": 5278,
+      "min": 5278,
+      "max": 5278
+    },
+    "wasm_duration_ms": {
+      "median": 1.7999999523162842,
+      "mean": 1.899999984105428,
+      "sample_stddev": 0.5407529807569598,
+      "p95": 3.299999952316284,
+      "min": 1.2000000476837158,
+      "max": 3.299999952316284
+    },
+    "wasm_initialized_ms": {
+      "median": 13.200000047683716,
+      "mean": 13.913333320617676,
+      "sample_stddev": 3.8790092289550366,
+      "p95": 23.5,
+      "min": 7.400000095367432,
+      "max": 23.699999809265137
+    },
+    "prove_ms": {
+      "median": 411,
+      "mean": 412.23333333333335,
+      "sample_stddev": 4.515745123785055,
+      "p95": 422,
+      "min": 406,
+      "max": 422
+    },
+    "verify_ms": {
+      "median": 302,
+      "mean": 302.23333333333335,
+      "sample_stddev": 2.737773237295335,
+      "p95": 307,
+      "min": 298,
+      "max": 311
+    },
+    "outer_call_ms": {
+      "median": 1613.4000000953674,
+      "mean": 1616.2366666873297,
+      "sample_stddev": 10.965383860763696,
+      "p95": 1636.7999999523163,
+      "min": 1601.0999999046326,
+      "max": 1638.7000000476837
+    },
+    "navigation_response_start_ms": {
+      "median": 2,
+      "mean": 2.0633333206176756,
+      "sample_stddev": 0.6392254577905128,
+      "p95": 3.3999998569488525,
+      "min": 1.4000000953674316,
+      "max": 4.599999904632568
+    },
+    "dom_content_loaded_ms": {
+      "median": 8,
+      "mean": 9.056666652361551,
+      "sample_stddev": 3.9818279755619326,
+      "p95": 20.700000047683716,
+      "min": 6.3999998569488525,
+      "max": 25.59999990463257
+    },
+    "load_event_end_ms": {
+      "median": 8.299999952316284,
+      "mean": 9.346666630109151,
+      "sample_stddev": 3.926719562793679,
+      "p95": 20.799999952316284,
+      "min": 6.599999904632568,
+      "max": 25.700000047683716
+    }
+  },
+  "runs": [
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "4a39404d-a5fc-48fa-834e-479cb35d14cb",
+      "started_at": "2026-09-23T20:29:03.035Z",
+      "completed_at": "2026-09-23T20:29:04.665Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4a39404d-a5fc-48fa-834e-479cb35d14cb",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195343025.5,
+        "response_start_ms": 4.599999904632568,
+        "response_end_ms": 5.099999904632568,
+        "dom_content_loaded_ms": 11,
+        "load_event_end_ms": 11.099999904632568,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 10.400000095367432,
+        "module_import_relative_ms": 15.900000095367432,
+        "wasm_initialized_relative_ms": 20
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 410,
+        "verify_ms": 302,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1619.5999999046326
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4a39404d-a5fc-48fa-834e-479cb35d14cb",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 11.099999904632568
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=4a39404d-a5fc-48fa-834e-479cb35d14cb",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.7999999523162842
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 3.299999952316284
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "730584f8-acdb-44fd-ae84-27bd51cfc2a5",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:03.033Z"
+        },
+        {
+          "request_id": "f78c317a-7f06-44dc-86c6-7393b681cc19",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:03.038Z"
+        },
+        {
+          "request_id": "2eadcd0f-87ad-460a-a307-fae109cd8cdb",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:03.045Z"
+        }
+      ],
+      "run_index": 1
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "57f085dd-948c-4aea-a24c-37c55711e375",
+      "started_at": "2026-09-23T20:29:05.151Z",
+      "completed_at": "2026-09-23T20:29:06.793Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=57f085dd-948c-4aea-a24c-37c55711e375",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195345142.9,
+        "response_start_ms": 3.3999998569488525,
+        "response_end_ms": 3.6999998092651367,
+        "dom_content_loaded_ms": 9.5,
+        "load_event_end_ms": 9.799999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 8.699999809265137,
+        "module_import_relative_ms": 16.399999856948853,
+        "wasm_initialized_relative_ms": 20.299999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 420,
+        "verify_ms": 304,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1629.7999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=57f085dd-948c-4aea-a24c-37c55711e375",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 9.799999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=57f085dd-948c-4aea-a24c-37c55711e375",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.200000047683716
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "2f6568af-c850-445f-9747-9c2ee0bbc591",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:05.146Z"
+        },
+        {
+          "request_id": "68aef035-d8f4-48b5-8415-f091a6caeae7",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:05.154Z"
+        },
+        {
+          "request_id": "b6776262-d073-4bfa-afb3-26b9fc3b328b",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:05.161Z"
+        }
+      ],
+      "run_index": 2
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "5d575f3d-7065-448a-8e02-72aea4ad8877",
+      "started_at": "2026-09-23T20:29:07.252Z",
+      "completed_at": "2026-09-23T20:29:08.876Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=5d575f3d-7065-448a-8e02-72aea4ad8877",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195347244.7,
+        "response_start_ms": 2.299999952316284,
+        "response_end_ms": 2.5,
+        "dom_content_loaded_ms": 8.399999856948853,
+        "load_event_end_ms": 8.899999856948853,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.599999904632568,
+        "module_import_relative_ms": 19.200000047683716,
+        "wasm_initialized_relative_ms": 23.5
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 410,
+        "verify_ms": 304,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1608.5
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=5d575f3d-7065-448a-8e02-72aea4ad8877",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.899999856948853
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=5d575f3d-7065-448a-8e02-72aea4ad8877",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.0999999046325684
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.4000000953674316
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "84a6de6c-081f-4a5f-af8b-20353a8e91c6",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:07.247Z"
+        },
+        {
+          "request_id": "337b1d15-a624-45f3-8eb2-61587c660512",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:07.254Z"
+        },
+        {
+          "request_id": "6e88ffe1-e235-4af2-a981-4278c1c99589",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:07.266Z"
+        }
+      ],
+      "run_index": 3
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "d4f4dff2-2b2e-4df8-aaee-1df462efad49",
+      "started_at": "2026-09-23T20:29:09.318Z",
+      "completed_at": "2026-09-23T20:29:10.951Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=d4f4dff2-2b2e-4df8-aaee-1df462efad49",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195349310.9,
+        "response_start_ms": 1.9000000953674316,
+        "response_end_ms": 2.200000047683716,
+        "dom_content_loaded_ms": 8.5,
+        "load_event_end_ms": 8.799999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.599999904632568,
+        "module_import_relative_ms": 15.5,
+        "wasm_initialized_relative_ms": 19.09999990463257
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 409,
+        "verify_ms": 311,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1621.3000001907349
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=d4f4dff2-2b2e-4df8-aaee-1df462efad49",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.799999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=d4f4dff2-2b2e-4df8-aaee-1df462efad49",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "7c79da74-b0b9-4694-9d12-8edd19763bbe",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:09.312Z"
+        },
+        {
+          "request_id": "930fe6f3-1cba-4491-b729-92fe9c1a8107",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:09.321Z"
+        },
+        {
+          "request_id": "68532f1d-abdb-4301-a8b5-2ada3996c8e4",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:09.329Z"
+        }
+      ],
+      "run_index": 4
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "27cecb86-570e-4226-aee1-6b0bdd8b7896",
+      "started_at": "2026-09-23T20:29:11.381Z",
+      "completed_at": "2026-09-23T20:29:12.997Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=27cecb86-570e-4226-aee1-6b0bdd8b7896",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195351374.7,
+        "response_start_ms": 2.1000001430511475,
+        "response_end_ms": 2.4000000953674316,
+        "dom_content_loaded_ms": 8,
+        "load_event_end_ms": 8.299999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.900000095367432,
+        "module_import_relative_ms": 14.299999952316284,
+        "wasm_initialized_relative_ms": 18.299999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 407,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1604.2000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=27cecb86-570e-4226-aee1-6b0bdd8b7896",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.299999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=27cecb86-570e-4226-aee1-6b0bdd8b7896",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.200000047683716
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.3999998569488525
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "b3b91969-5205-4a23-b2fe-444bc26fa71d",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:11.376Z"
+        },
+        {
+          "request_id": "e21570dd-5949-4a34-804b-8c652acb447e",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:11.384Z"
+        },
+        {
+          "request_id": "936f95a7-5f5f-4cb0-89f9-bbc57a62c56f",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:11.392Z"
+        }
+      ],
+      "run_index": 5
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "960a42dc-82e7-40b8-bbc2-9831953b6228",
+      "started_at": "2026-09-23T20:29:13.437Z",
+      "completed_at": "2026-09-23T20:29:15.058Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=960a42dc-82e7-40b8-bbc2-9831953b6228",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195353429.7,
+        "response_start_ms": 1.8999998569488525,
+        "response_end_ms": 2.200000047683716,
+        "dom_content_loaded_ms": 9.200000047683716,
+        "load_event_end_ms": 9.5,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 8.399999856948853,
+        "module_import_relative_ms": 25,
+        "wasm_initialized_relative_ms": 28
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 410,
+        "verify_ms": 299,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1601.0999999046326
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=960a42dc-82e7-40b8-bbc2-9831953b6228",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 9.5
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=960a42dc-82e7-40b8-bbc2-9831953b6228",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.700000047683716
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7000000476837158
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "08f64042-bcb0-4e47-824d-63c88b658565",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:13.431Z"
+        },
+        {
+          "request_id": "fe651bf4-e745-407a-b494-ffff8d58e15a",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:13.441Z"
+        },
+        {
+          "request_id": "dc62f116-075d-47d1-ace2-b1b1c099aef2",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:13.457Z"
+        }
+      ],
+      "run_index": 6
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "67c5ec71-48b0-4e09-abe1-a6b3b2e2e220",
+      "started_at": "2026-09-23T20:29:15.516Z",
+      "completed_at": "2026-09-23T20:29:17.164Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=67c5ec71-48b0-4e09-abe1-a6b3b2e2e220",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195355510.6,
+        "response_start_ms": 2.0999999046325684,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 7.099999904632568,
+        "load_event_end_ms": 7.3999998569488525,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.5,
+        "module_import_relative_ms": 12.899999856948853,
+        "wasm_initialized_relative_ms": 16.59999990463257
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 422,
+        "verify_ms": 302,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1636.7999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=67c5ec71-48b0-4e09-abe1-a6b3b2e2e220",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.3999998569488525
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=67c5ec71-48b0-4e09-abe1-a6b3b2e2e220",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.4000000953674316
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.5999999046325684
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "e90d3cf6-90d7-4416-94da-9f7c4fe6eeca",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:15.512Z"
+        },
+        {
+          "request_id": "47155c3d-ccda-44f3-b3a0-d23d6c38a3bc",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:15.519Z"
+        },
+        {
+          "request_id": "ab5d20a2-b7a8-410e-a78f-029a78a7d528",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:15.525Z"
+        }
+      ],
+      "run_index": 7
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "2f8a9341-ddb5-4630-9b0d-efe684423e9f",
+      "started_at": "2026-09-23T20:29:17.606Z",
+      "completed_at": "2026-09-23T20:29:19.228Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=2f8a9341-ddb5-4630-9b0d-efe684423e9f",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "3g"
+      },
+      "navigation": {
+        "time_origin": 1790195357599.8,
+        "response_start_ms": 2.5,
+        "response_end_ms": 2.6999998092651367,
+        "dom_content_loaded_ms": 8,
+        "load_event_end_ms": 8.099999904632568,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.299999952316284,
+        "module_import_relative_ms": 17.59999990463257,
+        "wasm_initialized_relative_ms": 21.699999809265137
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 412,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1606.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=2f8a9341-ddb5-4630-9b0d-efe684423e9f",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.099999904632568
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=2f8a9341-ddb5-4630-9b0d-efe684423e9f",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.5
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.2000000476837158
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "52e42128-0125-4b56-86dc-8f957dd28624",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:17.602Z"
+        },
+        {
+          "request_id": "344e00da-b9e1-4663-8f0a-cb2d6020c2f9",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:17.608Z"
+        },
+        {
+          "request_id": "f44e944c-dd51-4db7-a89c-4ea23471e030",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:17.619Z"
+        }
+      ],
+      "run_index": 8
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "b59c58ae-609b-41d8-a49f-98694c992776",
+      "started_at": "2026-09-23T20:29:19.669Z",
+      "completed_at": "2026-09-23T20:29:21.314Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=b59c58ae-609b-41d8-a49f-98694c992776",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195359662.5,
+        "response_start_ms": 1.7000000476837158,
+        "response_end_ms": 2.0999999046325684,
+        "dom_content_loaded_ms": 7.099999904632568,
+        "load_event_end_ms": 7.3999998569488525,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.599999904632568,
+        "module_import_relative_ms": 13.700000047683716,
+        "wasm_initialized_relative_ms": 17.399999856948853
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 418,
+        "verify_ms": 304,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1634
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=b59c58ae-609b-41d8-a49f-98694c992776",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.3999998569488525
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=b59c58ae-609b-41d8-a49f-98694c992776",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.4000000953674316
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "18fb7476-2f04-4b3e-bae0-2da3906ee4aa",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:19.664Z"
+        },
+        {
+          "request_id": "a7a55bd4-9f02-42f9-a63c-0df24dbab958",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:19.670Z"
+        },
+        {
+          "request_id": "69d6e5d9-cf09-44a2-b444-98d34aa39d49",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:19.678Z"
+        }
+      ],
+      "run_index": 9
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "bf75c82b-117f-45cf-bc30-e10d56b8e85e",
+      "started_at": "2026-09-23T20:29:21.752Z",
+      "completed_at": "2026-09-23T20:29:23.415Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=bf75c82b-117f-45cf-bc30-e10d56b8e85e",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195361746.6,
+        "response_start_ms": 1.4000000953674316,
+        "response_end_ms": 1.7000000476837158,
+        "dom_content_loaded_ms": 6.700000047683716,
+        "load_event_end_ms": 7.1000001430511475,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.200000047683716,
+        "module_import_relative_ms": 25.299999952316284,
+        "wasm_initialized_relative_ms": 29.700000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 420,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1638.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=bf75c82b-117f-45cf-bc30-e10d56b8e85e",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.1000001430511475
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=bf75c82b-117f-45cf-bc30-e10d56b8e85e",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.5
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 3.299999952316284
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "526c8b2e-28be-45bd-a3dd-ada9bfbe69fb",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:21.748Z"
+        },
+        {
+          "request_id": "3c13664e-4420-4511-89c5-8021445ab867",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:21.754Z"
+        },
+        {
+          "request_id": "e73eda6d-6cd7-474c-b2f0-1c95f3ce3b15",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:21.775Z"
+        }
+      ],
+      "run_index": 10
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "acb716b8-498c-4a71-9bf0-d64ddb39b06f",
+      "started_at": "2026-09-23T20:29:23.858Z",
+      "completed_at": "2026-09-23T20:29:25.493Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=acb716b8-498c-4a71-9bf0-d64ddb39b06f",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195363851.1,
+        "response_start_ms": 2.1000001430511475,
+        "response_end_ms": 2.4000000953674316,
+        "dom_content_loaded_ms": 8.700000047683716,
+        "load_event_end_ms": 8.900000095367432,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.799999952316284,
+        "module_import_relative_ms": 18.40000009536743,
+        "wasm_initialized_relative_ms": 21.799999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 417,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1620.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=acb716b8-498c-4a71-9bf0-d64ddb39b06f",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.900000095367432
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=acb716b8-498c-4a71-9bf0-d64ddb39b06f",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.2999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "cbe96046-9339-4bcf-9479-ef94c04f0be2",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:23.853Z"
+        },
+        {
+          "request_id": "546dfb42-1042-4f4f-a2dd-5d3c59949f08",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:23.861Z"
+        },
+        {
+          "request_id": "8b947562-8fbc-4f94-81da-72f4a17d8010",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:23.871Z"
+        }
+      ],
+      "run_index": 11
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "e792acd7-0df2-4f31-a0a9-b3e2d4496bfe",
+      "started_at": "2026-09-23T20:29:25.952Z",
+      "completed_at": "2026-09-23T20:29:27.585Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=e792acd7-0df2-4f31-a0a9-b3e2d4496bfe",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195365945.6,
+        "response_start_ms": 2,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 7.700000047683716,
+        "load_event_end_ms": 8,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.8999998569488525,
+        "module_import_relative_ms": 14.599999904632568,
+        "wasm_initialized_relative_ms": 17.799999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 408,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1622.2999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=e792acd7-0df2-4f31-a0a9-b3e2d4496bfe",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=e792acd7-0df2-4f31-a0a9-b3e2d4496bfe",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.7000000476837158
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.2000000476837158
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "d85aff6e-7f47-47ce-807f-2d606253a3f0",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:25.947Z"
+        },
+        {
+          "request_id": "babd44bb-c8c3-4216-9c34-43d27ac85cba",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:25.954Z"
+        },
+        {
+          "request_id": "24cd6a9d-8992-4d54-a823-1226615e61d8",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:25.961Z"
+        }
+      ],
+      "run_index": 12
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "a11609da-e779-45e3-8503-ea8451308bf9",
+      "started_at": "2026-09-23T20:29:28.030Z",
+      "completed_at": "2026-09-23T20:29:29.672Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=a11609da-e779-45e3-8503-ea8451308bf9",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195368023.6,
+        "response_start_ms": 2.1000001430511475,
+        "response_end_ms": 2.5,
+        "dom_content_loaded_ms": 8,
+        "load_event_end_ms": 8.299999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.200000047683716,
+        "module_import_relative_ms": 15.100000143051147,
+        "wasm_initialized_relative_ms": 19.200000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 413,
+        "verify_ms": 305,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1629.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=a11609da-e779-45e3-8503-ea8451308bf9",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.299999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=a11609da-e779-45e3-8503-ea8451308bf9",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.3000001907348633
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.1999998092651367
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "8cb527ff-e98a-4280-9005-69d3f9b5f907",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:28.025Z"
+        },
+        {
+          "request_id": "a1a32d94-cba6-4c3e-a25e-8ca49a2204b8",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:28.033Z"
+        },
+        {
+          "request_id": "faa09e60-8206-4ff1-bc67-eafd720db7a2",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:28.041Z"
+        }
+      ],
+      "run_index": 13
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "336124c7-39e9-49c8-b9ac-ba8b44e287fc",
+      "started_at": "2026-09-23T20:29:30.146Z",
+      "completed_at": "2026-09-23T20:29:31.764Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=336124c7-39e9-49c8-b9ac-ba8b44e287fc",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195370139.4,
+        "response_start_ms": 2,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 7.900000095367432,
+        "load_event_end_ms": 8.400000095367432,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.200000047683716,
+        "module_import_relative_ms": 15.299999952316284,
+        "wasm_initialized_relative_ms": 18.40000009536743
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 406,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1606.7999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=336124c7-39e9-49c8-b9ac-ba8b44e287fc",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.400000095367432
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=336124c7-39e9-49c8-b9ac-ba8b44e287fc",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.7999999523162842
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.2999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "3245c6fe-1664-45a1-8239-563a77eb6e9d",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:30.141Z"
+        },
+        {
+          "request_id": "7fecf801-d19d-4237-9fe2-4bf1917db907",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:30.148Z"
+        },
+        {
+          "request_id": "536afb44-b0c1-4d70-9875-d78eeabb2a50",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:30.156Z"
+        }
+      ],
+      "run_index": 14
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "7ab65e2b-4799-4f1b-85c7-e5a42d5dd49e",
+      "started_at": "2026-09-23T20:29:32.202Z",
+      "completed_at": "2026-09-23T20:29:33.852Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=7ab65e2b-4799-4f1b-85c7-e5a42d5dd49e",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195372195.8,
+        "response_start_ms": 1.5999999046325684,
+        "response_end_ms": 1.9000000953674316,
+        "dom_content_loaded_ms": 7.799999952316284,
+        "load_event_end_ms": 8.200000047683716,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7,
+        "module_import_relative_ms": 19.59999990463257,
+        "wasm_initialized_relative_ms": 23.5
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 416,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1633
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=7ab65e2b-4799-4f1b-85c7-e5a42d5dd49e",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.200000047683716
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=7ab65e2b-4799-4f1b-85c7-e5a42d5dd49e",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.8999998569488525
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.200000047683716
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "ee73da0b-37db-40e7-a61d-a8dfdc30200b",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:32.197Z"
+        },
+        {
+          "request_id": "226b32b3-8434-4bb5-9544-bbf6c6941959",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:32.205Z"
+        },
+        {
+          "request_id": "dfdabf55-9d09-40fb-a2cf-1077e539b709",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:32.217Z"
+        }
+      ],
+      "run_index": 15
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "8d62a2d3-7a74-4c24-b4a9-74185b3013d5",
+      "started_at": "2026-09-23T20:29:34.290Z",
+      "completed_at": "2026-09-23T20:29:35.924Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=8d62a2d3-7a74-4c24-b4a9-74185b3013d5",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195374282.4,
+        "response_start_ms": 3.1000001430511475,
+        "response_end_ms": 3.5,
+        "dom_content_loaded_ms": 8.800000190734863,
+        "load_event_end_ms": 9,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 8.100000143051147,
+        "module_import_relative_ms": 21.300000190734863,
+        "wasm_initialized_relative_ms": 24.200000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 305,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1617.7999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=8d62a2d3-7a74-4c24-b4a9-74185b3013d5",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 9
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=8d62a2d3-7a74-4c24-b4a9-74185b3013d5",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.5
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "4c04d6b6-8fc8-4c4b-a36c-1e1d54a4da65",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:34.285Z"
+        },
+        {
+          "request_id": "6fe09133-4210-40b2-988b-6319cd9717cc",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:34.292Z"
+        },
+        {
+          "request_id": "49a2d85d-8356-4122-b4ec-2f3beebc1416",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:34.305Z"
+        }
+      ],
+      "run_index": 16
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "740817f7-23c2-46d9-ac0c-3aadf26cbd27",
+      "started_at": "2026-09-23T20:29:36.362Z",
+      "completed_at": "2026-09-23T20:29:37.991Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=740817f7-23c2-46d9-ac0c-3aadf26cbd27",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195376355.2,
+        "response_start_ms": 1.8999998569488525,
+        "response_end_ms": 2.0999999046325684,
+        "dom_content_loaded_ms": 7.8999998569488525,
+        "load_event_end_ms": 8.199999809265137,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.099999904632568,
+        "module_import_relative_ms": 20.09999990463257,
+        "wasm_initialized_relative_ms": 24.09999990463257
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 409,
+        "verify_ms": 307,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1611.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=740817f7-23c2-46d9-ac0c-3aadf26cbd27",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.199999809265137
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=740817f7-23c2-46d9-ac0c-3aadf26cbd27",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "ab957e71-9c09-44f5-8510-dcf88de4ebf9",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:36.357Z"
+        },
+        {
+          "request_id": "bab8457f-75ec-49e6-a58f-fa2539a83b88",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:36.364Z"
+        },
+        {
+          "request_id": "7361eeca-5e66-4da3-a46e-d8cbc1b9f35a",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:36.377Z"
+        }
+      ],
+      "run_index": 17
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "fa5df877-9eda-406a-92ff-b663c90d2914",
+      "started_at": "2026-09-23T20:29:38.419Z",
+      "completed_at": "2026-09-23T20:29:40.053Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=fa5df877-9eda-406a-92ff-b663c90d2914",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195378412.7,
+        "response_start_ms": 1.5999999046325684,
+        "response_end_ms": 2,
+        "dom_content_loaded_ms": 8.299999952316284,
+        "load_event_end_ms": 8.699999809265137,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.5,
+        "module_import_relative_ms": 27.199999809265137,
+        "wasm_initialized_relative_ms": 31.199999809265137
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 409,
+        "verify_ms": 302,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1609
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=fa5df877-9eda-406a-92ff-b663c90d2914",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.699999809265137
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=fa5df877-9eda-406a-92ff-b663c90d2914",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.200000047683716
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.5
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "903bb6a6-3ed6-4f03-b47c-6037261ce3ce",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:38.414Z"
+        },
+        {
+          "request_id": "ec550abb-bf00-4e6a-9030-3f182482c202",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:38.422Z"
+        },
+        {
+          "request_id": "ed22a406-73e4-4f11-8d1a-606db4f47de1",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:38.442Z"
+        }
+      ],
+      "run_index": 18
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "f894f98e-1576-4873-9f23-c4c8010ab20c",
+      "started_at": "2026-09-23T20:29:40.501Z",
+      "completed_at": "2026-09-23T20:29:42.120Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=f894f98e-1576-4873-9f23-c4c8010ab20c",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195380493.8,
+        "response_start_ms": 2,
+        "response_end_ms": 2.200000047683716,
+        "dom_content_loaded_ms": 8.400000095367432,
+        "load_event_end_ms": 8.700000047683716,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.5,
+        "module_import_relative_ms": 15.800000190734863,
+        "wasm_initialized_relative_ms": 20.700000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 408,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1606.2000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=f894f98e-1576-4873-9f23-c4c8010ab20c",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.700000047683716
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=f894f98e-1576-4873-9f23-c4c8010ab20c",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.5999999046325684
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "d202435b-eb95-492b-91b2-9bb2a0dd0fac",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:40.495Z"
+        },
+        {
+          "request_id": "812800d8-ee44-4651-aca9-34a2ac31f169",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:40.503Z"
+        },
+        {
+          "request_id": "51709f70-7784-4bc5-8258-8ff2fcc9dfe0",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:40.511Z"
+        }
+      ],
+      "run_index": 19
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "e818479d-2bd6-4273-ae56-9e7b5c87a5ff",
+      "started_at": "2026-09-23T20:29:42.555Z",
+      "completed_at": "2026-09-23T20:29:44.175Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=e818479d-2bd6-4273-ae56-9e7b5c87a5ff",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195382547.8,
+        "response_start_ms": 2,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 8.5,
+        "load_event_end_ms": 8.799999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.599999904632568,
+        "module_import_relative_ms": 17.700000047683716,
+        "wasm_initialized_relative_ms": 21.09999990463257
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 407,
+        "verify_ms": 304,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1606.6000001430511
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=e818479d-2bd6-4273-ae56-9e7b5c87a5ff",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.799999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=e818479d-2bd6-4273-ae56-9e7b5c87a5ff",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.200000047683716
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7000000476837158
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "6765f58c-4efa-49b6-b6d6-b31565d5b7fc",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:42.549Z"
+        },
+        {
+          "request_id": "377393c6-fe0c-4bec-9935-e047570d5ef0",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:42.557Z"
+        },
+        {
+          "request_id": "f35b54cf-81dd-4a00-b7f2-cb04a43b24bd",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:42.567Z"
+        }
+      ],
+      "run_index": 20
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "20973850-1d64-44a5-aaa9-e374f65cede7",
+      "started_at": "2026-09-23T20:29:44.609Z",
+      "completed_at": "2026-09-23T20:29:46.230Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=20973850-1d64-44a5-aaa9-e374f65cede7",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195384602,
+        "response_start_ms": 2,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 8.200000047683716,
+        "load_event_end_ms": 8.5,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.5,
+        "module_import_relative_ms": 17.200000047683716,
+        "wasm_initialized_relative_ms": 20.5
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1608.2000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=20973850-1d64-44a5-aaa9-e374f65cede7",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.5
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=20973850-1d64-44a5-aaa9-e374f65cede7",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.5
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "adf4c098-eadc-4f1d-9f4e-d6b036f5409c",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:44.603Z"
+        },
+        {
+          "request_id": "eddb2b01-8fc0-4383-a640-aef9b9a2eb41",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:44.611Z"
+        },
+        {
+          "request_id": "552c6e09-27da-45bb-b9d0-75c065f26fb2",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:44.621Z"
+        }
+      ],
+      "run_index": 21
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "bb1e91f3-752c-4124-9ef9-30e0b3ccf453",
+      "started_at": "2026-09-23T20:29:46.667Z",
+      "completed_at": "2026-09-23T20:29:48.292Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=bb1e91f3-752c-4124-9ef9-30e0b3ccf453",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195386660.9,
+        "response_start_ms": 1.7000000476837158,
+        "response_end_ms": 2.0999999046325684,
+        "dom_content_loaded_ms": 7.599999904632568,
+        "load_event_end_ms": 8,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.799999952316284,
+        "module_import_relative_ms": 14.899999856948853,
+        "wasm_initialized_relative_ms": 18.299999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 303,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1613.4000000953674
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=bb1e91f3-752c-4124-9ef9-30e0b3ccf453",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=bb1e91f3-752c-4124-9ef9-30e0b3ccf453",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.0999999046325684
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.6000001430511475
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "a4be0ab3-73db-4012-b96b-5c2bc06a3d02",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:46.662Z"
+        },
+        {
+          "request_id": "909a6a06-3773-420f-85af-e5432befcc75",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:46.670Z"
+        },
+        {
+          "request_id": "a987fe98-2a6f-49c4-94d8-37012b73fb1f",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:46.677Z"
+        }
+      ],
+      "run_index": 22
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "33642fb5-0761-4f21-a86c-5592f210bd4e",
+      "started_at": "2026-09-23T20:29:48.727Z",
+      "completed_at": "2026-09-23T20:29:50.348Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=33642fb5-0761-4f21-a86c-5592f210bd4e",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195388720.1,
+        "response_start_ms": 1.6999998092651367,
+        "response_end_ms": 2,
+        "dom_content_loaded_ms": 7.799999952316284,
+        "load_event_end_ms": 8.099999904632568,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.199999809265137,
+        "module_import_relative_ms": 15.399999856948853,
+        "wasm_initialized_relative_ms": 20.199999809265137
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 410,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1608.3000001907349
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=33642fb5-0761-4f21-a86c-5592f210bd4e",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8.099999904632568
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=33642fb5-0761-4f21-a86c-5592f210bd4e",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.8000001907348633
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 2.700000047683716
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "03fea502-2331-40b5-a0c7-1f7cc7e45472",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:48.721Z"
+        },
+        {
+          "request_id": "7e89c351-64b1-470c-88f5-1aabbc1baefe",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:48.729Z"
+        },
+        {
+          "request_id": "09e0c4bf-0139-4f5f-b2ef-fd654f47bba6",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:48.738Z"
+        }
+      ],
+      "run_index": 23
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "2ac9992f-e91a-4caa-a243-8275ff3743b8",
+      "started_at": "2026-09-23T20:29:50.785Z",
+      "completed_at": "2026-09-23T20:29:52.411Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=2ac9992f-e91a-4caa-a243-8275ff3743b8",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195390779.3,
+        "response_start_ms": 1.6000001430511475,
+        "response_end_ms": 1.8000001907348633,
+        "dom_content_loaded_ms": 7.400000095367432,
+        "load_event_end_ms": 7.700000047683716,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.6000001430511475,
+        "module_import_relative_ms": 19.5,
+        "wasm_initialized_relative_ms": 23.200000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 410,
+        "verify_ms": 300,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1608.6000001430511
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=2ac9992f-e91a-4caa-a243-8275ff3743b8",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.700000047683716
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=2ac9992f-e91a-4caa-a243-8275ff3743b8",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.0999999046325684
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.5
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "2893626e-3709-475e-8ddc-1c416dd39d92",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:50.780Z"
+        },
+        {
+          "request_id": "fe9862ae-bd4c-4bde-9a58-ccb41682ecf2",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:50.788Z"
+        },
+        {
+          "request_id": "fdc772a7-19f1-4bab-93f3-8c9801c67818",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:50.800Z"
+        }
+      ],
+      "run_index": 24
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "91e33f38-d41b-40ad-834b-82e9e4122c74",
+      "started_at": "2026-09-23T20:29:52.849Z",
+      "completed_at": "2026-09-23T20:29:54.473Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=91e33f38-d41b-40ad-834b-82e9e4122c74",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195392843.6,
+        "response_start_ms": 1.5,
+        "response_end_ms": 1.7999999523162842,
+        "dom_content_loaded_ms": 6.3999998569488525,
+        "load_event_end_ms": 6.599999904632568,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 5.699999809265137,
+        "module_import_relative_ms": 19.299999952316284,
+        "wasm_initialized_relative_ms": 22.199999809265137
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 299,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1607
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=91e33f38-d41b-40ad-834b-82e9e4122c74",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 6.599999904632568
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=91e33f38-d41b-40ad-834b-82e9e4122c74",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.5999999046325684
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.2999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "d6f21ee0-094f-48cc-86f2-daeb12c0c6ce",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:52.845Z"
+        },
+        {
+          "request_id": "652672f5-6dc8-4df4-bdb7-ed1ac0d3fccc",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:52.851Z"
+        },
+        {
+          "request_id": "67ecd181-8cf9-4007-9a84-de2244e80831",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:52.864Z"
+        }
+      ],
+      "run_index": 25
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "335f7954-4295-4db0-89c7-1915d93a06ec",
+      "started_at": "2026-09-23T20:29:54.920Z",
+      "completed_at": "2026-09-23T20:29:56.544Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=335f7954-4295-4db0-89c7-1915d93a06ec",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195394913,
+        "response_start_ms": 2,
+        "response_end_ms": 2.4000000953674316,
+        "dom_content_loaded_ms": 7.799999952316284,
+        "load_event_end_ms": 8,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 7.200000047683716,
+        "module_import_relative_ms": 18.799999952316284,
+        "wasm_initialized_relative_ms": 22.700000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 412,
+        "verify_ms": 298,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1608.7999999523163
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=335f7954-4295-4db0-89c7-1915d93a06ec",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 8
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=335f7954-4295-4db0-89c7-1915d93a06ec",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.299999952316284
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.9000000953674316
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "0c56d9dc-9403-4014-90e5-23353ba6b2f1",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:54.915Z"
+        },
+        {
+          "request_id": "db5fce87-3325-4b1d-980c-668c54ab9cab",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:54.922Z"
+        },
+        {
+          "request_id": "c35aa9d1-add9-4b95-bebe-b6d629daf0c3",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:54.934Z"
+        }
+      ],
+      "run_index": 26
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "4e357f71-b5b8-4af9-8228-dc7828f3cf1f",
+      "started_at": "2026-09-23T20:29:56.988Z",
+      "completed_at": "2026-09-23T20:29:58.611Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4e357f71-b5b8-4af9-8228-dc7828f3cf1f",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195396969,
+        "response_start_ms": 1.9000000953674316,
+        "response_end_ms": 2.200000047683716,
+        "dom_content_loaded_ms": 20.700000047683716,
+        "load_event_end_ms": 20.799999952316284,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 19.90000009536743,
+        "module_import_relative_ms": 24.5,
+        "wasm_initialized_relative_ms": 27.799999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 422,
+        "verify_ms": 298,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1614.7000000476837
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4e357f71-b5b8-4af9-8228-dc7828f3cf1f",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 20.799999952316284
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=4e357f71-b5b8-4af9-8228-dc7828f3cf1f",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.9000000953674316
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.9000000953674316
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "ed88b1d0-9a06-48d9-8506-6b4c1d0cd4a1",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:56.971Z"
+        },
+        {
+          "request_id": "7c40404c-0c96-4809-9c1a-8d447ae0f8b5",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:56.991Z"
+        },
+        {
+          "request_id": "fd0342d8-e696-492f-9c52-126d8a7fab48",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:56.995Z"
+        }
+      ],
+      "run_index": 27
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "46a3e743-4ec7-4027-aaab-73c7d366d866",
+      "started_at": "2026-09-23T20:29:59.057Z",
+      "completed_at": "2026-09-23T20:30:00.679Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=46a3e743-4ec7-4027-aaab-73c7d366d866",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195399051,
+        "response_start_ms": 1.6999998092651367,
+        "response_end_ms": 2,
+        "dom_content_loaded_ms": 7.3999998569488525,
+        "load_event_end_ms": 7.699999809265137,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.599999904632568,
+        "module_import_relative_ms": 16,
+        "wasm_initialized_relative_ms": 19.59999990463257
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 299,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1609
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=46a3e743-4ec7-4027-aaab-73c7d366d866",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.699999809265137
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=46a3e743-4ec7-4027-aaab-73c7d366d866",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.3000001907348633
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.7999999523162842
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "9701133d-e1ef-4f87-a8dc-cb56d18a9d0d",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:29:59.052Z"
+        },
+        {
+          "request_id": "d9d52307-4cc7-438f-8e6a-8c99a8d45f95",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:29:59.060Z"
+        },
+        {
+          "request_id": "8e4eb4df-51e1-4940-8f23-25ffc701e618",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:29:59.069Z"
+        }
+      ],
+      "run_index": 28
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "f9416238-da34-4040-b952-a61f74dfa13e",
+      "started_at": "2026-09-23T20:30:01.116Z",
+      "completed_at": "2026-09-23T20:30:02.746Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=f9416238-da34-4040-b952-a61f74dfa13e",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195401110.7,
+        "response_start_ms": 1.5999999046325684,
+        "response_end_ms": 1.9000000953674316,
+        "dom_content_loaded_ms": 7.299999952316284,
+        "load_event_end_ms": 7.700000047683716,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 6.299999952316284,
+        "module_import_relative_ms": 19,
+        "wasm_initialized_relative_ms": 22.799999952316284
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 411,
+        "verify_ms": 301,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1613.4000000953674
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=f9416238-da34-4040-b952-a61f74dfa13e",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 7.700000047683716
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=f9416238-da34-4040-b952-a61f74dfa13e",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 2.4000000953674316
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.8999998569488525
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "9e7195f5-6507-492e-a2ac-5df2bd93023b",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:30:01.112Z"
+        },
+        {
+          "request_id": "56bfffc4-96e6-4d42-a661-f3dc817afdab",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:30:01.119Z"
+        },
+        {
+          "request_id": "d59244eb-6c0d-482c-a169-c3707fc480b7",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:30:01.131Z"
+        }
+      ],
+      "run_index": 29
+    },
+    {
+      "schema_version": 1,
+      "kind": "cold-network-single-run",
+      "label": "chrome-cache-disabled-loopback-30",
+      "network_session": "4ddc26e1-dee4-4117-bcdf-2c695e7e9927",
+      "started_at": "2026-09-23T20:30:03.209Z",
+      "completed_at": "2026-09-23T20:30:04.848Z",
+      "environment": {
+        "href": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4ddc26e1-dee4-4117-bcdf-2c695e7e9927",
+        "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "platform": "MacIntel",
+        "ua_platform": "macOS",
+        "ua_mobile": false,
+        "hardware_concurrency": 12,
+        "device_memory_gb": 32,
+        "protocol": "http/1.1",
+        "effective_connection_type": "4g"
+      },
+      "navigation": {
+        "time_origin": 1790195403184.8,
+        "response_start_ms": 1.8999998569488525,
+        "response_end_ms": 2.299999952316284,
+        "dom_content_loaded_ms": 25.59999990463257,
+        "load_event_end_ms": 25.700000047683716,
+        "transfer_size": 5278,
+        "encoded_body_size": 4978,
+        "decoded_body_size": 4978
+      },
+      "initialization": {
+        "script_start_relative_ms": 24.799999952316284,
+        "module_import_relative_ms": 28.899999856948853,
+        "wasm_initialized_relative_ms": 32.200000047683716
+      },
+      "proof": {
+        "n": 52,
+        "k": 13,
+        "samples": 1,
+        "prove_ms": 416,
+        "verify_ms": 300,
+        "proof_bytes": 21781,
+        "statement_bytes": 5969,
+        "bundle_bytes": 27750,
+        "outer_call_ms": 1631.1999998092651
+      },
+      "resources": [
+        {
+          "name": "html",
+          "url": "http://127.0.0.1:33063/network_benchmark.html?label=chrome-cache-disabled-loopback-30&network_session=4ddc26e1-dee4-4117-bcdf-2c695e7e9927",
+          "initiator_type": "navigation",
+          "transfer_size": 5278,
+          "encoded_body_size": 4978,
+          "decoded_body_size": 4978,
+          "duration_ms": 25.700000047683716
+        },
+        {
+          "name": "javascript",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm.js?network_session=4ddc26e1-dee4-4117-bcdf-2c695e7e9927",
+          "initiator_type": "script",
+          "transfer_size": 14899,
+          "encoded_body_size": 14599,
+          "decoded_body_size": 14599,
+          "duration_ms": 1.4000000953674316
+        },
+        {
+          "name": "wasm",
+          "url": "http://127.0.0.1:33063/pkg-web/client_wasm_bg.wasm",
+          "initiator_type": "fetch",
+          "transfer_size": 243942,
+          "encoded_body_size": 243642,
+          "decoded_body_size": 243642,
+          "duration_ms": 1.5999999046325684
+        }
+      ],
+      "server_observations": [
+        {
+          "request_id": "5ccde41b-7398-4db1-bca3-971b06d5a33c",
+          "path": "/network_benchmark.html",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "bytes_sent": 4978,
+          "observed_at": "2026-09-23T20:30:03.186Z"
+        },
+        {
+          "request_id": "a7119ed3-2e29-446b-9a7c-5dff4f8a4519",
+          "path": "/pkg-web/client_wasm.js",
+          "method": "GET",
+          "status": 200,
+          "content_type": "text/javascript; charset=utf-8",
+          "bytes_sent": 14599,
+          "observed_at": "2026-09-23T20:30:03.211Z"
+        },
+        {
+          "request_id": "863b046f-b077-4ab3-8bd4-7582c4177514",
+          "path": "/pkg-web/client_wasm_bg.wasm",
+          "method": "GET",
+          "status": 200,
+          "content_type": "application/wasm",
+          "bytes_sent": 243642,
+          "observed_at": "2026-09-23T20:30:03.215Z"
+        }
+      ],
+      "run_index": 30
+    }
+  ]
+}

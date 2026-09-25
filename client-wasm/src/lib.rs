@@ -178,6 +178,67 @@ pub struct ReconstructionMetrics {
     bundle_bytes: usize,
 }
 
+/// A verified reconstruction bundle prepared for a binary network upload.
+#[wasm_bindgen]
+#[derive(Debug, Clone)]
+pub struct ReconstructionUploadPayload {
+    n: usize,
+    k: usize,
+    reconstruction_epoch: u64,
+    prove_ms: f64,
+    verify_ms: f64,
+    proof_bytes: usize,
+    statement_bytes: usize,
+    bundle: Vec<u8>,
+}
+
+#[wasm_bindgen]
+impl ReconstructionUploadPayload {
+    #[wasm_bindgen(getter)]
+    pub fn n(&self) -> usize {
+        self.n
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn k(&self) -> usize {
+        self.k
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn reconstruction_epoch(&self) -> u64 {
+        self.reconstruction_epoch
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn prove_ms(&self) -> f64 {
+        self.prove_ms
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn verify_ms(&self) -> f64 {
+        self.verify_ms
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn proof_bytes(&self) -> usize {
+        self.proof_bytes
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn statement_bytes(&self) -> usize {
+        self.statement_bytes
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn bundle_bytes(&self) -> usize {
+        self.bundle.len()
+    }
+
+    pub fn bytes(&self) -> Vec<u8> {
+        self.bundle.clone()
+    }
+}
+
 #[wasm_bindgen]
 impl ReconstructionMetrics {
     #[wasm_bindgen(getter)]
@@ -301,6 +362,58 @@ pub fn run_reconstruction_benchmark(
     })
 }
 
+/// Generate, verify, encode, decode, and re-verify one upload bundle.
+///
+/// The returned object exposes the canonical Borsh bytes without first
+/// reducing them to CSV metrics. This lets a browser benchmark upload the
+/// exact wire bundle that a verifier would receive.
+#[wasm_bindgen]
+pub fn reconstruction_upload_payload(
+    n: usize,
+    k: usize,
+    reconstruction_epoch: u64,
+) -> Result<ReconstructionUploadPayload, JsValue> {
+    if reconstruction_epoch == 0 {
+        return Err(JsValue::from_str("reconstruction epoch must be nonzero"));
+    }
+    let fixture = fixture(n, k)?;
+    let prove_start = wasm_now_ms();
+    let package = prove(&fixture, reconstruction_epoch)?;
+    let prove_ms = wasm_now_ms() - prove_start;
+
+    let verify_start = wasm_now_ms();
+    verify(&package)?;
+    let verify_ms = wasm_now_ms() - verify_start;
+
+    let (proof_bytes, statement_bytes, bundle) = bundle_bytes(&package)?;
+    let decoded = BrowserReconstructionV3Bundle::try_from_slice(&bundle)
+        .map_err(|err| JsValue::from_str(&err.to_string()))?;
+    decoded
+        .verify()
+        .map_err(|err| JsValue::from_str(&err.to_string()))?;
+
+    Ok(ReconstructionUploadPayload {
+        n,
+        k,
+        reconstruction_epoch,
+        prove_ms,
+        verify_ms,
+        proof_bytes: proof_bytes.len(),
+        statement_bytes: statement_bytes.len(),
+        bundle,
+    })
+}
+
+/// Verify a canonical browser bundle from a host or test runner.
+#[wasm_bindgen]
+pub fn verify_reconstruction_bundle(bundle: Vec<u8>) -> Result<(), JsValue> {
+    let decoded = BrowserReconstructionV3Bundle::try_from_slice(&bundle)
+        .map_err(|err| JsValue::from_str(&err.to_string()))?;
+    decoded
+        .verify()
+        .map_err(|err| JsValue::from_str(&err.to_string()))
+}
+
 /// Return the benchmark grid as CSV. This gives the paper reproducibility
 /// script one deterministic wire output on any JavaScript host.
 #[wasm_bindgen]
@@ -348,6 +461,18 @@ mod tests {
         assert!(metrics.prove_ms > 0.0);
         assert!(metrics.verify_ms > 0.0);
         assert!(metrics.bundle_bytes > metrics.proof_bytes);
+    }
+
+    #[test]
+    fn reconstruction_upload_payload_is_verifiable_wire_bytes() {
+        let payload = reconstruction_upload_payload(4, 1, 17).unwrap();
+        assert_eq!(payload.n(), 4);
+        assert_eq!(payload.k(), 1);
+        assert_eq!(payload.reconstruction_epoch(), 17);
+        assert!(payload.bundle_bytes() > 0);
+        assert!(payload.prove_ms() > 0.0);
+        assert!(payload.verify_ms() > 0.0);
+        verify_reconstruction_bundle(payload.bytes()).unwrap();
     }
 
     #[cfg(target_arch = "wasm32")]

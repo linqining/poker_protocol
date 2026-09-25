@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reconstruction HTTP Cache Benchmark</title>
+</head>
+<body>
+<main>
+  <h1>Reconstruction HTTP cache benchmark</h1>
+  <p id="status">Loading WebAssembly</p>
+</main>
+<script type="module">
+function cookie(name) {
+  return document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))?.[1] ?? "";
+}
+const parameters = new URLSearchParams(location.search);
+const isSafari = /safari/i.test(navigator.userAgent) && !/chrome|chromium|edg/i.test(navigator.userAgent);
+const label = (parameters.get("label") || cookie("poker_network_label") || (isSafari ? "safari-http-cache" : "chrome-http-cache"))
+  .replace(/[^\w.-]+/g, "-")
+  .slice(0, 48);
+const networkSession = (parameters.get("network_session") || crypto.randomUUID())
+  .replace(/[^\w-]+/g, "");
+document.cookie = `poker_network_session=${networkSession}; path=/; SameSite=Strict`;
+const startedAt = new Date().toISOString();
+const scriptStart = performance.now();
+const status = document.getElementById("status");
+
+function number(value) {
+  return Number.isFinite(value) ? value : 0;
+}
+
+function resourceName(url) {
+  const pathname = new URL(url).pathname;
+  if (pathname.endsWith("http_cache_benchmark.html")) return "html";
+  if (pathname.endsWith("client_wasm.js")) return "javascript";
+  if (pathname.endsWith("client_wasm_bg.wasm")) return "wasm";
+  return pathname;
+}
+
+async function run() {
+  const module = await import("./pkg-web/client_wasm.js");
+  const importedAt = performance.now();
+  await module.default();
+  const initializedAt = performance.now();
+  const payload = module.reconstruction_upload_payload(52, 13, 17n);
+  const generationStart = performance.now();
+  const bytes = payload.bytes();
+  const uploadStart = performance.now();
+  const uploadResponse = await fetch(`/proof-upload?network_session=${networkSession}`, {
+    method: "POST",
+    headers: {"content-type": "application/octet-stream"},
+    body: bytes,
+  });
+  const serverResult = await uploadResponse.json();
+  const uploadEnd = performance.now();
+  if (!uploadResponse.ok || !serverResult.accepted) {
+    throw new Error(serverResult.error ?? `proof upload failed with HTTP ${uploadResponse.status}`);
+  }
+  const uploadResource = performance.getEntriesByType("resource")
+    .find(entry => new URL(entry.name).pathname === "/proof-upload");
+  const navigation = performance.getEntriesByType("navigation")[0];
+  const resources = performance.getEntriesByType("resource")
+    .filter(entry => ["html", "javascript", "wasm"].includes(resourceName(entry.name)))
+    .map(entry => ({
+      name: resourceName(entry.name),
+      url: entry.name,
+      initiator_type: entry.initiatorType,
+      transfer_size: number(entry.transferSize),
+      encoded_body_size: number(entry.encodedBodySize),
+      decoded_body_size: number(entry.decodedBodySize),
+      duration_ms: number(entry.duration),
+    }));
+  resources.unshift({
+    name: "html",
+    url: location.href,
+    initiator_type: "navigation",
+    transfer_size: number(navigation?.transferSize),
+    encoded_body_size: number(navigation?.encodedBodySize),
+    decoded_body_size: number(navigation?.decodedBodySize),
+    duration_ms: number(navigation?.duration),
+  });
+  if (!resources.some(entry => entry.name === "wasm")) throw new Error("WASM resource timing entry is missing");
+  const result = {
+    schema_version: 1,
+    kind: "http-cache-reuse-upload-single-run",
+    label,
+    network_session: networkSession,
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    environment: {
+      href: location.href,
+      user_agent: navigator.userAgent,
+      platform: navigator.platform,
+      ua_platform: navigator.userAgentData?.platform ?? null,
+      ua_mobile: navigator.userAgentData?.mobile ?? null,
+      hardware_concurrency: navigator.hardwareConcurrency ?? null,
+      device_memory_gb: navigator.deviceMemory ?? null,
+      protocol: navigation?.nextHopProtocol ?? "",
+      effective_connection_type: navigator.connection?.effectiveType ?? null,
+      service_worker: false,
+      http_cache_reuse: true,
+    },
+    navigation: {
+      time_origin: performance.timeOrigin,
+      response_start_ms: number(navigation?.responseStart),
+      response_end_ms: number(navigation?.responseEnd),
+      dom_content_loaded_ms: number(navigation?.domContentLoadedEventEnd),
+      load_event_end_ms: number(navigation?.loadEventEnd),
+      transfer_size: number(navigation?.transferSize),
+      encoded_body_size: number(navigation?.encodedBodySize),
+      decoded_body_size: number(navigation?.decodedBodySize),
+    },
+    initialization: {
+      script_start_relative_ms: scriptStart,
+      module_import_relative_ms: importedAt,
+      wasm_initialized_relative_ms: initializedAt,
+    },
+    proof: {
+      n: payload.n,
+      k: payload.k,
+      samples: 1,
+      prove_ms: payload.prove_ms,
+      verify_ms: payload.verify_ms,
+      proof_bytes: payload.proof_bytes,
+      statement_bytes: payload.statement_bytes,
+      bundle_bytes: payload.bundle_bytes,
+      outer_call_ms: performance.now() - generationStart,
+    },
+    upload: {
+      request_bytes: bytes.byteLength,
+      upload_wall_ms: uploadEnd - uploadStart,
+      resource_transfer_size: number(uploadResource?.transferSize),
+      resource_encoded_body_size: number(uploadResource?.encodedBodySize),
+      resource_duration_ms: number(uploadResource?.duration),
+      server_accepted: serverResult.accepted === true,
+      server_received_bytes: serverResult.received_bytes,
+      server_sha256: serverResult.sha256,
+      server_verified: serverResult.verified === true,
+    },
+    resources,
+  };
+  const response = await fetch("/network-results", {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify(result),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  status.textContent = `Saved ${await response.text()}`;
+}
+
+run().catch(error => {
+  status.textContent = `Failed: ${error?.message ?? error}`;
+  status.style.color = "#a4262c";
+});
+</script>
+</body>
+</html>

@@ -39,7 +39,10 @@ pub struct PlayerEncryptedCard {
 }
 
 impl PlayerEncryptedCard {
-    pub(crate) fn get_owner_residual_carrier(&self, user_pk: PublicKey) -> Option<ElGamalCiphertext> {
+    pub(crate) fn get_owner_residual_carrier(
+        &self,
+        user_pk: PublicKey,
+    ) -> Option<ElGamalCiphertext> {
         if self.reveal_state.pending_players.contains(&user_pk)
             && self.reveal_state.pending_players.len() == 1
         {

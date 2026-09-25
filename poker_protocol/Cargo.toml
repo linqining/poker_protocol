@@ -11,6 +11,8 @@ default = ["stark-curve"]
 # 2026-09-10：Stark 是唯一世界——依赖不再 optional、模块不再 cfg 门控，
 # feature 仅保留名称以兼容旧引用。
 stark-curve = [
+    "borsh",
+    "dep:borsh",
     "poker-protocol-core/stark-backend",
     "poker-protocol-core/borsh",
     "poker-protocol-proofs/borsh",

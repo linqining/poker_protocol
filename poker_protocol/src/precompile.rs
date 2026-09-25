@@ -16,6 +16,7 @@ use poker_protocol_abi::{
     ReconstructionVerifyRequest, ShuffleProofSystem, ShuffleVerifier, ShuffleVerifyRequest,
     TranscriptId,
 };
+use poker_protocol_core::Bn254Curve;
 
 pub fn build_bls12381_shuffle_request(
     context: &[u8],
@@ -249,8 +250,8 @@ impl std::fmt::Display for NativePrecompileError {
 
 impl std::error::Error for NativePrecompileError {}
 
-fn encode_ciphertexts(
-    ciphertexts: &[ElGamalCiphertextGeneric<DefaultCurve>],
+fn encode_ciphertexts<C: Curve>(
+    ciphertexts: &[ElGamalCiphertextGeneric<C>],
 ) -> Vec<EncodedCiphertext> {
     ciphertexts
         .iter()
@@ -259,6 +260,40 @@ fn encode_ciphertexts(
             c2: ciphertext.c2.compress().as_ref().to_vec(),
         })
         .collect()
+}
+
+pub fn build_bn254_reconstruction_request(
+    context: &[u8],
+    call_context: &[u8],
+    statement: &ReconstructionStatement<Bn254Curve>,
+    proof: &ReconstructProof<Bn254Curve>,
+) -> Result<ReconstructionVerifyRequest, NativePrecompileError> {
+    statement
+        .validate()
+        .map_err(|_| NativePrecompileError::VerificationFailed)?;
+    let request = ReconstructionVerifyRequest {
+        curve: CurveId::Bn254G1,
+        proof_system: ReconstructionProofSystem::BayerGrothSlotOr,
+        transcript: TranscriptId::FiatShamirSha3,
+        context: context.to_vec(),
+        call_context: call_context.to_vec(),
+        statement_version: statement.version,
+        context_digest: statement.context_digest,
+        reconstruction_epoch: statement.reconstruction_epoch,
+        prior_state_digest: statement.prior_state_digest,
+        aggregate_pk: statement.aggregate_pk.compress().as_ref().to_vec(),
+        owner_pk: statement.owner_pk.compress().as_ref().to_vec(),
+        cards: statement
+            .cards
+            .iter()
+            .map(|card| card.compress().as_ref().to_vec())
+            .collect(),
+        residual_carriers: encode_ciphertexts(&statement.residual_carriers),
+        contributions: encode_ciphertexts(&statement.contributions),
+        proof: borsh::to_vec(proof).map_err(|_| NativePrecompileError::InvalidProofEncoding)?,
+    };
+    request.validate()?;
+    Ok(request)
 }
 
 fn decode_ciphertexts(
@@ -275,6 +310,62 @@ fn decode_ciphertexts(
         .collect()
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct NativeBn254ReconstructionVerifier;
+
+impl ReconstructionVerifier for NativeBn254ReconstructionVerifier {
+    type Error = NativePrecompileError;
+
+    fn verify(&self, request: &ReconstructionVerifyRequest) -> Result<(), Self::Error> {
+        request.validate()?;
+        if request.curve != CurveId::Bn254G1 {
+            return Err(NativePrecompileError::UnsupportedCurve);
+        }
+        if request.proof_system != ReconstructionProofSystem::BayerGrothSlotOr {
+            return Err(NativePrecompileError::UnsupportedProofSystem);
+        }
+
+        let decode_point = |encoded: &[u8]| {
+            <<Bn254Curve as Curve>::Point as CurvePoint>::from_compressed(encoded)
+                .ok_or(NativePrecompileError::InvalidPointEncoding)
+        };
+        let decode_ciphertexts = |ciphertexts: &[EncodedCiphertext]| {
+            ciphertexts
+                .iter()
+                .map(|ciphertext| {
+                    Ok(ElGamalCiphertextGeneric {
+                        c1: decode_point(&ciphertext.c1)?,
+                        c2: decode_point(&ciphertext.c2)?,
+                    })
+                })
+                .collect::<Result<Vec<_>, NativePrecompileError>>()
+        };
+        let statement = ReconstructionStatement::<Bn254Curve> {
+            version: request.statement_version,
+            context_digest: request.context_digest,
+            reconstruction_epoch: request.reconstruction_epoch,
+            prior_state_digest: request.prior_state_digest,
+            aggregate_pk: decode_point(&request.aggregate_pk)?,
+            owner_pk: decode_point(&request.owner_pk)?,
+            cards: request
+                .cards
+                .iter()
+                .map(|card| decode_point(card))
+                .collect::<Result<Vec<_>, _>>()?,
+            residual_carriers: decode_ciphertexts(&request.residual_carriers)?,
+            contributions: decode_ciphertexts(&request.contributions)?,
+        };
+        statement
+            .validate()
+            .map_err(|_| NativePrecompileError::VerificationFailed)?;
+        let proof = ReconstructProof::<Bn254Curve>::try_from_slice(&request.proof)
+            .map_err(|_| NativePrecompileError::InvalidProofEncoding)?;
+        proof
+            .verify(&statement, &mut FiatShamirTranscript::new(&request.context))
+            .map_err(|_| NativePrecompileError::VerificationFailed)
+    }
+}
+
 fn decode_point(encoded: &[u8]) -> Result<<DefaultCurve as Curve>::Point, NativePrecompileError> {
     <<DefaultCurve as Curve>::Point as CurvePoint>::from_compressed(encoded)
         .ok_or(NativePrecompileError::InvalidPointEncoding)
@@ -284,6 +375,7 @@ fn decode_point(encoded: &[u8]) -> Result<<DefaultCurve as Curve>::Point, Native
 mod tests {
     use super::*;
     use crate::crypto::curve::CurveScalar;
+    use crate::zk_shuffle::reconstruction::RECONSTRUCTION_PROOF_LABEL;
     use poker_protocol_abi::RISTRETTO_AIR_DECK_SIZE;
     use rand_core::OsRng;
 
@@ -502,5 +594,58 @@ mod tests {
         let mut changed = decoded;
         changed.contributions[0].c2[0] ^= 1;
         assert!(NativeReconstructionVerifier.verify(&changed).is_err());
+    }
+
+    #[test]
+    fn abi_roundtrip_matches_native_bn254_reconstruction_verification() {
+        let cards = (0..4)
+            .map(|index| {
+                Bn254Curve::hash_to_curve(format!("bn254-precompile/card/{index}").as_bytes())
+            })
+            .collect::<Vec<_>>();
+        let owner_sk = <Bn254Curve as Curve>::Scalar::random(&mut OsRng);
+        let other_sk = <Bn254Curve as Curve>::Scalar::random(&mut OsRng);
+        let aggregate_sk = owner_sk + other_sk;
+        let owner_pk = Bn254Curve::base_g() * owner_sk;
+        let aggregate_pk = Bn254Curve::base_g() * aggregate_sk;
+        let residual_carriers = vec![ElGamalCiphertextGeneric::<Bn254Curve>::encrypt(
+            &cards[1],
+            &owner_pk,
+            &<Bn254Curve as Curve>::Scalar::from_u64(9001),
+        )];
+
+        let mut prove_transcript = FiatShamirTranscript::new(RECONSTRUCTION_PROOF_LABEL);
+        let (statement, proof) = ReconstructProof::<Bn254Curve>::prove(
+            [13; 32],
+            19,
+            [17; 32],
+            cards,
+            residual_carriers,
+            &owner_sk,
+            &owner_pk,
+            &aggregate_pk,
+            &mut OsRng,
+            &mut prove_transcript,
+        )
+        .unwrap();
+
+        let request = build_bn254_reconstruction_request(
+            RECONSTRUCTION_PROOF_LABEL,
+            b"table=1/hand=4/call=5/seat=2/state=11",
+            &statement,
+            &proof,
+        )
+        .unwrap();
+        let encoded = request.encode().unwrap();
+        let decoded = ReconstructionVerifyRequest::decode(&encoded).unwrap();
+        NativeBn254ReconstructionVerifier.verify(&decoded).unwrap();
+
+        let mut changed = decoded.clone();
+        changed.reconstruction_epoch += 1;
+        assert!(NativeBn254ReconstructionVerifier.verify(&changed).is_err());
+
+        let mut changed = decoded;
+        changed.contributions[0].c2[0] ^= 1;
+        assert!(NativeBn254ReconstructionVerifier.verify(&changed).is_err());
     }
 }

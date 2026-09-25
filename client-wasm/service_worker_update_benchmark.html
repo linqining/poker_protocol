@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Service Worker Update Benchmark</title>
+</head>
+<body>
+<main>
+  <h1>Service worker update benchmark</h1>
+  <p id="status">Installing version 1</p>
+</main>
+<script type="module">
+const parameters = new URLSearchParams(location.search);
+const label = (parameters.get("label") ?? "service-worker-update").replace(/[^\w.-]+/g, "-").slice(0, 48);
+const networkSession = (parameters.get("network_session") ?? "").replace(/[^\w-]+/g, "");
+const cacheName = `poker-reconstruction-update-${networkSession}`;
+const scope = `/update/${networkSession}/`;
+const scriptUrl = `/service_worker_cache.js?cache_name=${encodeURIComponent(cacheName)}`;
+const status = document.getElementById("status");
+const startedAt = new Date().toISOString();
+const originStart = performance.now();
+
+function setByteVersion(version) {
+  document.cookie = `poker_sw_update_version=${version}; path=/; SameSite=Strict`;
+}
+
+function controllerChanged() {
+  if (!navigator.serviceWorker.controller) return Promise.resolve();
+  return new Promise(resolve => {
+    navigator.serviceWorker.addEventListener("controllerchange", resolve, {once: true});
+  });
+}
+
+async function controllerReady(timeoutMs = 5000) {
+  const started = performance.now();
+  if (navigator.serviceWorker.controller) return 0;
+  await Promise.race([
+    new Promise(resolve => {
+      navigator.serviceWorker.addEventListener("controllerchange", resolve, {once: true});
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("controller takeover timed out")), timeoutMs)),
+  ]);
+  if (!navigator.serviceWorker.controller) throw new Error("controllerchange fired without a controller");
+  return performance.now() - started;
+}
+
+async function controllerActivated(timeoutMs = 5000) {
+  const worker = navigator.serviceWorker.controller;
+  if (!worker) throw new Error("no controller is available for activation");
+  const started = performance.now();
+  if (worker.state === "activated") return 0;
+  await Promise.race([
+    new Promise((resolve, reject) => {
+      const listener = () => {
+        if (worker.state !== "activated") return;
+        worker.removeEventListener("statechange", listener);
+        resolve();
+      };
+      worker.addEventListener("statechange", listener);
+      setTimeout(() => {
+        worker.removeEventListener("statechange", listener);
+        reject(new Error("controller activation timed out"));
+      }, timeoutMs);
+    }),
+  ]);
+  return performance.now() - started;
+}
+
+async function serviceWorkerVersion(timeoutMs = 5000) {
+  const worker = navigator.serviceWorker.controller;
+  if (!worker) throw new Error("no controller is available for version query");
+  const started = performance.now();
+  return Promise.race([
+    new Promise(resolve => {
+      const listener = event => {
+        if (event.data?.type !== "POKER_SERVICE_WORKER_VERSION") return;
+        navigator.serviceWorker.removeEventListener("message", listener);
+        resolve({version: event.data.version, query_ms: performance.now() - started});
+      };
+      navigator.serviceWorker.addEventListener("message", listener);
+      worker.postMessage({type: "POKER_SERVICE_WORKER_VERSION"});
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("version query timed out")), timeoutMs)),
+  ]);
+}
+
+async function inspectCache() {
+  const cache = await caches.open(cacheName);
+  const expected = [
+    ["/upload_benchmark.html", "html"],
+    ["/pkg-web/client_wasm.js", "javascript"],
+    ["/pkg-web/client_wasm_bg.wasm", "wasm"],
+  ];
+  const entries = [];
+  for (const [path, name] of expected) {
+    const response = await cache.match(path, {ignoreSearch: true});
+    if (!response?.ok) throw new Error(`cache miss: ${path}`);
+    const bytes = await response.clone().arrayBuffer();
+    entries.push({name, path, response_bytes: bytes.byteLength, ok: true});
+  }
+  return entries;
+}
+
+async function run() {
+  setByteVersion(1);
+  const initialRegisterStart = performance.now();
+  const registration = await navigator.serviceWorker.register(scriptUrl, {scope});
+  await navigator.serviceWorker.ready;
+  const initialControllerMs = await controllerReady();
+  const initialVersion = await serviceWorkerVersion();
+  if (initialVersion.version !== 1) {
+    throw new Error(`expected initial byte version 1, received ${initialVersion.version}`);
+  }
+  const initialCache = await inspectCache();
+  const initialReadyEnd = performance.now();
+
+  status.textContent = "Requesting version 2";
+  setByteVersion(2);
+  const updateStart = performance.now();
+  const controllerChange = controllerChanged();
+  await registration.update();
+  await controllerChange;
+  const updatedActivationMs = await controllerActivated();
+  const updatedVersion = await serviceWorkerVersion();
+  if (updatedVersion.version !== 2) {
+    throw new Error(`expected updated byte version 2, received ${updatedVersion.version}`);
+  }
+  const updatedCache = await inspectCache();
+  const updateEnd = performance.now();
+
+  const result = {
+    schema_version: 1,
+    kind: "service-worker-update-single-run",
+    label,
+    network_session: networkSession,
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    environment: {
+      href: location.href,
+      user_agent: navigator.userAgent,
+      platform: navigator.platform,
+      ua_platform: navigator.userAgentData?.platform ?? null,
+      ua_mobile: navigator.userAgentData?.mobile ?? null,
+      hardware_concurrency: navigator.hardwareConcurrency ?? null,
+      device_memory_gb: navigator.deviceMemory ?? null,
+      protocol: performance.getEntriesByType("navigation")[0]?.nextHopProtocol ?? "",
+      effective_connection_type: navigator.connection?.effectiveType ?? null,
+      service_worker: true,
+    },
+    service_worker: {
+      scope: registration.scope,
+      script_url: scriptUrl,
+      cache_name: cacheName,
+      initial_byte_version: initialVersion.version,
+      updated_byte_version: updatedVersion.version,
+      controller_script_url: navigator.serviceWorker.controller?.scriptURL ?? null,
+      controlled: navigator.serviceWorker.controller !== null,
+      state: navigator.serviceWorker.controller?.state ?? registration.active?.state ?? "unknown",
+    },
+    initialization: {
+      initial_register_ms: initialReadyEnd - initialRegisterStart,
+      initial_version_query_ms: initialVersion.query_ms,
+      initial_controller_ms: initialControllerMs,
+      update_call_ms: updateEnd - updateStart,
+      updated_activation_ms: updatedActivationMs,
+      updated_version_query_ms: updatedVersion.query_ms,
+      total_ms: performance.now() - originStart,
+    },
+    initial_cache_entries: initialCache,
+    updated_cache_entries: updatedCache,
+  };
+  if (!result.service_worker.controlled) {
+    throw new Error("updated service worker is not controlling the page");
+  }
+
+  const response = await fetch("/service-worker-update-results", {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify(result),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  status.textContent = `Saved ${await response.text()}`;
+  await registration.unregister();
+  await caches.delete(cacheName);
+}
+
+run().catch(error => {
+  status.textContent = `Failed: ${error?.message ?? error}`;
+  status.style.color = "#a4262c";
+});
+</script>
+</body>
+</html>

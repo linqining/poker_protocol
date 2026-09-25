@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "baseline": "circom-groth16-multislot-exact-coverage",
+  "circuit": "paper/baselines/circom_multislot_relation.circom",
+  "circom_version": "circom compiler 2.2.3",
+  "snarkjs_version": "0.7.5",
+  "curve": "bn128",
+  "setup": "local throwaway Powers of Tau contribution; performance-only, not a production ceremony",
+  "parameters": {
+    "n": 52,
+    "k": 13
+  },
+  "constraints": 2197,
+  "wires": 846,
+  "proof_bytes": 807,
+  "public_signal_bytes": 1657,
+  "compile_ms": 82.092375,
+  "phase2_preparation_ms": 23557.541875,
+  "groth16_setup_ms": 1053.491458,
+  "witness_ms": 65.425459,
+  "prove_ms": 282.917042,
+  "verify_ms": 222.300458,
+  "input_scope": {
+    "cards": "public identifiers 1..52",
+    "contributions": "zero for retained slots and -card for 13 selected removal slots",
+    "selected_slots_zero_based": [
+      2,
+      5,
+      11,
+      17,
+      19,
+      23,
+      29,
+      31,
+      37,
+      41,
+      43,
+      47,
+      50
+    ],
+    "private_witness": [
+      "13 carrier card values",
+      "52 branch bits",
+      "13x52 one-hot carrier map"
+    ]
+  },
+  "modeled_semantics": [
+    "per-slot contribution belongs to {0, -card_i}",
+    "each carrier maps to exactly one canonical slot",
+    "each negative slot is covered by exactly one carrier",
+    "carrier-to-slot map and branch bits are private"
+  ],
+  "unsupported_semantics": [
+    "curve ElGamal ciphertext arithmetic and residual decryption",
+    "cross-key group equations and owner-secret knowledge",
+    "hidden permutation and Bayer-Groth shuffle soundness",
+    "authenticated state binding and reconstruction epochs",
+    "ciphertext rerandomization and dropout protocol composition"
+  ],
+  "commands": {
+    "compile": "circom 2.2.3 --r1cs --wasm --sym",
+    "setup": "snarkjs powersoftau new/contribute/prepare phase2; groth16 setup; zkey contribute",
+    "prove": "snarkjs wtns calculate + groth16 prove",
+    "verify": "snarkjs groth16 verify"
+  }
+}

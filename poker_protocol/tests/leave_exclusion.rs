@@ -7,7 +7,7 @@
 use poker_protocol::crypto::curve::{Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric};
 use poker_protocol::crypto::{DefaultCurve, EcPoint};
 use poker_protocol::z_poker::protocol::ClientPlayer;
-use poker_protocol::zk_shuffle::transcript_ext::{CryptoTranscript, PoseidonFeltTranscript};
+use poker_protocol::zk_shuffle::transcript_ext::PoseidonFeltTranscript;
 use rand_core::OsRng;
 
 type Ct = ElGamalCiphertextGeneric<DefaultCurve>;
@@ -37,14 +37,23 @@ fn leave_excludes_own_hole_slots() {
 
     // 排除槽：原样保留（sk·c1 不泄露）
     for &i in &[3usize, 17] {
-        assert_eq!(round.output_cards[i].c1, round.input_cards[i].c1, "c1 unchanged at hole slot {i}");
-        assert_eq!(round.output_cards[i].c2, round.input_cards[i].c2, "c2 unchanged at hole slot {i}");
+        assert_eq!(
+            round.output_cards[i].c1, round.input_cards[i].c1,
+            "c1 unchanged at hole slot {i}"
+        );
+        assert_eq!(
+            round.output_cards[i].c2, round.input_cards[i].c2,
+            "c2 unchanged at hole slot {i}"
+        );
     }
     // 其余槽：已剥层（c2 改变，且差值 = sk·c1 公开可算）
     let mut stripped = 0;
     for i in 0..52 {
         if ![3, 17].contains(&i) {
-            assert_ne!(round.output_cards[i].c2, round.input_cards[i].c2, "slot {i} must be stripped");
+            assert_ne!(
+                round.output_cards[i].c2, round.input_cards[i].c2,
+                "slot {i} must be stripped"
+            );
             stripped += 1;
         }
     }
@@ -60,17 +69,26 @@ fn leave_exclusion_dleq_verifies_over_subdeck() {
 
     // 验证方：切片 + 同 transcript 验证（与 texas leave_player_with_proof 同构）
     let excluded = [0usize, 1];
-    let sub_input: Vec<Ct> = round.input_cards.iter().enumerate()
+    let sub_input: Vec<Ct> = round
+        .input_cards
+        .iter()
+        .enumerate()
         .filter(|(i, _)| !excluded.contains(i))
         .map(|(_, ct)| ct.clone())
         .collect();
-    let sub_output: Vec<Ct> = round.output_cards.iter().enumerate()
+    let sub_output: Vec<Ct> = round
+        .output_cards
+        .iter()
+        .enumerate()
         .filter(|(i, _)| !excluded.contains(i))
         .map(|(_, ct)| ct.clone())
         .collect();
-    let mut transcript = PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
+    let mut transcript =
+        PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
     assert!(
-        round.leave_proof.verify(&sub_input, &sub_output, &leaver.pk, &mut transcript),
+        round
+            .leave_proof
+            .verify(&sub_input, &sub_output, &leaver.pk, &mut transcript),
         "DLEq over the stripped subdeck must verify"
     );
 }
@@ -93,7 +111,10 @@ fn leave_exclusion_anti_reveal_invariant() {
     // 对照：剥层槽的差值非零（token 公开——这是 leave 的语义本身）
     let stripped_in = round.input_cards[6].clone();
     let stripped_out = round.output_cards[6].clone();
-    assert!(stripped_in.c2 - stripped_out.c2 != zero, "stripped slot does expose the token (by design)");
+    assert!(
+        stripped_in.c2 - stripped_out.c2 != zero,
+        "stripped slot does expose the token (by design)"
+    );
 
     // 且被剥层槽在「已知全部 sk 的聚合视角」下仍解出正确明文（协议正确性）
     // ——用 encrypt 时的同一 pk 退化验证：c2 − (c2−out) = out 对应明文层剥离。
@@ -107,13 +128,22 @@ fn leave_without_exclusions_still_works_and_full_deck_leaks() {
     let (deck, _) = deck_with_hole(8, &[]);
     let leaver = ClientPlayer::new();
     let round = leaver.leave_game(&deck);
-    let mut transcript = PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
+    let mut transcript =
+        PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
     assert!(
-        round.leave_proof.verify(&round.input_cards, &round.output_cards, &leaver.pk, &mut transcript),
+        round.leave_proof.verify(
+            &round.input_cards,
+            &round.output_cards,
+            &leaver.pk,
+            &mut transcript
+        ),
         "legacy full-strip leave must still verify (service-side rejects it when hole slots exist)"
     );
     for i in 0..8 {
-        assert_ne!(round.output_cards[i].c2, round.input_cards[i].c2, "full strip changes every card");
+        assert_ne!(
+            round.output_cards[i].c2, round.input_cards[i].c2,
+            "full strip changes every card"
+        );
     }
 }
 
@@ -126,9 +156,15 @@ fn tampered_excluded_slot_rejected_by_subdeck_dleq() {
     let round = leaver.leave_game_with_exclusions(&deck, &[2]);
 
     // 若验证方错误地把全部牌送进 DLEq（不排除），必须验证失败。
-    let mut transcript = PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
+    let mut transcript =
+        PoseidonFeltTranscript::new_domain(poker_protocol::transcript_domains::LEAVE_POSEIDON_V2);
     assert!(
-        !round.leave_proof.verify(&round.input_cards, &round.output_cards, &leaver.pk, &mut transcript),
+        !round.leave_proof.verify(
+            &round.input_cards,
+            &round.output_cards,
+            &leaver.pk,
+            &mut transcript
+        ),
         "DLEq must NOT verify when the un-stripped excluded slot is mixed in"
     );
 }

@@ -1,5 +1,5 @@
 use crate::crypto::{
-    encrypt_batch, DefaultCurve, EcPoint, ElGamalCiphertext, Plaintext, Scalar, base_g, N_CARDS,
+    base_g, encrypt_batch, DefaultCurve, EcPoint, ElGamalCiphertext, Plaintext, Scalar, N_CARDS,
 };
 use crate::z_poker::convert::hex_to_ecpoint;
 use crate::zk_shuffle::error::VerificationError;
@@ -130,7 +130,9 @@ impl MentalPokerGame {
             match e {
                 crate::z_poker::key_manager::KeyManagerError::PlayerAlreadyRegistered => {}
                 other => {
-                    tracing::error!("register_player: key registration failed: {other} (pk_hex={pk_hex})");
+                    tracing::error!(
+                        "register_player: key registration failed: {other} (pk_hex={pk_hex})"
+                    );
                 }
             }
         }
@@ -213,7 +215,8 @@ impl MentalPokerGame {
             return Err(VerificationError::PlayerNotFound);
         }
 
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
         if !round.verify(&self.key_manager.get_aggregated_pk(), &mut transcript) {
             return Err(VerificationError::ProofVerificationFailed);
         }
@@ -324,7 +327,10 @@ impl MentalPokerGame {
             .collect::<Vec<_>>();
         // 公共牌总数硬上限（德扑 = 5）。超出的部分截断（而非报错），保证
         // 双重推进等异常路径不会产生多于 5 张的公共牌。
-        let remaining = self.config.community_cards.saturating_sub(self.community_cards_encrypted.len());
+        let remaining = self
+            .config
+            .community_cards
+            .saturating_sub(self.community_cards_encrypted.len());
         let n = n.min(remaining);
         if n == 0 {
             tracing::warn!(
@@ -464,29 +470,33 @@ impl MentalPokerGame {
                     user_public_key: token.proof.user_public_key,
                 });
                 card.reveal_state.pending_players.retain(|p| *p != pk_point);
-                    if card.reveal_state.pending_players.is_empty() {
-                        let plain_text = card.encrypted_card.c2
-                            - card
-                                .reveal_state
-                                .reveal_tokens
-                                .iter()
-                                .map(|t| t.reveal_token)
-                                .sum::<EcPoint>();
-                        let playing_card =
-                            Self::plaintext_to_playingcard_static(&self.deck_plaintext, &plain_text);
-                        if playing_card.is_none() {
-                            // 诊断：物化失败 = 解密明文不在规范域（deck 不变量破坏）
-                            tracing::error!(
-                                "[submit_reveal_token] card {} materialize FAILED: plain={:?} c1={:?}",
-                                card.card_index,
-                                hex::encode(plain_text.compress().as_ref()).get(..24).unwrap_or(""),
-                                hex::encode(card.encrypted_card.c1.compress().as_ref()).get(..24).unwrap_or("")
-                            );
-                            // 诊断增强：区分"token 集合错误"与"牌组公钥错配"。
-                            // tokens 数应等于注册玩家数；逐 token 打印提交者 pk
-                            // 前缀，配合服务端 [REVEAL-TOKEN] 提交日志定位谁的
-                            // 份额与注册 pk 不符。
-                            tracing::error!(
+                if card.reveal_state.pending_players.is_empty() {
+                    let plain_text = card.encrypted_card.c2
+                        - card
+                            .reveal_state
+                            .reveal_tokens
+                            .iter()
+                            .map(|t| t.reveal_token)
+                            .sum::<EcPoint>();
+                    let playing_card =
+                        Self::plaintext_to_playingcard_static(&self.deck_plaintext, &plain_text);
+                    if playing_card.is_none() {
+                        // 诊断：物化失败 = 解密明文不在规范域（deck 不变量破坏）
+                        tracing::error!(
+                            "[submit_reveal_token] card {} materialize FAILED: plain={:?} c1={:?}",
+                            card.card_index,
+                            hex::encode(plain_text.compress().as_ref())
+                                .get(..24)
+                                .unwrap_or(""),
+                            hex::encode(card.encrypted_card.c1.compress().as_ref())
+                                .get(..24)
+                                .unwrap_or("")
+                        );
+                        // 诊断增强：区分"token 集合错误"与"牌组公钥错配"。
+                        // tokens 数应等于注册玩家数；逐 token 打印提交者 pk
+                        // 前缀，配合服务端 [REVEAL-TOKEN] 提交日志定位谁的
+                        // 份额与注册 pk 不符。
+                        tracing::error!(
                                 "[submit_reveal_token] card {} tokens={} registered_players={} token_pks={:?}",
                                 card.card_index,
                                 card.reveal_state.reveal_tokens.len(),
@@ -497,9 +507,9 @@ impl MentalPokerGame {
                                     .map(|t| hex::encode(t.user_public_key.compress().as_ref()).get(..12).unwrap_or("").to_string())
                                     .collect::<Vec<_>>()
                             );
-                        }
-                        card.playing_card = playing_card;
                     }
+                    card.playing_card = playing_card;
+                }
             }
         }
         Ok(())
@@ -525,7 +535,9 @@ impl MentalPokerGame {
                 &token.encrypted_card,
                 &token.reveal_token,
                 &token.user_public_key,
-                &mut PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON),
+                &mut PoseidonFeltTranscript::new_domain(
+                    crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
+                ),
             )
             .map(|_| true)
             .map_err(|_| VerificationError::ProofVerificationFailed)
@@ -570,7 +582,9 @@ impl MentalPokerGame {
                 &token.encrypted_card,
                 &token.reveal_token,
                 &token.user_public_key,
-                &mut PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON),
+                &mut PoseidonFeltTranscript::new_domain(
+                    crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
+                ),
             )
             .map(|_| true)
             .map_err(|_| VerificationError::ProofVerificationFailed)
@@ -712,7 +726,7 @@ impl MentalPokerGame {
             .get(player_pk)
             .ok_or(VerificationError::EntryNotFound)?;
 
-        let claimed_pk = base_g() *  sk;
+        let claimed_pk = base_g() * sk;
         if claimed_pk != player.pk {
             return Err(VerificationError::EntryNotFound);
         }
@@ -737,7 +751,9 @@ impl MentalPokerGame {
 
         let agg_pk = self.key_manager.get_aggregated_pk();
         let mut rng = OsRng;
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::FORCE_SHUFFLE_POSEIDON_V1);
+        let mut transcript = PoseidonFeltTranscript::new_domain(
+            crate::transcript_domains::FORCE_SHUFFLE_POSEIDON_V1,
+        );
 
         // 代理洗牌：置换由本地 CSPRNG 生成（被代理玩家已离场/受托，
         // 无用户置换可传；玩家本人的洗牌必须走客户端传入置换的路径）。
@@ -745,7 +761,9 @@ impl MentalPokerGame {
             ShuffleRound::execute_random(&self.deck_encrypted, &agg_pk, &mut transcript, &mut rng)
                 .map_err(|_| VerificationError::ProofVerificationFailed)?;
 
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::FORCE_SHUFFLE_POSEIDON_V1);
+        let mut transcript = PoseidonFeltTranscript::new_domain(
+            crate::transcript_domains::FORCE_SHUFFLE_POSEIDON_V1,
+        );
         if !round.verify(&agg_pk, &mut transcript) {
             return Err(VerificationError::ProofVerificationFailed);
         }
@@ -778,7 +796,8 @@ impl MentalPokerGame {
 
         let player_card = hand[card_index].clone();
         let reveal_token = player_card.encrypted_card.gen_reveal_token(&sk);
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &sk,
             &player.pk,
@@ -815,7 +834,8 @@ impl MentalPokerGame {
         let ct_for_self =
             ElGamalCiphertext::encrypt(&comm_plaintext, &player.pk, &Scalar::random(&mut OsRng));
         let reveal_token = ct_for_self.gen_reveal_token(&sk);
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &sk,
             &player.pk,
@@ -1080,7 +1100,9 @@ impl MentalPokerGame {
                     let sk = &self.entrusted_sk[pk];
                     let pk_val = &self.players[pk].pk;
                     let reveal_token = card_ct.gen_reveal_token(sk);
-                    let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+                    let mut transcript = PoseidonFeltTranscript::new_domain(
+                        crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
+                    );
                     let proof = RevealTokenProof::<DefaultCurve>::prove(
                         sk,
                         pk_val,
@@ -1164,7 +1186,8 @@ mod tests {
         let encrypted_card = ElGamalCiphertext::encrypt(&pt, &player.pk, &r);
         let reveal_token = encrypted_card.gen_reveal_token(&player.sk);
 
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         let proof = RevealTokenProof::<DefaultCurve>::prove(
             &player.sk,
             &player.pk,

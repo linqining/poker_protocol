@@ -4,6 +4,8 @@
 //! `DefaultCurve = StarkCurve`（Cairo 原生 EC_OP 结算路线）。
 
 pub mod crypto;
+pub mod reconstruction_policy;
+pub mod reconstruction_settlement;
 pub mod z_poker;
 pub mod zk_shuffle;
 
@@ -16,6 +18,7 @@ pub mod transcript_domains {
 pub use poker_protocol_core::poseidon_bytes_digest;
 pub use poker_protocol_core::poseidon_points_commitment;
 
+pub mod bn254_reconstruction_bundle;
 /// BN254 direct-sigma settlement route: canonical card derivation and curve
 /// re-exports (docs/design/DUAL_PROOF_PROTOCOL.md). Curve-independent of protocol
 /// features — the sigma proofs themselves live in poker-protocol-proofs.

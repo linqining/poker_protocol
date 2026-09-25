@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "wire_format": "PSTX",
+  "wire_version": 1,
+  "curve": "StarkCurve",
+  "signature_scheme": "StarkSchnorr",
+  "message_domain": "poker.settlement.tx.v1",
+  "deployment": {
+    "chain_id": "test-chain-42",
+    "contract_address": "0xpstxcontract",
+    "adapter_version": "pstx-adapter-v1",
+    "digest_hex": "06f794050c4ae9f3e8595445a38829403d545eb7efa44ea7d764c9fe51ae6aab"
+  },
+  "transaction": {
+    "nonce": 42,
+    "gas_limit": "196000",
+    "public_key_hex": "82a7fe26deaa8ccaa56d78e73717d7424839e74934e50043bca1f33c7886826b",
+    "signature_hex": "04dad1e8b5b893b5cac4b596542aad86adad7f9447ded20d77bc2285b0d3675e0416ed46ba156f2d4353eb252ea3e82d6584151b829567bd0293a80054f453f7"
+  },
+  "proposal": {
+    "reconstruction_epoch": 11,
+    "finalized_at": 100,
+    "missed_submitters": [
+      "carol"
+    ],
+    "settlements": [
+      {
+        "submitter": "alice",
+        "submitted": true,
+        "locked_deposit": "100",
+        "penalty": "0",
+        "refund": "100",
+        "compensation": "15",
+        "net_release": "115"
+      },
+      {
+        "submitter": "bob",
+        "submitted": true,
+        "locked_deposit": "100",
+        "penalty": "0",
+        "refund": "100",
+        "compensation": "15",
+        "net_release": "115"
+      },
+      {
+        "submitter": "carol",
+        "submitted": false,
+        "locked_deposit": "100",
+        "penalty": "30",
+        "refund": "70",
+        "compensation": "0",
+        "net_release": "70"
+      }
+    ],
+    "burned_penalty_remainder": "0"
+  },
+  "transaction_hash_hex": "05d05f4ea9918adedb43e3d392402eca70bbd262dfa90b06d52ab730c10e4a58",
+  "wire_byte_length": 474,
+  "wire_bytes_hex": "505354580106f794050c4ae9f3e8595445a38829403d545eb7efa44ea7d764c9fe51ae6aab000000000000002a0000000000000000000000000002fda082a7fe26deaa8ccaa56d78e73717d7424839e74934e50043bca1f33c7886826b000000000000000b000000000000006400000001000000056361726f6c0000000300000005616c696365010000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000f0000000000000000000000000000007300000003626f62010000000000000000000000000000006400000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000f00000000000000000000000000000073000000056361726f6c00000000000000000000000000000000640000000000000000000000000000001e0000000000000000000000000000004600000000000000000000000000000000000000000000000000000000000000460000000000000000000000000000000004dad1e8b5b893b5cac4b596542aad86adad7f9447ded20d77bc2285b0d3675e0416ed46ba156f2d4353eb252ea3e82d6584151b829567bd0293a80054f453f7",
+  "wire_sha256": "3a0e19dae92689efa23857b910b01e29ac174890ef897f17f08b1492bb5e2eb9",
+  "scope": "PSTX v1 adapter compatibility known-answer vector; not a public chain standard"
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "service-worker-update-aggregate",
+  "artifact_form": "summary-and-per-run-invariants",
+  "label": "chrome-service-worker-update-30",
+  "run_count": 30,
+  "environment": {
+    "href": "http://127.0.0.1:39086/update/36a09c31-e634-432a-b520-f570e4931a0e/?label=chrome-service-worker-update-30&network_session=36a09c31-e634-432a-b520-f570e4931a0e",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "platform": "MacIntel",
+    "ua_platform": "macOS",
+    "ua_mobile": false,
+    "hardware_concurrency": 12,
+    "device_memory_gb": 32,
+    "protocol": "",
+    "effective_connection_type": "4g",
+    "service_worker": true
+  },
+  "collection": {
+    "protocol": "Chrome DevTools Protocol",
+    "browser_executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "browser_version": "Chrome/153.0.8010.53",
+    "user_agent_version": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "headless": true,
+    "cache_disabled": true,
+    "browser_cache_cleared_before_each_run": true,
+    "service_worker_enabled": true,
+    "service_worker_bypassed": false,
+    "service_worker_warm_before_measured_runs": false,
+    "service_worker_update_unique_scope_and_cache_per_run": true,
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "proof_upload_verified": false,
+    "scope": "same-URL service-worker update from byte version 1 to byte-different version 2 in a unique scope; both generations install HTML/JavaScript/WASM, the new worker activates and controls the page, and browser HTTP cache is disabled; not browser HTTP-cache behavior, TLS, LAN, or Internet",
+    "node": "v24.4.1",
+    "recorded_at": "2026-09-24T17:25:44.380Z"
+  },
+  "summary": {
+    "initial_register_ms": {"median": 49.299999952316284, "mean": 52.65666667620341, "sample_stddev": 16.39953077121119, "p95": 71, "min": 38, "max": 122.70000004768372},
+    "initial_version_query_ms": {"median": 0.2999999523162842, "mean": 1.2766666809717815, "sample_stddev": 2.1301907684851615, "p95": 5.5, "min": 0.19999980926513672, "max": 8.700000047683716},
+    "update_call_ms": {"median": 1015.9000000953674, "mean": 1070.6166666905085, "sample_stddev": 278.07053071017884, "p95": 1091.2999999523163, "min": 1011.6000001430511, "max": 2540.7999999523163},
+    "updated_activation_ms": {"median": 1001.5, "mean": 1001.6466666698456, "sample_stddev": 1.4747842293699378, "p95": 1004.3999998569489, "min": 998, "max": 1005.4000000953674},
+    "updated_version_query_ms": {"median": 0.40000009536743164, "mean": 0.5266666650772095, "sample_stddev": 0.3777733064427369, "p95": 1.2000000476837158, "min": 0.20000004768371582, "max": 2.1000001430511475},
+    "total_ms": {"median": 1066.2000000476837, "mean": 1123.753333322207, "sample_stddev": 291.5857095490458, "p95": 1149, "min": 1051, "max": 2664.0999999046326},
+    "initial_cached_bytes_total": {"median": 273188, "mean": 273188, "sample_stddev": 0, "p95": 273188, "min": 273188, "max": 273188},
+    "updated_cached_bytes_total": {"median": 273188, "mean": 273188, "sample_stddev": 0, "p95": 273188, "min": 273188, "max": 273188},
+    "server_bytes_total": {"median": 557084, "mean": 557084, "sample_stddev": 0, "p95": 557084, "min": 557084, "max": 557084},
+    "server_observation_count": {"median": 9, "mean": 9, "sample_stddev": 0, "p95": 9, "min": 9, "max": 9}
+  },
+  "per_run_invariants": {
+    "run_count": 30,
+    "all_controlled_activated_version_1_to_2": true,
+    "all_unique_scopes": true,
+    "all_unique_cache_names": true,
+    "all_unique_script_urls": true,
+    "all_initial_cache_bytes_273188": true,
+    "all_updated_cache_bytes_273188": true,
+    "all_server_bytes_557084": true,
+    "all_server_observation_count_nine": true,
+    "all_worker_versions_1_and_2": true
+  }
+}

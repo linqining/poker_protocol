@@ -25,8 +25,10 @@ mod borsh_impl;
 /// 字节布局见 `borsh_impl` 模块文档——32B 压缩点 + 32B 大端标量）。
 #[cfg(feature = "borsh")]
 pub use borsh_impl::{
-    read_stark_point, read_stark_scalar, write_stark_point, write_stark_scalar,
-    STARK_POINT_COMPRESSED_LEN, STARK_SCALAR_LEN,
+    read_bn254_point, read_bn254_scalar, read_stark_point, read_stark_scalar,
+    write_bn254_point, write_bn254_scalar, write_stark_point, write_stark_scalar,
+    BN254_POINT_COMPRESSED_LEN, BN254_SCALAR_LEN, STARK_POINT_COMPRESSED_LEN,
+    STARK_SCALAR_LEN,
 };
 
 pub use backend::{

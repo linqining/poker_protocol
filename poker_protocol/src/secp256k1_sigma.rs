@@ -8,7 +8,7 @@
 //! side embeds the same 52 points as
 //! immutable constants — no on-chain hash-to-curve is needed.
 
-use poker_protocol_core::{Secp256k1Curve, Curve, CurvePoint};
+use poker_protocol_core::{Curve, CurvePoint, Secp256k1Curve};
 
 /// Deck size for the SECP256K1 sigma epoch (standard 52-card deck).
 pub const SECP256K1_TEXAS_DECK_SIZE: usize = 52;
@@ -35,7 +35,9 @@ pub fn canonical_card_bytes(index: usize) -> Option<[u8; 33]> {
 
 /// The full canonical card table in deck order.
 pub fn canonical_deck() -> Vec<<Secp256k1Curve as Curve>::Point> {
-    (0..SECP256K1_TEXAS_DECK_SIZE).map(|i| canonical_card(i).expect("index < deck size")).collect()
+    (0..SECP256K1_TEXAS_DECK_SIZE)
+        .map(|i| canonical_card(i).expect("index < deck size"))
+        .collect()
 }
 
 fn card_label(index: usize) -> String {
@@ -64,7 +66,11 @@ mod tests {
             );
         }
         let mut distinct = deck.clone();
-        distinct.sort_by_key(|p| <Secp256k1Curve as Curve>::Point::compress(p).as_ref().to_vec());
+        distinct.sort_by_key(|p| {
+            <Secp256k1Curve as Curve>::Point::compress(p)
+                .as_ref()
+                .to_vec()
+        });
         let n = distinct.len();
         distinct.dedup();
         assert_eq!(distinct.len(), n, "all 52 card points must be distinct");

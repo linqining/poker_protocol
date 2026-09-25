@@ -28,6 +28,8 @@ pub mod versioned;
 
 #[cfg(feature = "borsh")]
 mod borsh_impl;
+#[cfg(feature = "borsh")]
+mod bn254_reconstruction_borsh;
 
 pub use poker_protocol_core::{Challenge, CryptoTranscript, VerificationError};
 pub use shuffle_proof::*;

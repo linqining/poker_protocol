@@ -9,5 +9,7 @@ mod proof;
 
 #[cfg(feature = "borsh")]
 mod borsh_impl;
+#[cfg(feature = "borsh")]
+mod bn254_borsh;
 
 pub use proof::{BayerGrothShuffleProof, MultiExponentiationArgument, ProductArgument};

@@ -1,0 +1,120 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-tests:
+    name: Rust workspace tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain
+        uses: actions-rust-lang/rust-toolchain@v1
+        with:
+          toolchain: nightly-2026-04-15
+          components: rustfmt,clippy
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+      - name: Run locked workspace tests
+        run: cargo test --workspace --locked
+
+  wasm-tests:
+    name: WASM Node tests and release builds
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Rust toolchain
+        uses: actions-rust-lang/rust-toolchain@v1
+        with:
+          toolchain: nightly-2026-04-15
+          components: rustfmt,clippy
+          target: wasm32-unknown-unknown
+      - name: Cache Cargo artifacts
+        uses: Swatinem/rust-cache@v2
+      - name: Install wasm-pack
+        run: cargo install wasm-pack --locked --version 0.15.0
+      - name: Run Node-target release tests
+        run: wasm-pack test --node --release
+        working-directory: client-wasm
+      - name: Build the web release target
+        run: wasm-pack build --target web --release --out-dir pkg-web --out-name client_wasm
+        working-directory: client-wasm
+      - name: Build the Node release target
+        run: wasm-pack build --target nodejs --release --out-dir pkg-node --out-name client_wasm
+        working-directory: client-wasm
+
+  committed-artifacts:
+    name: Committed artifact checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.4.1
+      - name: Check JavaScript and TypeScript module syntax
+        run: |
+          node --check client-wasm/service_worker_cache.js
+          find scripts client-wasm -type f -name '*.mjs' -print0 \
+            | xargs -0 -n1 node --check
+      - name: Validate committed hashes and benchmark schemas
+        run: node scripts/verify_reproduction.mjs --committed
+      - name: Validate all committed network baselines
+        run: |
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_cache_disabled_loopback_30_20260924.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_loopback_upload_30_20260924.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_cold_service_worker_install_30_20260924.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_service_worker_loopback_upload_30_20260924.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_service_worker_update_30_20260925.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_http_cache_reuse_30_20260925.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_safari_http_cache_reuse_30_20260925.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_http_current_loopback_upload_30_20260924.json
+          node scripts/verify_reproduction.mjs --network paper/experiments/network_chrome_tls_loopback_upload_30_20260924.json
+      - name: Validate Rust--Lean refinement fixtures
+        run: node scripts/verify_refinement_vector.mjs
+      - name: Validate PSTX adapter known-answer vector
+        run: node scripts/verify_pstx_kat.mjs
+      - name: Check Python and JSON syntax
+        run: |
+          python3 -m py_compile build_paper_docx.py
+          python3 -m json.tool paper/experiments/benchmark_metadata.json >/dev/null
+          python3 -m json.tool paper/submission_metadata.json >/dev/null
+
+  lean-and-zero-sorry:
+    name: Lean build and zero-sorry audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Elan
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Cache Lean and Lake artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            poker_protocol_lean/.lake
+            ~/.elan/toolchains
+          key: lean-v4.32.0-${{ runner.os }}-${{ hashFiles('poker_protocol_lean/lake-manifest.json') }}
+          restore-keys: lean-v4.32.0-${{ runner.os }}-
+      - name: Build the checked Lean library
+        run: lake build PokerProtocolLean
+        working-directory: poker_protocol_lean
+      - name: Audit for sorry and admit placeholders
+        run: bash scripts/count_sorries.sh
+        working-directory: poker_protocol_lean

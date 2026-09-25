@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cold Service Worker Benchmark</title>
+</head>
+<body>
+<main>
+  <h1>Cold service worker benchmark</h1>
+  <p id="status">Starting cold installation</p>
+</main>
+<script type="module">
+const parameters = new URLSearchParams(location.search);
+const label = (parameters.get("label") ?? "cold-service-worker").replace(/[^\w.-]+/g, "-").slice(0, 48);
+const networkSession = (parameters.get("network_session") ?? "").replace(/[^\w-]+/g, "");
+const cacheName = `poker-reconstruction-cold-${networkSession}`;
+const scope = `/cold/${networkSession}/`;
+const scriptUrl = `/service_worker_cache.js?cache_name=${encodeURIComponent(cacheName)}`;
+const status = document.getElementById("status");
+const startedAt = new Date().toISOString();
+const originStart = performance.now();
+
+function setStatus(message, isError = false) {
+  status.textContent = message;
+  status.style.color = isError ? "#a4262c" : "";
+  document.title = isError ? `Cold SW failed: ${message}` : message;
+}
+
+function elapsed(from) {
+  return performance.now() - from;
+}
+
+async function controllerReady() {
+  if (navigator.serviceWorker.controller) return 0;
+  const started = performance.now();
+  await new Promise(resolve => {
+    navigator.serviceWorker.addEventListener("controllerchange", resolve, {once: true});
+  });
+  return performance.now() - started;
+}
+
+async function inspectCache() {
+  const cache = await caches.open(cacheName);
+  const expected = [
+    ["/upload_benchmark.html", "html"],
+    ["/pkg-web/client_wasm.js", "javascript"],
+    ["/pkg-web/client_wasm_bg.wasm", "wasm"],
+  ];
+  const entries = [];
+  for (const [path, name] of expected) {
+    const response = await cache.match(path, {ignoreSearch: true});
+    if (!response?.ok) throw new Error(`cache miss after install: ${path}`);
+    const bytes = await response.clone().arrayBuffer();
+    entries.push({name, path, response_bytes: bytes.byteLength, ok: true});
+  }
+  const keys = await cache.keys();
+  if (keys.length !== expected.length) {
+    throw new Error(`unexpected cache entry count: ${keys.length}`);
+  }
+  return entries;
+}
+
+async function run() {
+  setStatus("Registering service worker");
+  const registerStart = performance.now();
+  const registration = await Promise.race([
+    navigator.serviceWorker.register(scriptUrl, {scope}),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("service-worker registration timed out")), 10000)),
+  ]);
+  const registerEnd = performance.now();
+  const ready = await navigator.serviceWorker.ready;
+  const readyEnd = performance.now();
+  setStatus("Waiting for controller");
+  const controllerMs = await controllerReady();
+  const cacheEntries = await inspectCache();
+  setStatus("Saving result");
+  const result = {
+    schema_version: 1,
+    kind: "cold-service-worker-install-single-run",
+    label,
+    network_session: networkSession,
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    environment: {
+      href: location.href,
+      user_agent: navigator.userAgent,
+      platform: navigator.platform,
+      ua_platform: navigator.userAgentData?.platform ?? null,
+      ua_mobile: navigator.userAgentData?.mobile ?? null,
+      hardware_concurrency: navigator.hardwareConcurrency ?? null,
+      device_memory_gb: navigator.deviceMemory ?? null,
+      protocol: performance.getEntriesByType("navigation")[0]?.nextHopProtocol ?? "",
+      effective_connection_type: navigator.connection?.effectiveType ?? null,
+      service_worker: true,
+    },
+    service_worker: {
+      scope: registration.scope,
+      script_url: registration.active?.scriptURL ?? scriptUrl,
+      cache_name: cacheName,
+      controller_script_url: navigator.serviceWorker.controller?.scriptURL ?? null,
+      controlled: navigator.serviceWorker.controller !== null,
+      state: ready.active?.state ?? "unknown",
+    },
+    initialization: {
+      register_ms: registerEnd - registerStart,
+      ready_ms: readyEnd - registerStart,
+      controller_ms: controllerMs,
+      total_ms: performance.now() - originStart,
+    },
+    cache_entries: cacheEntries,
+  };
+  if (!result.service_worker.controlled || result.service_worker.state !== "activated") {
+    throw new Error("service worker did not activate and control the cold page");
+  }
+  const response = await fetch("/service-worker-results", {
+    method: "POST",
+    headers: {"content-type": "application/json"},
+    body: JSON.stringify(result),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  status.textContent = `Saved ${await response.text()}`;
+
+  // Keep the measured cache alive until its bytes have been reported; cleanup
+  // then prevents cross-run cache reuse.
+  await registration.unregister();
+  await caches.delete(cacheName);
+}
+
+run().catch(error => {
+  setStatus(`Failed: ${error?.message ?? error}`, true);
+});
+</script>
+</body>
+</html>

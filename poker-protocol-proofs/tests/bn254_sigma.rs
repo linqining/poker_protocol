@@ -6,12 +6,11 @@
 //! (§4.2): the same statements and challenge schedules must be replayed by
 //! the Cairo verifier, so any semantic drift shows up here first.
 
-use poker_protocol_core::{
-    Bn254Curve, Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric,
-};
+use poker_protocol_core::{Bn254Curve, Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric};
 use poker_protocol_proofs::bayer_groth::BayerGrothShuffleProof;
 use poker_protocol_proofs::dleq_proof::{DLEqProof, LeaveKind, RemaskKind};
 use poker_protocol_proofs::pk_ownership::PKOwnershipProof;
+use poker_protocol_proofs::reconstruction::ReconstructProof;
 use poker_protocol_proofs::reveal_token_proof::RevealTokenProof;
 use poker_protocol_proofs::transcript_ext::FiatShamirTranscript;
 use poker_protocol_proofs::CryptoTranscript;
@@ -30,17 +29,76 @@ fn random_scalar(rng: &mut (impl CryptoRng + RngCore)) -> BnScalar {
     <Bn as Curve>::Scalar::random(rng)
 }
 
-fn encrypt_deck(
-    deck: &[BnPoint],
-    pk: &BnPoint,
-    rng: &mut (impl CryptoRng + RngCore),
-) -> Vec<BnCt> {
+fn encrypt_deck(deck: &[BnPoint], pk: &BnPoint, rng: &mut (impl CryptoRng + RngCore)) -> Vec<BnCt> {
     deck.iter()
         .map(|card| {
             let r = random_scalar(rng);
             BnCt::encrypt(card, pk, &r)
         })
         .collect()
+}
+
+#[test]
+fn bn254_reconstruction_roundtrip_semantics_and_rejection() {
+    const N: usize = 8;
+    const SELECTED: [usize; 2] = [1, 5];
+
+    let cards: Vec<BnPoint> = (0..N)
+        .map(|i| Bn::hash_to_curve(format!("texas_poker_bn254/reconstruction/{i}").as_bytes()))
+        .collect();
+    let owner_sk = random_scalar(&mut rand_core::OsRng);
+    let other_sk = random_scalar(&mut rand_core::OsRng);
+    let aggregate_sk = owner_sk + other_sk;
+    let owner_pk = Bn::base_g() * owner_sk;
+    let aggregate_pk = Bn::base_g() * aggregate_sk;
+
+    let residual_carriers: Vec<BnCt> = SELECTED
+        .iter()
+        .enumerate()
+        .map(|(j, &card_index)| {
+            let randomness = <BnScalar as CurveScalar>::from_u64(1_000 + j as u64);
+            BnCt::encrypt(&cards[card_index], &owner_pk, &randomness)
+        })
+        .collect();
+
+    let mut prove_transcript = transcript("bn254_reconstruction_v3");
+    let (statement, proof) = ReconstructProof::<Bn>::prove(
+        [7u8; 32],
+        11,
+        [9u8; 32],
+        cards.clone(),
+        residual_carriers,
+        &owner_sk,
+        &owner_pk,
+        &aggregate_pk,
+        &mut rand_core::OsRng,
+        &mut prove_transcript,
+    )
+    .expect("BN254 reconstruction proof");
+
+    let mut verify_transcript = transcript("bn254_reconstruction_v3");
+    proof
+        .verify(&statement, &mut verify_transcript)
+        .expect("honest BN254 reconstruction proof verifies");
+
+    for (index, contribution) in statement.contributions.iter().enumerate() {
+        let plaintext = contribution.decrypt(&aggregate_sk);
+        if SELECTED.contains(&index) {
+            assert_eq!(plaintext, BnPoint::identity() - statement.cards[index]);
+        } else {
+            assert!(plaintext.is_identity());
+        }
+    }
+
+    let mut tampered_proof = proof.clone();
+    tampered_proof.negative_contributions[0].c2 += Bn::base_g();
+    let mut tampered_transcript = transcript("bn254_reconstruction_v3");
+    assert!(tampered_proof
+        .verify(&statement, &mut tampered_transcript)
+        .is_err());
+
+    let mut wrong_domain = transcript("bn254_reconstruction_v4");
+    assert!(proof.verify(&statement, &mut wrong_domain).is_err());
 }
 
 #[test]
@@ -53,8 +111,10 @@ fn bn254_pk_ownership_roundtrip_and_rejection() {
 
     // Zero secret key must be rejected at prove time.
     let zero = BnScalar::zero();
-    assert!(PKOwnershipProof::<Bn>::try_prove(&zero, &BnPoint::identity(), &mut rand_core::OsRng)
-        .is_err());
+    assert!(
+        PKOwnershipProof::<Bn>::try_prove(&zero, &BnPoint::identity(), &mut rand_core::OsRng)
+            .is_err()
+    );
 }
 
 #[test]
@@ -67,7 +127,9 @@ fn bn254_bg_shuffle_roundtrip_and_tamper_rejection() {
     let input = encrypt_deck(&deck, &pk, &mut rand_core::OsRng);
 
     let permutation = [3usize, 0, 7, 5, 1, 6, 2, 4];
-    let rerandomizers: Vec<BnScalar> = (0..deck.len()).map(|_| random_scalar(&mut rand_core::OsRng)).collect();
+    let rerandomizers: Vec<BnScalar> = (0..deck.len())
+        .map(|_| random_scalar(&mut rand_core::OsRng))
+        .collect();
     let output: Vec<BnCt> = permutation
         .iter()
         .enumerate()
@@ -95,11 +157,15 @@ fn bn254_bg_shuffle_roundtrip_and_tamper_rejection() {
     let mut tampered = output.clone();
     tampered[0] = input[0].re_encrypt(&pk, &random_scalar(&mut rand_core::OsRng));
     let mut tamper_transcript = transcript("bn254_bg_shuffle_v3");
-    assert!(proof.verify(&input, &tampered, &pk, &mut tamper_transcript).is_err());
+    assert!(proof
+        .verify(&input, &tampered, &pk, &mut tamper_transcript)
+        .is_err());
 
     // A different transcript domain must not verify (cross-protocol binding).
     let mut wrong_domain = transcript("bn254_bg_shuffle_v4");
-    assert!(proof.verify(&input, &output, &pk, &mut wrong_domain).is_err());
+    assert!(proof
+        .verify(&input, &output, &pk, &mut wrong_domain)
+        .is_err());
 }
 
 #[test]
@@ -116,7 +182,9 @@ fn bn254_bg_shuffle_full_deck_52() {
         // Deterministic full-cycle permutation (rotate by 17, coprime with 52).
         (0..52).map(|i| (i * 17 + 3) % 52).collect()
     };
-    let rerandomizers: Vec<BnScalar> = (0..52).map(|_| random_scalar(&mut rand_core::OsRng)).collect();
+    let rerandomizers: Vec<BnScalar> = (0..52)
+        .map(|_| random_scalar(&mut rand_core::OsRng))
+        .collect();
     let output: Vec<BnCt> = permutation
         .iter()
         .enumerate()
@@ -160,13 +228,7 @@ fn bn254_fold_leave_dleq_roundtrip_and_tamper_rejection() {
         .collect();
 
     let mut prove_transcript = transcript("bn254_fold_leave_v3");
-    let proof = DLEqProof::<Bn, LeaveKind>::prove(
-        &input,
-        &output,
-        &sk,
-        &pk,
-        &mut prove_transcript,
-    );
+    let proof = DLEqProof::<Bn, LeaveKind>::prove(&input, &output, &sk, &pk, &mut prove_transcript);
     let mut verify_transcript = transcript("bn254_fold_leave_v3");
     assert!(proof.verify(&input, &output, &pk, &mut verify_transcript));
 
@@ -182,7 +244,12 @@ fn bn254_fold_leave_dleq_roundtrip_and_tamper_rejection() {
         &mut remask_prove,
     );
     let mut remask_verify = transcript("bn254_remask_v3");
-    assert!(remask_proof.verify(&input, &remasked, &(Bn::base_g() * &sk2), &mut remask_verify));
+    assert!(remask_proof.verify(
+        &input,
+        &remasked,
+        &(Bn::base_g() * &sk2),
+        &mut remask_verify
+    ));
 
     // Cross-kind forgery: a remask proof must not validate a leave transition.
     let mut cross = transcript("bn254_remask_v3");
@@ -217,12 +284,16 @@ fn bn254_reveal_tokens_roundtrip_and_wrong_key_rejection() {
             &mut prove_transcript,
         );
         let mut verify_transcript = transcript("bn254_reveal_token_v3");
-        proof.verify(ct, &token, &pk, &mut verify_transcript).expect("honest token verifies");
+        proof
+            .verify(ct, &token, &pk, &mut verify_transcript)
+            .expect("honest token verifies");
 
         // Wrong key binding must be rejected.
         let wrong_pk = Bn::base_g() * random_scalar(&mut rand_core::OsRng);
         let mut wrong_key_verify = transcript("bn254_reveal_token_v3");
-        assert!(proof.verify(ct, &token, &wrong_pk, &mut wrong_key_verify).is_err());
+        assert!(proof
+            .verify(ct, &token, &wrong_pk, &mut wrong_key_verify)
+            .is_err());
 
         // A forged token must be rejected.
         let forged = ct.c1 * random_scalar(&mut rand_core::OsRng);
@@ -241,7 +312,9 @@ fn bn254_three_player_hand_end_to_end() {
         .map(|i| Bn::hash_to_curve(format!("texas_poker_bn254/card/{i}").as_bytes()))
         .collect();
 
-    let sks: Vec<BnScalar> = (0..3).map(|_| random_scalar(&mut rand_core::OsRng)).collect();
+    let sks: Vec<BnScalar> = (0..3)
+        .map(|_| random_scalar(&mut rand_core::OsRng))
+        .collect();
     let pks: Vec<BnPoint> = sks.iter().map(|sk| Bn::base_g() * sk).collect();
 
     // Ownership proofs for every seat.
@@ -251,7 +324,9 @@ fn bn254_three_player_hand_end_to_end() {
     }
 
     // Aggregate key: pk_A = sk_A * G summed over players (curve Add semantics).
-    let aggregate_pk = pks.iter().fold(<Bn as Curve>::Point::identity(), |acc, pk| acc + *pk);
+    let aggregate_pk = pks
+        .iter()
+        .fold(<Bn as Curve>::Point::identity(), |acc, pk| acc + *pk);
     let mut deck_cts = encrypt_deck(&deck, &aggregate_pk, &mut rand_core::OsRng);
 
     // Three sequential proven shuffles.
@@ -261,8 +336,9 @@ fn bn254_three_player_hand_end_to_end() {
         } else {
             (0..N).map(|i| (i + 3) % N).collect()
         };
-        let rerandomizers: Vec<BnScalar> =
-            (0..N).map(|_| random_scalar(&mut rand_core::OsRng)).collect();
+        let rerandomizers: Vec<BnScalar> = (0..N)
+            .map(|_| random_scalar(&mut rand_core::OsRng))
+            .collect();
         let output: Vec<BnCt> = permutation
             .iter()
             .enumerate()
@@ -297,13 +373,8 @@ fn bn254_three_player_hand_end_to_end() {
         })
         .collect();
     let mut fold_prove = transcript("bn254_fold_leave_v3");
-    let fold_proof = DLEqProof::<Bn, LeaveKind>::prove(
-        &deck_cts,
-        &folded,
-        &sks[1],
-        &pks[1],
-        &mut fold_prove,
-    );
+    let fold_proof =
+        DLEqProof::<Bn, LeaveKind>::prove(&deck_cts, &folded, &sks[1], &pks[1], &mut fold_prove);
     let mut fold_verify = transcript("bn254_fold_leave_v3");
     assert!(fold_proof.verify(&deck_cts, &folded, &pks[1], &mut fold_verify));
     deck_cts = folded;

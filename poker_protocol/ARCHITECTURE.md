@@ -7,7 +7,7 @@ Phase 1 separates protocol logic from the execution environment while keeping
 poker-protocol-abi          stable bytes / foreign-call interface
         ^
         |
-poker_protocol::precompile native reference adapter (BLS12-381)
+poker_protocol::precompile native reference adapters (BLS12-381, BN254 reconstruction)
 
 poker-protocol-core         curve traits, current curve backends, ElGamal,
         ^                   transcript interface, shared verification errors
@@ -51,10 +51,27 @@ texas / client-wasm
 | Card reveal | `RevealTokenProof` |
 | Reconstruction | `ReconstructProof` |
 | Hand replacement | `SwapOutCardProof` |
+| Reconstruction deadline accounting | `reconstruction_policy` |
+| Reconstruction settlement boundary, PSTX adapter envelope, and signed simulated transaction host | `reconstruction_settlement` |
+| BN254 reconstruction host bundle verifier | `bn254_reconstruction_bundle` |
 
-All entries above are defined in `poker-protocol-proofs`. The old
+All proof entries above are defined in `poker-protocol-proofs`; the pure
+deadline accounting and settlement-boundary modules live in the
+`poker_protocol` facade. The old
 `poker_protocol::zk_shuffle::<module>` paths remain source-compatible re-export
 paths for the product gateway and WASM clients during the migration.
+
+`reconstruction_settlement::SettlementTransactionRequest::encode/decode` is the
+versioned `PSTX` reference envelope for crossing a process or adapter boundary.
+The signed message and envelope bind a nonzero deployment digest, so a host
+configured for another adapter rejects the request before ledger admission.
+Production digests are derived by
+`settlement_deployment_digest_from_parts` with nonempty canonical chain,
+contract-address, and adapter-version parts; each part is length-prefixed to
+prevent ambiguous concatenation.
+Decoding derives the account from the compressed public key, rejects identity
+keys and noncanonical senders, and requires a valid Stark Schnorr signature. It
+is not a public chain standard or deployed contract ABI.
 
 ## M31 and BLS12-377
 
@@ -63,10 +80,10 @@ argument. The circuit records a `ShuffleVerifyRequest` foreign/precompile call.
 The host verifies the request using the `CurveId` selected by the request and
 returns the constrained result.
 
-The current native reference adapter accepts `CurveId::Bls12381G1`. The ABI
-already reserves `CurveId::Bls12377G1`; adding the BLS12-377 backend belongs in
-the precompile host/backend layer and does not require changing the STWO-facing
-request layout.
+The current native reference adapters accept `CurveId::Bls12381G1` shuffles and
+`CurveId::Bn254G1` reconstruction requests. The ABI already reserves
+`CurveId::Bls12377G1`; adding the BLS12-377 backend belongs in the precompile
+host/backend layer and does not require changing the STWO-facing request layout.
 
 This is a legacy compatibility boundary, not a host-zero cryptographic
 verifier: a STWO proof that only commits a native verifier receipt still trusts

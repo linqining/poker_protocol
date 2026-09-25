@@ -16,7 +16,7 @@
     "host": "Node.js/V8",
     "csv_sha256": "9d8f42966ae76cfc73308a25a20abf47998f7ef2a6b517b919643b14bf3285fa",
     "source_sha256": {
-      "client-wasm/src/lib.rs": "03530968cbdf030baea93b8c17e9a2e890d26698cfc39df0af9f59a60df28b9c",
+      "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b",
       "client-wasm/benchmark.mjs": "ad13f0b7a8474a57252b21e9519dfab93e4247dfc8820040db3d01f76a9583e4"
     }
   },
@@ -59,6 +59,289 @@
     "scope": "single-slot arithmetic selector relation only; excludes ElGamal, shuffle, cross-key proofs, authenticated state, and dropout composition",
     "toolchain": "Circom 2.2.3, snarkjs 0.7.5, BN128, local throwaway Powers of Tau"
   },
+  "multislot_baseline": {
+    "json": "paper/experiments/circom_multislot_baseline.json",
+    "json_sha256": "d98b288ad02612906871b7c834abd2d1648a1dafec9d427ed915441b368f316e",
+    "circuit": "paper/baselines/circom_multislot_relation.circom",
+    "circuit_sha256": "11ecbaa4879b2b1bbda6631fa213e5bc68b95d7bb1730079e8c48eab037799ba",
+    "runner": "scripts/run_circom_multislot_baseline.mjs",
+    "runner_sha256": "b89059ec57df5fb234630382597498cd700587c9589214616a8a8933fe71e581",
+    "command": "node scripts/run_circom_multislot_baseline.mjs paper/experiments/circom_multislot_baseline.json",
+    "parameters": {"n": 52, "k": 13},
+    "constraints": 2197,
+    "wires": 846,
+    "scope": "finite-domain multi-slot exact-coverage and slot-membership arithmetic; excludes curve ElGamal, cross-key group equations, Bayer-Groth, authenticated state, and protocol composition",
+    "toolchain": "Circom 2.2.3, snarkjs 0.7.5, BN128, local throwaway Powers of Tau"
+  },
+  "curve_level_baseline": {
+    "json": "paper/experiments/reconstruction_bn254_n52_k13_30.json",
+    "json_sha256": "492e80106fa99d1ae5adcef6dca15b645792f4b49490b8abd0fd55207ccc45e2",
+    "command": "cargo run -p poker-protocol-proofs --release --features borsh --example reconstruction_bn254_benchmark -- .repro/results/reconstruction_bn254_n52_k13_30_borsh.json 30 52 13 --locked",
+    "curve": "BN254 G1",
+    "transcript": "FiatShamirTranscript(SHA3)",
+    "shape": "n=52, k=13, 30 samples after one untimed warm-up",
+    "scope": "same curve-generic reconstruction relation with BN254 ElGamal, cross-key proofs, Bayer-Groth, slot OR proofs, exact coverage, and a measured BN254 Borsh v3 codec; not the production StarkCurve Poseidon/browser wire path",
+    "example": "poker-protocol-proofs/examples/reconstruction_bn254_benchmark.rs",
+    "example_sha256": "2d51c363b6b491346d871cfa4405bedd5fd2e3bba03f2cdd66131f333258394b",
+    "codec_module": "poker-protocol-proofs/src/bn254_reconstruction_borsh.rs",
+    "codec_module_sha256": "5f7436ccafa735dbd21a1d97e729239de14b28392ca42aa99cbe2ccd5bd97e26",
+    "core_borsh_module": "poker-protocol-core/src/borsh_impl.rs",
+    "core_borsh_module_sha256": "a82b3b13ce0011810b08088ccc76d483c8718ae70f1b4beee78ff7aabcfd9558",
+    "bg_borsh_module": "poker-protocol-bg/src/bn254_borsh.rs",
+    "bg_borsh_module_sha256": "dfbff279f0d59358c33915b18e5c5a2e0bb570dc342e5aff8570ca596b27442c",
+    "bundle_verifier_module": "poker_protocol/src/bn254_reconstruction_bundle.rs",
+    "bundle_verifier_module_sha256": "be042395936eea4174c1e54716ec692784f88876d1f81b63cde05fd3c1306103",
+    "test": "poker-protocol-proofs/tests/bn254_sigma.rs",
+    "test_sha256": "34c89bda932acbe49bee55b39dc845b4d6a0eb072945b037ed31f00e115727b7"
+  },
+  "statement_schema_refinement": {
+    "json": "paper/experiments/reconstruction_statement_schema_v3.json",
+    "json_sha256": "32c1c651c0608854f7d74a74fc2b21d83d895691841cd6b6a5a10752b0c42946",
+    "encoding": "ReconstructionStatement<StarkCurve> Borsh v3",
+    "byte_length": 1041,
+    "field_count": 11,
+    "scope": "full deterministic statement and seeded proof-instance wire schemas; proof bytes remain randomized across fresh runs",
+    "proof_schema": {
+      "schema_version": 1,
+      "byte_length": 3829,
+      "field_count": 7,
+      "nested_field_count": 30,
+      "sha256": "58f604b72c304954a978d6a8d61ed6f7844ae8dd5b9a627f264c61aaf69d43f1",
+      "deterministic_rng": "ChaCha20 seed 0x7265636f6e5f7633",
+      "transcript": "FiatShamirTranscript(b'reconstruction-schema-v3')"
+    },
+    "source_sha256": {
+      "poker-protocol-proofs/examples/generate_reconstruction_schema_fixture.rs": "4719b0bfd80e0b12b67189fc3ec9a48532365ca7fb4c7012ea4b321093f47648",
+      "poker-protocol-proofs/src/borsh_impl.rs": "7093a91e578992760ee38ec69a65d48ded398afc57816e7897ac2b312eef6c4b",
+      "poker_protocol_lean/PokerProtocolLean/Reconstruct/RefinementVectors.lean": "e58537760cf6b818a61767956a1ea5235770793f25484430dc2d6eb8e8507877",
+      "scripts/verify_refinement_vector.mjs": "9f14921567ba89620d430b71a245347fbf84b05e553463e22fbb7b0806683c0f"
+    }
+  },
+  "browser_benchmarks": [
+    {
+      "label": "chrome-headless-153-macos",
+      "json": "paper/experiments/browser_chrome_headless_153_macos_20260924.json",
+      "json_sha256": "d5962ca0c41f87f9aa90ceaf69cc60b481aa340aca0cf20130a88921eebe3bbe",
+      "headless": true,
+      "command": "node scripts/run_browser_benchmark.mjs --samples 30 --label chrome-headless-153-macos --output-dir .repro/browser --timeout-ms 1200000",
+      "scope": "HeadlessChrome page run on macOS; not headed Chrome, Safari, Android, or iOS"
+    },
+    {
+      "label": "chrome-headed-153-macos",
+      "json": "paper/experiments/browser_chrome_headed_153_macos_20260924.json",
+      "json_sha256": "d207b5de6fa8130bea09a8c8dcdf7b65fcc2f910e9f5b9abc2a854c2610f14e8",
+      "headless": false,
+      "command": "node scripts/run_browser_benchmark.mjs --samples 30 --label chrome-headed-153-macos --output-dir .repro/browser --timeout-ms 1200000 --headed",
+      "scope": "headed automated Chrome page run on macOS; not user-normal Chrome, Safari, Android, or iOS"
+    },
+    {
+      "label": "safari-desktop-macos",
+      "json": "paper/experiments/browser_safari_desktop_macos_20260924.json",
+      "json_sha256": "73cd87d1064989dadf9c57e1cdc0f6526c4469b9961aa2c2d7343d1f774c105d",
+      "headless": false,
+      "command": "node client-wasm/browser_benchmark_server.mjs --host 127.0.0.1 --port 4188 --output-dir .repro/browser-safari, then manually open Safari at http://127.0.0.1:4188/?label=safari-desktop-macos&samples=30&autorun=1",
+      "collection": "manual user-normal Safari 18.3 page run on macOS",
+      "scope": "desktop Safari 18.3 on the recorded macOS host; not Android, iOS, another Safari version, cache-state, full-network-cold-load, or peak-memory coverage"
+    },
+    {
+      "label": "chrome-headless-memory-153-macos",
+      "json": "paper/experiments/browser_chrome_headless_memory_153_macos_20260924.json",
+      "json_sha256": "0021be4a0757a4e3d0bacdceb5ccbca5f4bbece70c5816b415b63c67cf65479a",
+      "headless": true,
+      "command": "node scripts/run_browser_benchmark.mjs --samples 30 --label chrome-headless-memory-153-macos --output-dir .repro/browser-memory --timeout-ms 1200000 --memory-sampling-ms 100",
+      "scope": "separate HeadlessChrome timing run with 100 ms CDP renderer-JS-heap polling and 20 ms inter-cell yields; use it for sampled JS-heap peak evidence, not process RSS or unperturbed timing"
+    }
+  ],
+  "browser_benchmark_common": {
+    "samples_per_cell": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 after one untimed warm-up proof",
+    "timed_stages": ["prove", "verify", "outer_call", "module_import", "wasm_initialization"],
+    "clock": "performance.now for initialization and outer call; js_sys Date inside WASM",
+    "browser": "Chrome/153.0.8010.53 for automated CDP runs; Safari/605.1.15 (Version 18.3) for the manual desktop run",
+    "collection": "Chrome DevTools Protocol with isolated temporary profiles for Chrome; a user-normal Safari page for the Safari run",
+    "profile": "release",
+    "target": "wasm32-unknown-unknown",
+    "source_sha256": {
+      "client-wasm/browser_benchmark.html": "3cfdb753764b4994bcc94b7b3928a107b70d69272af6c42a0a7b0f602fc952a3",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_browser_benchmark.mjs": "acc364d0d6078b439b8df7a5d0a2c6da3e1edefc3c232e5d5bd52427d8c5e4b6"
+    }
+  },
+  "pstx_adapter_vector": {
+    "json": "paper/experiments/settlement_pstx_v1_kat.json",
+    "json_sha256": "af8133034e867192638cec1ccf1e6830296510478ff784d612c6ff05ddb0d7e9",
+    "wire_format": "PSTX v1",
+    "wire_byte_length": 474,
+    "scope": "deployment-bound signed settlement adapter known-answer vector; not a public chain standard"
+  },
+  "network_benchmark": {
+    "json": "paper/experiments/network_chrome_cache_disabled_loopback_30_20260924.json",
+    "json_sha256": "023576ebaf882e5c335d090c17f86a8ed5b9d7cac99a81e3fd0543419b18f30b",
+    "command": "node scripts/run_network_benchmark.mjs --runs 30 --label chrome-cache-disabled-loopback-30 --output-dir .repro/network --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 independent cache-disabled page loads",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser cache cleared and disabled before every run",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "historical cache-disabled code download, resource timing, module initialization, and one n=52,k=13 proof per run before binary upload support; superseded by the upload benchmark for current wire behavior",
+    "recorded_source_sha256": {
+      "client-wasm/network_benchmark.html": "2b74c40216c85c23f9653b3d09aaaf5679660d0c2a07439301203f0b29d6a78c",
+      "client-wasm/browser_benchmark_server.mjs": "4091b2bdde5c7506d0c95130aff4859e47da6d66ca4817f365c18057994d29fd",
+      "scripts/run_network_benchmark.mjs": "c39970ee6292f215f933aee140ee3d481e2999cbd5f8efe010a226c1153a161c"
+    },
+    "superseded_by": "paper/experiments/network_chrome_loopback_upload_30_20260924.json"
+  },
+  "network_upload_benchmark": {
+    "json": "paper/experiments/network_chrome_loopback_upload_30_20260924.json",
+    "json_sha256": "eb4a4ff3673c3b0d1c76c558246b2ad89e90b0d443ab762da41a6611557f4321",
+    "command": "node scripts/run_network_benchmark.mjs --runs 30 --upload --label chrome-loopback-upload-30 --output-dir .repro/network-upload --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 independent cache-disabled page loads with binary proof uploads",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser cache cleared and disabled before every run; server decodes and cryptographically verifies each uploaded bundle",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "historical cache-disabled code download plus cryptographically verified binary proof upload over loopback, recorded before service-worker support changed the upload page; superseded for transport comparison by the same-source HTTP/TLS pair",
+    "source_sha256": {
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f",
+      "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b"
+    },
+  "recorded_source_sha256": {
+    "client-wasm/upload_benchmark.html": "421a400b8f88036d026577178ce69f157145f0dbe5871cefc50c6f0cedf9d194",
+    "client-wasm/browser_benchmark_server.mjs": "34dea4996c11735253618b47062ee46c2e05b08b4b68c2872d4eb55c627e4cbf",
+    "scripts/run_network_benchmark.mjs": "13f3d5c09f700e2e0e271bb0b7824541c1f0f260ad0b98321ce3f01e5553af8d",
+    "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b"
+  },
+  "superseded_by": [
+    "paper/experiments/network_chrome_http_current_loopback_upload_30_20260924.json",
+    "paper/experiments/network_chrome_tls_loopback_upload_30_20260924.json"
+  ]
+  },
+  "network_service_worker_benchmark": {
+    "json": "paper/experiments/network_chrome_service_worker_loopback_upload_30_20260924.json",
+    "json_sha256": "d77b82afcb74caf4daf7084627c872d24753c701a2518439e3cff27d618845d7",
+    "command": "node scripts/run_network_benchmark.mjs --service-worker --runs 30 --label chrome-service-worker-loopback-upload-30 --output-dir .repro/network-service-worker --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 warm service-worker page loads with binary proof uploads",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol; one service-worker bootstrap load before measurement, then 30 controlled pages controlled by the warmed service worker; proof upload and result submission bypass the cache",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "warm service-worker cache hits for HTML/JavaScript/WASM plus cryptographically verified proof upload over loopback; not cold service-worker install, browser HTTP-cache behavior, cold TCP, TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/service_worker_cache.js": "8823d0c7665d1011be942da80712994ffcbf15cb88b3d173e178a2ef03df3b8e",
+      "client-wasm/service_worker_bootstrap.html": "02e6dbaaae455800cb52f7a70a1465cb99f93e4bc941beca418b037a8042da9b",
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f"
+    }
+  },
+  "network_cold_service_worker_benchmark": {
+    "json": "paper/experiments/network_chrome_cold_service_worker_install_30_20260924.json",
+    "json_sha256": "75cb47110e20f1ae6dd7d3df576c07498bc1686b6fec47a40f601686a968f2c4",
+    "command": "node scripts/run_network_benchmark.mjs --cold-service-worker --runs 30 --label chrome-cold-service-worker-install-30-current --output-dir .repro/network-cold-service-worker-current --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 unique-scope cold service-worker installations",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser HTTP cache cleared and disabled; every run uses a unique page scope, service-worker script query, and Cache API name, and install fetches HTML/JavaScript/WASM from the server",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "cold service-worker installation in a unique scope with a unique cache name for each run; HTML/JavaScript/WASM are fetched from the server during install and browser HTTP cache is disabled; not service-worker update invalidation, browser HTTP-cache behavior, TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/service_worker_cache.js": "8823d0c7665d1011be942da80712994ffcbf15cb88b3d173e178a2ef03df3b8e",
+      "client-wasm/service_worker_cold_benchmark.html": "8e787415f46a949c0cbaddec80ddf1f3387261cb99736f9f7abbfddd656cbd83",
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f"
+    }
+  },
+  "network_service_worker_update_benchmark": {
+    "json": "paper/experiments/network_chrome_service_worker_update_30_20260925.json",
+    "json_sha256": "359a59ae38192058e1fd919e116e8fd00c01f71c038209b9f1b01f2cac946539",
+    "command": "node scripts/run_network_benchmark.mjs --service-worker-update --runs 30 --label chrome-service-worker-update-30 --output-dir .repro/network-service-worker-update --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 same-URL byte-different service-worker updates in unique scopes",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser HTTP cache cleared and disabled; each run registers worker byte version 1, requests version 2 through registration.update, waits for activation/controller takeover, and verifies both cache generations",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "same-URL service-worker update from byte version 1 to byte-different version 2 in a unique scope; both generations install HTML/JavaScript/WASM, the new worker activates and controls the page, and browser HTTP cache is disabled; not browser HTTP-cache behavior, TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/service_worker_cache.js": "8823d0c7665d1011be942da80712994ffcbf15cb88b3d173e178a2ef03df3b8e",
+      "client-wasm/service_worker_update_benchmark.html": "3de4960e9f71696f996dc44cf045d5f21059189ddc94b90e9a05f54a1588cc1d",
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f"
+    }
+  },
+  "network_http_cache_reuse_benchmark": {
+    "json": "paper/experiments/network_chrome_http_cache_reuse_30_20260925.json",
+    "json_sha256": "e022227dca15a555f1a879af72e25a2f2115a23797851565d2630d01c126fd52",
+    "command": "node scripts/run_network_benchmark.mjs --http-cache-reuse --runs 30 --label chrome-http-cache-reuse-30 --output-dir .repro/network-http-cache-current --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 browser-HTTP-cache-reuse loads after one immutable seed load",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol; one immutable cache-control seed load, then 30 measured loads with browser HTTP cache enabled and no service worker; static resource transfer must be zero while proof upload remains network-backed and verified",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "normal browser HTTP-cache reuse after one immutable seed load: measured HTML/JavaScript/WASM transfers are zero, while each proof upload bypasses the cache and is cryptographically verified; not service-worker Cache Storage, TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/http_cache_benchmark.html": "002e90496e2a1eacba4db8b93c703b7cd41b1592e60e5aba23dc3a7cc084ffb9",
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f",
+      "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b"
+    }
+  },
+  "network_safari_http_cache_reuse_benchmark": {
+    "json": "paper/experiments/network_safari_http_cache_reuse_30_20260925.json",
+    "json_sha256": "0c7fc0221a83a5ddd114c54688f2780c49541db26806a2a7e68d81aefd267d21",
+    "command": "node client-wasm/browser_benchmark_server.mjs --host 127.0.0.1 --port 4280 --output-dir .repro/safari-http-cache-immutable --cache-control 'public,max-age=31536000,immutable', then manually open/seed/reload http_cache_benchmark.html in user-normal Safari 18.3, then node scripts/summarize_manual_http_cache.mjs --input-dir .repro/safari-http-cache-immutable --output .repro/safari-http-cache-immutable/safari_summary.json",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 manual Safari browser-HTTP-cache-reuse loads after one immutable seed load",
+    "browser": "Safari 18.3 (20620.2.4.11.5) on macOS, user-normal profile",
+    "collection": "manual same-origin page reloads; no CDP automation; one immutable cache-control seed load, then 30 measured loads with no service worker; static transfer must be zero while proof upload remains network-backed and verified",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "manual Safari normal browser HTTP-cache reuse after one immutable seed load: measured HTML/JavaScript/WASM transfers are zero, while each proof upload bypasses the cache and is cryptographically verified; not service-worker Cache Storage, TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/http_cache_benchmark.html": "002e90496e2a1eacba4db8b93c703b7cd41b1592e60e5aba23dc3a7cc084ffb9",
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f",
+      "scripts/summarize_manual_http_cache.mjs": "a21daef24dbc07fa5f9d88aa977ffe04a9b8e7df3901855101226f4b8349c6bc"
+    }
+  },
+  "network_http_current_benchmark": {
+    "json": "paper/experiments/network_chrome_http_current_loopback_upload_30_20260924.json",
+    "json_sha256": "146d987bc3c8341121dc50aac963b885a184e271253de1125c1a958570c82288",
+    "command": "node scripts/run_network_benchmark.mjs --upload --runs 30 --label chrome-http-current-loopback-upload-30 --output-dir .repro/network-http-current --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 cache-disabled HTTP/1.1 page loads with binary proof uploads",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser cache cleared and disabled; same current upload-page source as the TLS companion run",
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "scope": "same-source HTTP companion to the TLS benchmark: cache-disabled code download plus cryptographically verified binary proof upload over loopback; not TLS, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f",
+      "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b"
+    }
+  },
+  "network_tls_benchmark": {
+    "json": "paper/experiments/network_chrome_tls_loopback_upload_30_20260924.json",
+    "json_sha256": "36b33f01b8e2dc27af1b0faf386f9e4c307bbe493695920d19cdcbb27e8a6436",
+    "command": "node scripts/run_network_benchmark.mjs --tls --upload --runs 30 --label chrome-tls-loopback-upload-30 --output-dir .repro/network-tls --timeout-ms 600000",
+    "run_count": 30,
+    "aggregation": "median, arithmetic mean, sample standard deviation, and nearest-rank P95 over 30 cache-disabled HTTPS/TLS page loads with binary proof uploads",
+    "browser": "Chrome/153.0.8010.53 Headless",
+    "collection": "Chrome DevTools Protocol with browser cache cleared and disabled; the runner generates a temporary self-signed RSA-2048 127.0.0.1 certificate and Chrome ignores certificate errors",
+    "network_path": "HTTPS/TLS loopback to 127.0.0.1",
+    "scope": "cache-disabled TLS loopback code download plus cryptographically verified binary proof upload; not public PKI, LAN, or Internet",
+    "source_sha256": {
+      "client-wasm/upload_benchmark.html": "21239d913d42cb0d55a767df1d217975227d23291edaee0d8e74be3f772b0eb1",
+      "client-wasm/browser_benchmark_server.mjs": "e9e8413e96712ddece80df2afcdbb70ca9c094f95231ad5df92b50b99277ae76",
+      "scripts/run_network_benchmark.mjs": "fb3818e13e770c7547be9c2683375d128a72283df9f05922cdf5a7a13b85df7f",
+      "client-wasm/src/lib.rs": "e3334126f077115a42b4df1b60d8514daa603a6055d72eb7dbc64da021e9a60b"
+    }
+  },
   "machine": {
     "model": "Mac15,7",
     "architecture": "arm64",
@@ -74,8 +357,8 @@
     "wasm_bindgen_cli": "0.2.127"
   },
   "scope_and_limits": [
-    "These are Node/V8 host measurements, not Chrome, Safari, Android, or iOS device measurements.",
-    "The CSV reports warm-start median, mean, sample standard deviation, and P95 wall time; true cold module initialization and browser peak memory were not recorded.",
-    "The benchmark validates the production Borsh/browser bundle boundary and proof acceptance; it is not an end-to-end network-latency measurement."
+    "The primary WASM grid is a Node/V8 host measurement; the browser JSON files are automated HeadlessChrome and headed Chrome page measurements plus one manual desktop Safari 18.3 page measurement on macOS, not Android or iOS.",
+    "The CSV reports warm-start median, mean, sample standard deviation, and P95 wall time. The browser JSON files record module import and initialization after page load; the separate Chrome memory JSON records sampled renderer-JS-heap peak, not browser-process RSS or Safari/mobile peak memory.",
+    "The cache-disabled HTTP and TLS network JSONs control browser cache state over loopback. Both upload benchmarks decode and cryptographically verify the binary proof package; TLS uses a temporary self-signed certificate with Chrome certificate errors ignored. Separate service-worker benchmarks measure unique-scope cold installation, same-URL byte-update invalidation, and warmed Cache Storage hits. A separate immutable HTTP-cache benchmark measures ordinary browser-cache reuse without a service worker. No dataset measures public PKI, LAN, or Internet latency."
   ]
 }

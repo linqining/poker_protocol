@@ -435,8 +435,8 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
             return Err(VerificationError::InvalidBayerGrothProof);
         }
         let mut recurrence = vec![C::Scalar::zero(); n];
-        for i in 0..n - 1 {
-            recurrence[i] = product_challenge * product.b_response[i + 1]
+        for (i, slot) in recurrence.iter_mut().enumerate().take(n - 1) {
+            *slot = product_challenge * product.b_response[i + 1]
                 - product.b_response[i] * product.a_response[i + 1];
         }
         let product_check_2_lhs = product.c_delta + product.c_capital_delta * product_challenge;

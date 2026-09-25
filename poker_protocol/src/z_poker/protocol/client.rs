@@ -397,7 +397,9 @@ mod reconstruction_tests {
         let aggregate_sk = Scalar::random(&mut OsRng);
         let aggregate_pk = base_g() * aggregate_sk;
         let cards: Vec<_> = (0..8)
-            .map(|i| DefaultCurve::hash_to_curve(format!("client/reconstruction/card/{i}").as_bytes()))
+            .map(|i| {
+                DefaultCurve::hash_to_curve(format!("client/reconstruction/card/{i}").as_bytes())
+            })
             .collect();
         let residual_carrier = [cards[2], cards[5]]
             .iter()
@@ -405,7 +407,14 @@ mod reconstruction_tests {
             .collect::<Vec<_>>();
 
         let package = owner
-            .reconstruct([1; 32], 9, [2; 32], &cards, &residual_carrier, &aggregate_pk)
+            .reconstruct(
+                [1; 32],
+                9,
+                [2; 32],
+                &cards,
+                &residual_carrier,
+                &aggregate_pk,
+            )
             .unwrap();
         let mut transcript =
             PoseidonFeltTranscript::new_domain(crate::transcript_domains::RECONSTRUCT_POSEIDON);

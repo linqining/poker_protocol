@@ -22,5 +22,18 @@
     "zero knowledge",
     "non-interactive zero knowledge",
     "formal verification"
-  ]
+  ],
+  "arxiv": {
+    "primary_category": "cs.CR",
+    "secondary_categories": [
+      "cs.DC",
+      "cs.LO"
+    ],
+    "license": "arXiv.org perpetual, non-exclusive license 1.0",
+    "report_number": null,
+    "journal_ref": null,
+    "doi": null,
+    "comments": "Preprint. 19 pages, 4 figures, 12 tables. Code, measurement data, and reproduction scripts at https://github.com/linqining/poker_protocol",
+    "abstract": "Mental Poker encrypts and shuffles a deck so that no single participant learns the complete order. A multiplayer shuffle normally requires every participant to act. If a participant leaves or stops responding, the remaining players must remove that participant's cards without learning or changing the other cards, but a shuffle argument alone does not close this liveness gap.\n\nWe present a residual-ciphertext reconstruction protocol based on authenticated, state-bound residual carriers obtained by subtracting submitted reveal tokens. With one missing token, the carrier is encrypted under the missing owner's key; with two or more, it is jointly keyed and not individually decryptable. Reconstruction can still proceed: only an authenticated owner residual authorizes a negative contribution, while a jointly keyed unknown card takes the zero branch and remains encrypted.\n\nFor each canonical slot, a prover contributes an aggregate-key encryption of zero or the negated slot card. A cross-key proof links negative branches to authenticated carriers; a hidden shuffle conceals the carrier-to-slot mapping; OR proofs enforce the slot relation; and a domain-separated transcript binds context, epoch, state, keys, cards, carriers, and contributions. Under the stated assumptions, an accepted concrete package yields an extractable witness with exact carrier coverage. Separately, composition is proved in a session-bound ideal NIZK hybrid; the current Fiat-Shamir implementation is excluded from that realization claim."
+  }
 }

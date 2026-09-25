@@ -10,7 +10,9 @@
 #![cfg(feature = "borsh")]
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use poker_protocol_core::{read_stark_point, read_stark_scalar, write_stark_point, write_stark_scalar};
+use poker_protocol_core::{
+    read_stark_point, read_stark_scalar, write_stark_point, write_stark_scalar,
+};
 
 use crate::crypto::types::{ECPoint, ECScalar};
 
@@ -53,6 +55,9 @@ mod tests {
 
         let scalar = ECScalar(<CurveT as Curve>::Scalar::from_u64(42));
         let scalar_bytes = borsh::to_vec(&scalar).unwrap();
-        assert_eq!(borsh::from_slice::<ECScalar>(&scalar_bytes).unwrap(), scalar);
+        assert_eq!(
+            borsh::from_slice::<ECScalar>(&scalar_bytes).unwrap(),
+            scalar
+        );
     }
 }

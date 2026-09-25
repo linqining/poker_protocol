@@ -71,7 +71,7 @@ pub struct StarkScalar(U256);
 
 impl StarkScalar {
     pub fn from_u256(raw: U256) -> Option<Self> {
-        (raw < EC_ORDER_U256).then(|| StarkScalar(raw))
+        (raw < EC_ORDER_U256).then_some(StarkScalar(raw))
     }
 
     pub fn to_u256(&self) -> U256 {
@@ -118,7 +118,7 @@ impl CurveScalar for StarkScalar {
             return None;
         }
         let raw = U256::from_be_slice(bytes);
-        (raw < EC_ORDER_U256).then(|| StarkScalar(raw))
+        (raw < EC_ORDER_U256).then_some(StarkScalar(raw))
     }
 
     fn from_bytes_mod_order_wide(bytes: &[u8; 64]) -> Self {
@@ -620,7 +620,7 @@ impl core::ops::Mul<StarkScalar> for StarkPoint {
                 if started {
                     acc = acc.double();
                     if set {
-                        acc = acc + self;
+                        acc += self;
                     }
                 } else if set {
                     acc = self;
@@ -890,6 +890,7 @@ pub fn action_sig_challenge(
 /// syscall，无法逐字节重放；可折叠纪元把挑战改为本式（host/wasm 铸造
 /// 与 Cairo 重放三端同构，与 Hand-batch ownership 挑战的迁移同模式）。
 /// 方程不变：eq1: s·G − t1 − c·pk = O；eq2: s·c1 − t2 − c·token = O。
+#[allow(clippy::too_many_arguments)]
 pub fn handbatch_reveal_challenge(
     hand_binding: &[u8; 32],
     pk: &StarkPoint,
@@ -1218,14 +1219,6 @@ mod tests {
     use super::*;
     use rand_core::OsRng;
     use starknet_curve::curve_params::EC_ORDER;
-    use starknet_types_core::curve::ProjectivePoint as CorePoint;
-
-    fn to_core(p: &StarkPoint) -> CorePoint {
-        match p.to_affine_parts() {
-            Some((x, y)) => CorePoint::from_affine(x, y).expect("valid affine point"),
-            None => CorePoint::identity(),
-        }
-    }
 
     fn random_point() -> StarkPoint {
         StarkPoint::random(&mut OsRng)

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "kind": "cold-service-worker-install-aggregate",
+  "artifact_form": "summary-and-per-run-invariants",
+  "label": "chrome-cold-service-worker-install-30-current",
+  "run_count": 30,
+  "environment": {
+    "href": "http://127.0.0.1:29208/cold/2f53d94e-f55b-4410-90b4-0940a83ec394/?label=chrome-cold-service-worker-install-30-current&network_session=2f53d94e-f55b-4410-90b4-0940a83ec394",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "platform": "MacIntel",
+    "ua_platform": "macOS",
+    "ua_mobile": false,
+    "hardware_concurrency": 12,
+    "device_memory_gb": 32,
+    "protocol": "",
+    "effective_connection_type": "4g",
+    "service_worker": true
+  },
+  "collection": {
+    "protocol": "Chrome DevTools Protocol",
+    "browser_executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "browser_version": "Chrome/153.0.8010.53",
+    "user_agent_version": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "headless": true,
+    "cache_disabled": true,
+    "browser_cache_cleared_before_each_run": true,
+    "service_worker_enabled": true,
+    "service_worker_bypassed": false,
+    "service_worker_warm_before_measured_runs": false,
+    "cold_service_worker_unique_scope_and_cache_per_run": true,
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "proof_upload_verified": false,
+    "scope": "cold service-worker installation in a unique scope with a unique cache name for each run; HTML/JavaScript/WASM are fetched from the server during install and browser HTTP cache is disabled; not service-worker update invalidation, browser HTTP-cache behavior, TLS, LAN, or Internet",
+    "node": "v24.4.1",
+    "service_worker_update_unique_scope_and_cache_per_run": false,
+    "http_cache_seeded_before_measured_runs": false,
+    "measured_runs_reuse_browser_http_cache": false,
+    "browser_http_cache_cleared_before_seed_only": false,
+    "measured_runs_have_browser_http_cache_enabled": false,
+    "recorded_at": "2026-09-24T18:46:28.495Z"
+  },
+  "summary": {
+    "register_ms": {"median": 30.300000190734863, "mean": 27.590000025431316, "sample_stddev": 13.23340467283291, "p95": 45.700000047683716, "min": 6.900000095367432, "max": 61.299999952316284},
+    "ready_ms": {"median": 35.90000009536743, "mean": 37.929999995231626, "sample_stddev": 10.712195760237547, "p95": 61.5, "min": 20.700000047683716, "max": 76.90000009536743},
+    "controller_ms": {"median": 0.7000000476837158, "mean": 1.1399999856948853, "sample_stddev": 2.0092201258573352, "p95": 2.3999998569488525, "min": 0.2999999523162842, "max": 11.5},
+    "total_ms": {"median": 41.200000047683716, "mean": 42.04333333969116, "sample_stddev": 10.527981864806412, "p95": 64.19999980926514, "min": 27.399999856948853, "max": 81.79999995231628},
+    "cached_bytes_total": {"median": 273188, "mean": 273188, "sample_stddev": 0, "p95": 273188, "min": 273188, "max": 273188},
+    "server_bytes_total": {"median": 279716, "mean": 279716, "sample_stddev": 0, "p95": 279716, "min": 279716, "max": 279716},
+    "server_observation_count": {"median": 5, "mean": 5, "sample_stddev": 0, "p95": 5, "min": 5, "max": 5}
+  },
+  "per_run_invariants": {
+    "run_count": 30,
+    "all_controlled_activated": true,
+    "all_unique_scopes": true,
+    "all_unique_cache_names": true,
+    "all_unique_script_urls": true,
+    "all_cache_bytes_273188": true,
+    "all_expected_cache_sizes": true,
+    "all_server_bytes_279716": true,
+    "all_server_observation_count_five": true
+  }
+}

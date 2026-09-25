@@ -8,8 +8,8 @@ pub use curve::{
 };
 pub use elgamal::ec_encrypt_batch_v2;
 pub use types::{
-    derive_scalar_from_card_and_pk, derive_scalar_from_card_and_sk, hash_to_scalar, DefaultCurve,
-    base_g, ECPoint, EcPoint, ElGamalCiphertext, Plaintext, Scalar, N_CARDS,
+    base_g, derive_scalar_from_card_and_pk, derive_scalar_from_card_and_sk, hash_to_scalar,
+    DefaultCurve, ECPoint, EcPoint, ElGamalCiphertext, Plaintext, Scalar, N_CARDS,
 };
 
 pub type PublicKey = EcPoint;

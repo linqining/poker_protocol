@@ -9,10 +9,8 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use crate::{
     crypto::{DefaultCurve, ECPoint, ElGamalCiphertext, N_CARDS},
     zk_shuffle::{
-        error::VerificationError,
-        reveal_token_proof::RevealTokenProof,
-        transcript_ext::PoseidonFeltTranscript,
-        ShuffleProof,
+        error::VerificationError, reveal_token_proof::RevealTokenProof,
+        transcript_ext::PoseidonFeltTranscript, ShuffleProof,
     },
 };
 
@@ -34,7 +32,8 @@ impl BrowserShuffleV2Bundle {
         if self.input_cards.len() != N_CARDS || self.output_cards.len() != N_CARDS {
             return Err(VerificationError::LengthMismatch);
         }
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::SHUFFLE_V2_POSEIDON);
         self.proof.verify(
             &self.input_cards,
             &self.output_cards,
@@ -58,9 +57,8 @@ pub struct BrowserRevealTokenBundle {
 impl BrowserRevealTokenBundle {
     /// Verify the token against the independently supplied player key.
     pub fn verify(&self) -> Result<(), VerificationError> {
-        let mut transcript = PoseidonFeltTranscript::new_domain(
-            crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON,
-        );
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::REVEAL_TOKEN_V3_POSEIDON);
         self.proof
             .verify(
                 &self.encrypted_card,

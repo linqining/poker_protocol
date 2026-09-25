@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "kind": "http-cache-reuse-upload-aggregate",
+  "artifact_form": "summary-and-per-run-invariants",
+  "label": "safari-http-cache",
+  "run_count": 30,
+  "environment": {
+    "href": "http://127.0.0.1:4280/http_cache_benchmark.html",
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15",
+    "platform": "MacIntel",
+    "ua_platform": null,
+    "ua_mobile": null,
+    "hardware_concurrency": 8,
+    "device_memory_gb": null,
+    "protocol": "",
+    "effective_connection_type": null,
+    "service_worker": false,
+    "http_cache_reuse": true
+  },
+  "collection": {
+    "protocol": "manual same-origin page reloads; no CDP automation",
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15",
+    "headless": false,
+    "cache_disabled": false,
+    "browser_cache_cleared_before_each_run": false,
+    "service_worker_enabled": false,
+    "service_worker_bypassed": false,
+    "http_cache_seeded_before_measured_runs": true,
+    "measured_runs_reuse_browser_http_cache": true,
+    "network_path": "HTTP loopback to 127.0.0.1",
+    "proof_upload_verified": true,
+    "scope": "manual Safari normal browser HTTP-cache reuse after one immutable seed load; measured HTML/JavaScript/WASM transfers are zero, while proof upload bypasses the cache and is cryptographically verified; not service-worker Cache Storage, TLS, LAN, or Internet",
+    "node": "not recorded for manual browser-only run",
+    "recorded_at": "2026-09-24T19:06:45.561Z"
+  },
+  "summary": {
+    "browser_transfer_bytes_total": {
+      "median": 0,
+      "mean": 0,
+      "sample_stddev": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "server_bytes_total": {
+      "median": 27750,
+      "mean": 27750,
+      "sample_stddev": 0,
+      "p95": 27750,
+      "min": 27750,
+      "max": 27750
+    },
+    "wasm_transfer_bytes": {
+      "median": 0,
+      "mean": 0,
+      "sample_stddev": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "javascript_transfer_bytes": {
+      "median": 0,
+      "mean": 0,
+      "sample_stddev": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "html_transfer_bytes": {
+      "median": 0,
+      "mean": 0,
+      "sample_stddev": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "wasm_duration_ms": {
+      "median": 1,
+      "mean": 0.8333333333333334,
+      "sample_stddev": 0.6477192523656043,
+      "p95": 2,
+      "min": 0,
+      "max": 2
+    },
+    "wasm_initialized_ms": {
+      "median": 3,
+      "mean": 2.9,
+      "sample_stddev": 0.7119666788018509,
+      "p95": 4,
+      "min": 2,
+      "max": 4.000000000000002
+    },
+    "prove_ms": {
+      "median": 309,
+      "mean": 309.53333333333336,
+      "sample_stddev": 3.875060251663576,
+      "p95": 316,
+      "min": 304,
+      "max": 322
+    },
+    "verify_ms": {
+      "median": 218,
+      "mean": 218.26666666666668,
+      "sample_stddev": 2.5452231571200654,
+      "p95": 222,
+      "min": 214,
+      "max": 226
+    },
+    "outer_call_ms": {
+      "median": 505,
+      "mean": 505.70000000000005,
+      "sample_stddev": 11.504571804886613,
+      "p95": 521,
+      "min": 488.0000000000002,
+      "max": 543
+    },
+    "navigation_response_start_ms": {
+      "median": 0,
+      "mean": 0,
+      "sample_stddev": 0,
+      "p95": 0,
+      "min": 0,
+      "max": 0
+    },
+    "dom_content_loaded_ms": {
+      "median": 2,
+      "mean": 2.1666666666666665,
+      "sample_stddev": 0.6477192523656043,
+      "p95": 3,
+      "min": 1,
+      "max": 5
+    },
+    "load_event_end_ms": {
+      "median": 2,
+      "mean": 2.1666666666666665,
+      "sample_stddev": 0.6477192523656043,
+      "p95": 3,
+      "min": 1,
+      "max": 5
+    },
+    "upload_request_bytes": {
+      "median": 27750,
+      "mean": 27750,
+      "sample_stddev": 0,
+      "p95": 27750,
+      "min": 27750,
+      "max": 27750
+    },
+    "upload_wall_ms": {
+      "median": 505,
+      "mean": 504.9,
+      "sample_stddev": 11.372531941420071,
+      "p95": 520,
+      "min": 487,
+      "max": 541
+    },
+    "upload_resource_duration_ms": {
+      "median": 502.0000000000002,
+      "mean": 503.46666666666664,
+      "sample_stddev": 11.434169400750427,
+      "p95": 519,
+      "min": 487,
+      "max": 541
+    },
+    "upload_resource_transfer_bytes": {
+      "median": 443,
+      "mean": 443,
+      "sample_stddev": 0,
+      "p95": 443,
+      "min": 443,
+      "max": 443
+    }
+  },
+  "per_run_invariants": {
+    "run_count": 30,
+    "all_no_service_worker": true,
+    "all_zero_static_transfer": true,
+    "all_upload_27750": true,
+    "all_server_observation_count_one": true,
+    "all_server_bytes_27750": true
+  },
+  "measured_run_files": [
+    "network_run_safari-http-cache_038e66ca-4a1a-4889-ad6f-9b545e8ca034_2026-09-24T18-59-53-776Z.json",
+    "network_run_safari-http-cache_05ccc23c-35d7-45ea-b9f9-2f57ab20116a_2026-09-24T18-59-36-174Z.json",
+    "network_run_safari-http-cache_1161bf34-ba4b-44a4-b967-de9f9cc81f76_2026-09-24T18-59-57-574Z.json",
+    "network_run_safari-http-cache_16c5d466-2f84-4232-bd4a-2d3ffef86eb6_2026-09-24T18-59-49-677Z.json",
+    "network_run_safari-http-cache_208509a5-8330-421f-b733-106cc9f98c64_2026-09-24T18-59-40-037Z.json",
+    "network_run_safari-http-cache_4297d865-7fd9-4aea-a532-1eb2f6b7b2c3_2026-09-24T18-59-45-832Z.json",
+    "network_run_safari-http-cache_442e6f1e-6c88-45e2-a5b9-05429b4b2d5f_2026-09-24T18-59-34-311Z.json",
+    "network_run_safari-http-cache_55283242-dec2-4628-a69b-2854d2e0f03a_2026-09-24T19-00-05-235Z.json",
+    "network_run_safari-http-cache_5f137280-b1a6-485d-8cc9-4aba236d82c7_2026-09-24T18-59-28-443Z.json",
+    "network_run_safari-http-cache_64f0507c-ad55-484e-a27e-45eabd4065d6_2026-09-24T18-59-15-022Z.json",
+    "network_run_safari-http-cache_6e9c09d4-35e8-41db-b95c-eb010fb0f9ee_2026-09-24T19-00-09-132Z.json",
+    "network_run_safari-http-cache_74058872-e298-4039-b7a9-f5fd082bcfc2_2026-09-24T18-59-51-604Z.json",
+    "network_run_safari-http-cache_765822cf-9f96-4f59-940c-66dc392e8e33_2026-09-24T18-59-43-911Z.json",
+    "network_run_safari-http-cache_81841e69-1a9d-4a3c-b50b-ea39fa06f742_2026-09-24T18-59-38-142Z.json",
+    "network_run_safari-http-cache_8284cedb-a648-4870-9b94-f98cd7a74fa1_2026-09-24T18-59-20-757Z.json",
+    "network_run_safari-http-cache_a2712cac-755f-4639-9d0d-69cdffe6e125_2026-09-24T18-59-30-364Z.json",
+    "network_run_safari-http-cache_a2f5a988-ecf8-4d4b-87f7-bc168eebdfc5_2026-09-24T19-00-03-319Z.json",
+    "network_run_safari-http-cache_abddb95a-d7f8-4ed0-82ec-361fe547a330_2026-09-24T18-59-24-565Z.json",
+    "network_run_safari-http-cache_aee80ad1-2f53-4a6b-b004-abe8e3a6e78a_2026-09-24T18-59-59-500Z.json",
+    "network_run_safari-http-cache_af91e80c-461e-4d02-8447-c7790d8f1c8e_2026-09-24T18-59-22-666Z.json",
+    "network_run_safari-http-cache_b3bca7d4-d360-4ae9-9b0f-4d43991de22f_2026-09-24T18-59-42-018Z.json",
+    "network_run_safari-http-cache_c20f0d51-d280-49e6-bf3c-bb945f8fa9a2_2026-09-24T18-59-32-303Z.json",
+    "network_run_safari-http-cache_c5aa4fa9-5287-4858-9827-ffa8cdb81c82_2026-09-24T18-59-18-822Z.json",
+    "network_run_safari-http-cache_c799160c-9336-4b0d-9d7c-585c30fb965b_2026-09-24T18-59-55-658Z.json",
+    "network_run_safari-http-cache_ce1ee38c-418e-46ef-a0d9-6ac4fbd98dc6_2026-09-24T19-00-01-385Z.json",
+    "network_run_safari-http-cache_d665cbe7-c765-4aa7-9ca1-7f7f9155fa63_2026-09-24T19-05-55-851Z.json",
+    "network_run_safari-http-cache_e382e7d1-2d88-4f15-8863-a2433b2b5776_2026-09-24T18-59-47-780Z.json",
+    "network_run_safari-http-cache_e77dc1fd-e2df-43b4-9dfc-2f68a9aa8af4_2026-09-24T18-59-16-885Z.json",
+    "network_run_safari-http-cache_ef6f2b63-5228-485c-9bcb-417e913aa1a1_2026-09-24T19-00-07-202Z.json",
+    "network_run_safari-http-cache_feccae9e-539c-4363-8f1d-41f25f0924fb_2026-09-24T18-59-26-498Z.json"
+  ]
+}

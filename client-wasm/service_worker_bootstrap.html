@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Reconstruction Service Worker Bootstrap</title>
+</head>
+<body>
+<main>
+  <h1>Reconstruction service worker bootstrap</h1>
+  <p id="status">Registering service worker</p>
+</main>
+<script type="module">
+const status = document.getElementById("status");
+try {
+  const registration = await navigator.serviceWorker.register("/service_worker_cache.js", {scope: "/"});
+  const active = await navigator.serviceWorker.ready;
+  await navigator.serviceWorker.getRegistration();
+  status.textContent = `Service worker ready: ${active.active?.state ?? registration.active?.state ?? "unknown"}`;
+} catch (error) {
+  status.textContent = `Failed: ${error?.message ?? error}`;
+  status.style.color = "#a4262c";
+}
+</script>
+</body>
+</html>

@@ -313,7 +313,7 @@ impl ShuffleVerifyRequest {
             }
             _ => return Err(AbiError::UnsupportedTranscript(self.transcript as u8)),
         }
-        if n < 2 || n > MAX_DECK_SIZE || self.output.len() != n {
+        if !(2..=MAX_DECK_SIZE).contains(&n) || self.output.len() != n {
             return Err(AbiError::InvalidDeckSize);
         }
         if self.curve == CurveId::Ristretto255 && n != RISTRETTO_AIR_DECK_SIZE {
@@ -446,6 +446,11 @@ impl ReconstructionVerifyRequest {
                 TranscriptId::Poseidon252,
             )
             | (
+                CurveId::Bn254G1,
+                ReconstructionProofSystem::BayerGrothSlotOr,
+                TranscriptId::FiatShamirSha3,
+            )
+            | (
                 CurveId::Ristretto255,
                 ReconstructionProofSystem::RistrettoAirV1,
                 TranscriptId::Poseidon252,
@@ -466,7 +471,7 @@ impl ReconstructionVerifyRequest {
 
         let n = self.cards.len();
         let k = self.residual_carriers.len();
-        if n < 2 || n > MAX_DECK_SIZE || k == 0 || k > n || self.contributions.len() != n {
+        if !(2..=MAX_DECK_SIZE).contains(&n) || k == 0 || k > n || self.contributions.len() != n {
             return Err(AbiError::InvalidDeckSize);
         }
         if self.curve == CurveId::Ristretto255
@@ -541,7 +546,7 @@ impl ReconstructionVerifyRequest {
         let statement_version = decoder.u8()?;
         let n = decoder.u16()? as usize;
         let k = decoder.u16()? as usize;
-        if n < 2 || n > MAX_DECK_SIZE || k == 0 || k > n {
+        if !(2..=MAX_DECK_SIZE).contains(&n) || k == 0 || k > n {
             return Err(AbiError::InvalidDeckSize);
         }
         let context_len = checked_context_len(decoder.u16()? as usize)?;

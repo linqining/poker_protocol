@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "baseline": "bn254-curve-reconstruction-generic",
+  "curve": "BN254 G1",
+  "transcript": "FiatShamirTranscript(SHA3)",
+  "n": 52,
+  "k": 13,
+  "samples": 30,
+  "timings": {
+    "prove": {
+      "median_us": 158181,
+      "mean_us": 160267.36666666667,
+      "sample_stddev_us": 5186.272872612412,
+      "p95_us": 167932,
+      "min_us": 155674,
+      "max_us": 178244
+    },
+    "verify": {
+      "median_us": 101183,
+      "mean_us": 102367.86666666667,
+      "sample_stddev_us": 4872.446646853794,
+      "p95_us": 110663,
+      "min_us": 100197,
+      "max_us": 126089
+    }
+  },
+  "wire_shape": {
+    "codec": "BN254 reconstruction v3 Borsh; 32-byte compressed G1 points and 32-byte canonical big-endian scalars",
+    "proof_bytes": 21781,
+    "statement_bytes": 5969,
+    "bundle_bytes": 27750
+  },
+  "modeled_semantics": [
+    "curve ElGamal ciphertexts",
+    "cross-key negation proofs",
+    "Bayer-Groth hidden rerandomized permutation",
+    "per-slot zero-or-negative-card OR proofs",
+    "exact residual-carrier coverage"
+  ],
+  "unsupported_semantics": [
+    "production StarkCurve Poseidon transcript",
+    "StarkCurve/BUSL browser wire codec",
+    "authenticated prior-state host integration",
+    "chain settlement"
+  ]
+}

@@ -87,9 +87,15 @@ NATIVE_CSV="$OUTPUT_DIR/reconstruction_stark.csv"
 COMPONENT_CSV="$OUTPUT_DIR/reconstruction_components.csv"
 WASM_CSV="$OUTPUT_DIR/reconstruction_wasm.csv"
 BASELINE_JSON="$OUTPUT_DIR/circom_slot_baseline.json"
+MULTISLOT_BASELINE_JSON="$OUTPUT_DIR/circom_multislot_baseline.json"
+CURVE_BASELINE_JSON="$OUTPUT_DIR/reconstruction_bn254_n52_k13_30.json"
+NETWORK_DIR="$OUTPUT_DIR/network-upload"
 
 cd "$REPO_ROOT"
 node scripts/verify_reproduction.mjs --committed
+
+printf '[reproduce] checking PSTX adapter known-answer vector\n'
+node scripts/verify_pstx_kat.mjs
 
 printf '[reproduce] running Rust workspace tests\n'
 cargo test --workspace --locked
@@ -108,6 +114,22 @@ node client-wasm/benchmark.mjs "$SAMPLES" "$WASM_CSV"
 
 printf '[reproduce] measuring scoped Circom/Groth16 slot baseline\n'
 node scripts/run_circom_slot_baseline.mjs "$BASELINE_JSON"
+printf '[reproduce] measuring multi-slot Circom/Groth16 exact-coverage baseline\n'
+node scripts/run_circom_multislot_baseline.mjs "$MULTISLOT_BASELINE_JSON"
+
+printf '[reproduce] checking and measuring BN254 curve-level reconstruction baseline\n'
+cargo test -p poker-protocol-proofs --release --test bn254_sigma \
+  bn254_reconstruction_roundtrip_semantics_and_rejection --locked
+cargo run -p poker-protocol-proofs --release \
+  --example reconstruction_bn254_benchmark -- "$CURVE_BASELINE_JSON" 30 52 13 --locked
+
+printf '[reproduce] measuring cache-disabled loopback code load and proof upload\n'
+mkdir -p "$NETWORK_DIR"
+node scripts/run_network_benchmark.mjs --runs 30 --upload \
+  --label chrome-loopback-upload-30 \
+  --output-dir "$NETWORK_DIR" --timeout-ms 600000
+NETWORK_JSON="$(find "$NETWORK_DIR" -maxdepth 1 -type f \
+  -name 'network_chrome-loopback-upload-30_*.json' -print -quit)"
 
 printf '[reproduce] building Lean model and checking for placeholders\n'
 (cd poker_protocol_lean && lake build PokerProtocolLean)
@@ -119,5 +141,8 @@ node scripts/verify_reproduction.mjs \
   --generated "$NATIVE_CSV" "$WASM_CSV" --samples "$SAMPLES" \
   --metadata "$OUTPUT_DIR/run_metadata.json"
 node scripts/verify_reproduction.mjs --baseline "$BASELINE_JSON"
+node scripts/verify_reproduction.mjs --baseline "$MULTISLOT_BASELINE_JSON"
+node scripts/verify_reproduction.mjs --baseline "$CURVE_BASELINE_JSON"
+node scripts/verify_reproduction.mjs --network "$NETWORK_JSON"
 
 printf '[reproduce] complete; new measurements are in %s\n' "$OUTPUT_DIR"

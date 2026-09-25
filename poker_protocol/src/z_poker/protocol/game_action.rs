@@ -43,9 +43,7 @@ pub fn sign_game_action_generic(
     let r = g * *nonce;
     // 挑战（core 的 action_sig_challenge 与此处 felts 表同源同式）
     let c = {
-        let (rx, ry) = r
-            .to_affine_parts()
-            .expect("nonce point not identity");
+        let (rx, ry) = r.to_affine_parts().expect("nonce point not identity");
         action_sig_challenge(table_id, hand_id, seq, action, amount, rx, ry)
             .expect("action name must encode")
     };
@@ -68,9 +66,7 @@ pub fn verify_game_action_generic(
         return false;
     }
     let c = match r.to_affine_parts() {
-        Some((rx, ry)) => {
-            action_sig_challenge(table_id, hand_id, seq, action, amount, rx, ry)
-        }
+        Some((rx, ry)) => action_sig_challenge(table_id, hand_id, seq, action, amount, rx, ry),
         None => None,
     };
     let Some(c) = c else { return false };
@@ -193,9 +189,7 @@ mod tests {
         let pk = StarkCurve::base_g() * sk;
         let nonce = <StarkCurve as Curve>::Scalar::random(&mut OsRng);
         let (r, s) = sign_game_action_generic(&sk, 1, 3, 5, "call", 0, &nonce);
-        assert!(!verify_game_action_generic(
-            &pk, 2, 3, 5, "call", 0, &r, &s
-        ));
+        assert!(!verify_game_action_generic(&pk, 2, 3, 5, "call", 0, &r, &s));
     }
 
     #[test]
@@ -206,9 +200,7 @@ mod tests {
         let pk = StarkCurve::base_g() * sk;
         let nonce = <StarkCurve as Curve>::Scalar::random(&mut OsRng);
         let (r, s) = sign_game_action_generic(&sk, 7, 3, 5, "call", 0, &nonce);
-        assert!(!verify_game_action_generic(
-            &pk, 7, 4, 5, "call", 0, &r, &s
-        ));
+        assert!(!verify_game_action_generic(&pk, 7, 4, 5, "call", 0, &r, &s));
     }
 
     #[test]
@@ -217,7 +209,11 @@ mod tests {
         let pk = StarkCurve::base_g() * sk;
         let pk_hex = stark_point_to_hex(&pk);
         let (r_hex, s_hex) = sign_game_action(&sk, 3, 9, 11, "check", 0, &mut OsRng);
-        assert!(verify_game_action_hex(&pk_hex, 3, 9, 11, "check", 0, &r_hex, &s_hex));
-        assert!(!verify_game_action_hex(&pk_hex, 3, 9, 12, "check", 0, &r_hex, &s_hex));
+        assert!(verify_game_action_hex(
+            &pk_hex, 3, 9, 11, "check", 0, &r_hex, &s_hex
+        ));
+        assert!(!verify_game_action_hex(
+            &pk_hex, 3, 9, 12, "check", 0, &r_hex, &s_hex
+        ));
     }
 }

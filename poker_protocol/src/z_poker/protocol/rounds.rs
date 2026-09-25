@@ -133,7 +133,8 @@ impl MaskAndShuffleRound {
         rng: &mut (impl RngCore + CryptoRng),
     ) -> Result<Self, VerificationError> {
         // 创建共享 transcript，绑定 remask_proof 和 shuffle_proof
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::MASK_SHUFFLE_V2_POSEIDON);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::MASK_SHUFFLE_V2_POSEIDON);
 
         let mut mask_cards: Vec<ElGamalCiphertext> = vec![];
         for i in 0..input_cards.len() {
@@ -179,7 +180,8 @@ impl LeaveGameRound {
             .map(|ct| leave_ciphertext(ct, player_sk, player_pk, &mut rng).unwrap())
             .collect();
 
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::LEAVE_POSEIDON_V2);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::LEAVE_POSEIDON_V2);
         let leave_proof = LeaveProof::<DefaultCurve>::prove(
             input_cards,
             &output_cards,
@@ -240,7 +242,8 @@ impl LeaveGameRound {
             .map(|(_, ct)| ct.clone())
             .collect();
 
-        let mut transcript = PoseidonFeltTranscript::new_domain(crate::transcript_domains::LEAVE_POSEIDON_V2);
+        let mut transcript =
+            PoseidonFeltTranscript::new_domain(crate::transcript_domains::LEAVE_POSEIDON_V2);
         let leave_proof = LeaveProof::<DefaultCurve>::prove(
             &sub_input,
             &sub_output,

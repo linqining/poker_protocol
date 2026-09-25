@@ -200,7 +200,7 @@ mod tests {
         let sk = Scalar::random(&mut OsRng);
         let pk = base_g() * &sk;
         let wrong_sk = Scalar::random(&mut OsRng);
-        let wrong_pk = base_g() *  &wrong_sk;
+        let wrong_pk = base_g() * &wrong_sk;
         let bad_proof = PKOwnershipProof::prove(&wrong_sk, &wrong_pk, &mut OsRng);
 
         let result = km.register_player(pk, bad_proof);
@@ -295,7 +295,7 @@ mod tests {
         km.leave_player(pk, &sk).unwrap();
 
         let new_sk = Scalar::random(&mut OsRng);
-        let new_pk = base_g() *  &new_sk;
+        let new_pk = base_g() * &new_sk;
         let new_proof = PKOwnershipProof::prove(&new_sk, &new_pk, &mut OsRng);
         km.register_player(new_pk, new_proof)
             .expect("Re-register after leave should succeed");

@@ -34,7 +34,9 @@ pub fn canonical_card_bytes(index: usize) -> Option<[u8; 32]> {
 
 /// The full canonical card table in deck order.
 pub fn canonical_deck() -> Vec<<Bn254Curve as Curve>::Point> {
-    (0..BN254_TEXAS_DECK_SIZE).map(|i| canonical_card(i).expect("index < deck size")).collect()
+    (0..BN254_TEXAS_DECK_SIZE)
+        .map(|i| canonical_card(i).expect("index < deck size"))
+        .collect()
 }
 
 fn card_label(index: usize) -> String {

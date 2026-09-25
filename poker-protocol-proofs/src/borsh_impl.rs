@@ -528,7 +528,9 @@ mod tests {
     use poker_protocol_core::{
         Curve, CurvePoint, CurveScalar, ElGamalCiphertextGeneric, STARK_POINT_COMPRESSED_LEN,
     };
+    use rand_chacha::ChaCha20Rng;
     use rand_core::OsRng;
+    use rand_core::SeedableRng;
 
     #[test]
     fn elgamal_ciphertext_borsh_roundtrip() {
@@ -712,6 +714,126 @@ mod tests {
                 &mut FiatShamirTranscript::new(b"borsh-reconstruction"),
             )
             .is_err());
+    }
+
+    #[test]
+    fn reconstruction_statement_schema_fixture_is_deterministic() {
+        let vector: serde_json::Value = serde_json::from_str(include_str!(
+            "../../paper/experiments/reconstruction_statement_schema_v3.json"
+        ))
+        .unwrap();
+        let selected_slots = [1usize, 4];
+        let cards = (0..8)
+            .map(|index| {
+                StarkCurve::hash_to_curve(format!("schema/reconstruction/card/{index}").as_bytes())
+            })
+            .collect::<Vec<_>>();
+        let owner_sk = BlsScalar::from_u64(73);
+        let aggregate_sk = owner_sk + BlsScalar::from_u64(29);
+        let owner_pk = StarkCurve::base_g() * owner_sk;
+        let aggregate_pk = StarkCurve::base_g() * aggregate_sk;
+        let residual_carriers = selected_slots
+            .iter()
+            .enumerate()
+            .map(|(carrier, slot)| {
+                ElGamalCiphertextGeneric::<StarkCurve>::encrypt(
+                    &cards[*slot],
+                    &owner_pk,
+                    &BlsScalar::from_u64(1000 + carrier as u64),
+                )
+            })
+            .collect::<Vec<_>>();
+        let mut deterministic_rng = ChaCha20Rng::seed_from_u64(0x726563_6f6e5f76_33);
+        let (statement, proof) = ReconstructProof::<StarkCurve>::prove(
+            [0x07; 32],
+            11,
+            [0x09; 32],
+            cards,
+            residual_carriers,
+            &owner_sk,
+            &owner_pk,
+            &aggregate_pk,
+            &mut deterministic_rng,
+            &mut FiatShamirTranscript::new(b"reconstruction-schema-v3"),
+        )
+        .unwrap();
+        statement.validate().unwrap();
+        proof
+            .verify(
+                &statement,
+                &mut FiatShamirTranscript::new(b"reconstruction-schema-v3"),
+            )
+            .unwrap();
+        let bytes = borsh::to_vec(&statement).unwrap();
+        let hex = bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        assert_eq!(Some(hex.as_str()), vector["bytes_hex"].as_str());
+        assert_eq!(
+            bytes.len(),
+            vector["byte_length"].as_u64().unwrap() as usize
+        );
+
+        let fields = vector["fields"].as_array().unwrap();
+        assert_eq!(fields.len(), 11);
+        let mut cursor = 0usize;
+        for field in fields {
+            let offset = field["offset"].as_u64().unwrap() as usize;
+            let length = field["length"].as_u64().unwrap() as usize;
+            assert_eq!(offset, cursor);
+            let slice = bytes
+                .iter()
+                .skip(offset)
+                .take(length)
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            assert_eq!(Some(slice.as_str()), field["hex"].as_str());
+            cursor += length;
+        }
+        assert_eq!(cursor, bytes.len());
+
+        let proof_vector = &vector["proof"];
+        let proof_bytes = borsh::to_vec(&proof).unwrap();
+        let proof_hex = proof_bytes
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>();
+        assert_eq!(Some(proof_hex.as_str()), proof_vector["bytes_hex"].as_str());
+        assert_eq!(
+            proof_bytes.len(),
+            proof_vector["byte_length"].as_u64().unwrap() as usize
+        );
+
+        let proof_fields = proof_vector["fields"].as_array().unwrap();
+        assert_eq!(proof_fields.len(), 7);
+        cursor = 0;
+        for field in proof_fields {
+            let offset = field["offset"].as_u64().unwrap() as usize;
+            let length = field["length"].as_u64().unwrap() as usize;
+            assert_eq!(offset, cursor);
+            let slice = proof_bytes
+                .iter()
+                .skip(offset)
+                .take(length)
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            assert_eq!(Some(slice.as_str()), field["hex"].as_str());
+            cursor += length;
+        }
+        assert_eq!(cursor, proof_bytes.len());
+
+        for field in proof_vector["nested_fields"].as_array().unwrap() {
+            let offset = field["offset"].as_u64().unwrap() as usize;
+            let length = field["length"].as_u64().unwrap() as usize;
+            let slice = proof_bytes
+                .iter()
+                .skip(offset)
+                .take(length)
+                .map(|byte| format!("{byte:02x}"))
+                .collect::<String>();
+            assert_eq!(Some(slice.as_str()), field["hex"].as_str());
+        }
     }
 
     #[test]

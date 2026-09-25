@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reconstruction WASM Benchmark</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f4f6f8;
+      color: #17212b;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    main {
+      width: min(720px, 100%);
+      background: white;
+      border: 1px solid #d8dee5;
+      border-radius: 6px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(23, 33, 43, .08);
+      box-sizing: border-box;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 21px;
+      letter-spacing: 0;
+    }
+    p {
+      margin: 0 0 16px;
+      color: #5d6b78;
+      font-size: 13px;
+    }
+    dl {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 6px 12px;
+      margin: 0 0 18px;
+      font-size: 12px;
+    }
+    dt {
+      color: #657584;
+      font-weight: 600;
+    }
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+    progress {
+      width: 100%;
+      height: 12px;
+      margin-bottom: 8px;
+    }
+    #status {
+      min-height: 20px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    button {
+      height: 36px;
+      border: 0;
+      border-radius: 4px;
+      padding: 0 16px;
+      background: #176b87;
+      color: white;
+      font: 600 13px inherit;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #9aa8b4;
+      cursor: not-allowed;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 12px;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #d8dee5;
+      padding: 6px;
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) {
+      text-align: left;
+    }
+    thead th {
+      background: #eaf0f4;
+      font-weight: 700;
+    }
+    .error {
+      color: #a4262c;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Reconstruction WASM Benchmark</h1>
+  <p id="label">browser</p>
+  <dl>
+    <dt>User agent</dt><dd id="user-agent">pending</dd>
+    <dt>Platform</dt><dd id="platform">pending</dd>
+    <dt>Cores / memory</dt><dd id="hardware">pending</dd>
+    <dt>WASM initialization</dt><dd id="initialization">pending</dd>
+  </dl>
+  <progress id="progress" max="10" value="0"></progress>
+  <div id="status">Ready</div>
+  <button id="run" type="button">Run benchmark</button>
+  <table>
+    <thead>
+      <tr><th>n</th><th>k</th><th>Prove median</th><th>Verify median</th><th>P95</th><th>Bundle</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+<script type="module">
+const grid = [
+  [13, 1], [13, 4], [13, 13],
+  [26, 1], [26, 4], [26, 13],
+  [52, 1], [52, 4], [52, 13], [52, 26],
+];
+const parameters = new URLSearchParams(location.search);
+const label = (parameters.get("label") ?? "browser").replace(/[^\w.-]+/g, "-").slice(0, 48);
+const samples = Math.min(Math.max(Number(parameters.get("samples") ?? 30), 1), 101);
+const autoRun = ["1", "true"].includes(parameters.get("autorun") ?? "");
+const memorySampling = ["1", "true"].includes(parameters.get("memory") ?? "");
+const runStateParameter = parameters.get("run_state") ?? "warm";
+if (!["cold", "warm"].includes(runStateParameter)) {
+  throw new Error("run_state must be cold or warm");
+}
+const runState = runStateParameter;
+const optionalText = (name, maxLength = 160) => {
+  const value = parameters.get(name);
+  return value ? value.replace(/[^\w .@()+/-]/g, "-").slice(0, maxLength) : null;
+};
+const deviceModel = optionalText("device_model", 120);
+const osVersion = optionalText("os_version", 120);
+const operator = optionalText("operator", 120);
+const networkClass = parameters.get("network_class") ?? null;
+if (networkClass && !["wifi", "cellular", "ethernet", "usb-tethered"].includes(networkClass)) {
+  throw new Error("network_class must be wifi, cellular, ethernet, or usb-tethered");
+}
+const coldClearingMethod = optionalText("cold_clearing_method", 240);
+const provenance = optionalText("provenance", 240);
+const startedAt = new Date().toISOString();
+const scriptStart = performance.now();
+const status = document.getElementById("status");
+const progress = document.getElementById("progress");
+const rows = document.getElementById("rows");
+const button = document.getElementById("run");
+
+document.getElementById("label").textContent = `${label} · ${samples} samples per cell`;
+document.getElementById("user-agent").textContent = navigator.userAgent;
+document.getElementById("platform").textContent = [
+  navigator.platform,
+  navigator.userAgentData?.platform,
+  navigator.userAgentData?.mobile ? "mobile" : "non-mobile",
+].filter(Boolean).join(" · ");
+document.getElementById("hardware").textContent = [
+  navigator.hardwareConcurrency ? `${navigator.hardwareConcurrency} cores` : "cores unavailable",
+  navigator.deviceMemory ? `${navigator.deviceMemory} GB memory hint` : "memory unavailable",
+].join(" · ");
+
+let importedAt;
+let initializedAt;
+let runReconstructionBenchmark;
+
+function resourceKind(url) {
+  const pathname = new URL(url, location.href).pathname;
+  if (pathname.endsWith("browser_benchmark.html") || pathname === "/") return "html";
+  if (pathname.endsWith("client_wasm.js")) return "javascript";
+  if (pathname.endsWith("client_wasm_bg.wasm")) return "wasm";
+  return null;
+}
+
+function collectPageLoad() {
+  const navigation = performance.getEntriesByType("navigation")[0] ?? null;
+  const resources = performance.getEntriesByType("resource")
+    .filter(entry => resourceKind(entry.name))
+    .map(entry => ({
+      name: resourceKind(entry.name),
+      next_hop_protocol: entry.nextHopProtocol ?? "",
+      transfer_size: entry.transferSize ?? 0,
+      encoded_body_size: entry.encodedBodySize ?? 0,
+      decoded_body_size: entry.decodedBodySize ?? 0,
+      duration_ms: entry.duration ?? 0,
+    }));
+  return {
+    navigation_type: navigation?.type ?? null,
+    redirect_count: navigation?.redirectCount ?? null,
+    next_hop_protocol: navigation?.nextHopProtocol ?? "",
+    transfer_size: navigation?.transferSize ?? 0,
+    encoded_body_size: navigation?.encodedBodySize ?? 0,
+    decoded_body_size: navigation?.decodedBodySize ?? 0,
+    dom_content_loaded_ms: navigation?.domContentLoadedEventEnd ?? null,
+    load_event_end_ms: navigation?.loadEventEnd ?? null,
+    resources,
+  };
+}
+
+let pageLoad = null;
+const manualCollection = {
+  protocol: "manual browser page; no CDP or WebDriver",
+  automation: navigator.webdriver === false,
+  run_state: runState,
+  device_model: deviceModel,
+  os_version: osVersion,
+  operator,
+  network_class: networkClass,
+  network_scope: networkClass
+    ? "operator-declared network class; the page cannot independently verify the physical network path"
+    : null,
+  cold_clearing_method: runState === "cold" ? coldClearingMethod : null,
+  provenance,
+  page_load: null,
+};
+
+function setStatus(value, isError = false) {
+  status.className = isError ? "error" : "";
+  status.textContent = value;
+}
+
+function formatMs(value) {
+  return `${Number(value).toFixed(1)} ms`;
+}
+
+function appendRow(row) {
+  const tr = document.createElement("tr");
+  for (const value of [
+    row.n,
+    row.k,
+    formatMs(row.prove_median_ms),
+    formatMs(row.verify_median_ms),
+    `${formatMs(row.prove_p95_ms)} / ${formatMs(row.verify_p95_ms)}`,
+    `${Number(row.bundle_bytes / 1000).toFixed(2)} KB`,
+  ]) {
+    const cell = document.createElement("td");
+    cell.textContent = value;
+    tr.appendChild(cell);
+  }
+  rows.appendChild(tr);
+}
+
+async function initialize() {
+  button.disabled = true;
+  setStatus("Loading WebAssembly");
+  const module = await import("./pkg-web/client_wasm.js");
+  importedAt = performance.now();
+  await module.default();
+  initializedAt = performance.now();
+  runReconstructionBenchmark = module.run_reconstruction_benchmark;
+  pageLoad = collectPageLoad();
+  manualCollection.page_load = pageLoad;
+  document.getElementById("initialization").textContent =
+    `${formatMs(importedAt - scriptStart)} import · ${formatMs(initializedAt - scriptStart)} initialized`;
+  button.disabled = false;
+  setStatus("Ready");
+}
+
+async function run() {
+  button.disabled = true;
+  rows.textContent = "";
+  progress.value = 0;
+  const results = [];
+  const benchmarkStart = performance.now();
+  try {
+    for (const [index, [n, k]] of grid.entries()) {
+      setStatus(`Running cell ${index + 1} of ${grid.length}: n=${n}, k=${k}`);
+      const cellStart = performance.now();
+      const metrics = runReconstructionBenchmark(n, k, samples);
+      const row = {
+        n: metrics.n,
+        k: metrics.k,
+        samples: metrics.samples,
+        prove_median_ms: metrics.prove_ms,
+        prove_mean_ms: metrics.prove_mean_ms,
+        prove_stddev_ms: metrics.prove_stddev_ms,
+        prove_p95_ms: metrics.prove_p95_ms,
+        verify_median_ms: metrics.verify_ms,
+        verify_mean_ms: metrics.verify_mean_ms,
+        verify_stddev_ms: metrics.verify_stddev_ms,
+        verify_p95_ms: metrics.verify_p95_ms,
+        proof_bytes: metrics.proof_bytes,
+        statement_bytes: metrics.statement_bytes,
+        bundle_bytes: metrics.bundle_bytes,
+        outer_call_ms: performance.now() - cellStart,
+      };
+      results.push(row);
+      appendRow(row);
+      progress.value = index + 1;
+      if (memorySampling) await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    const completedAt = new Date().toISOString();
+    const payload = {
+      schema_version: 1,
+      label,
+      samples_per_cell: samples,
+      started_at: startedAt,
+      completed_at: completedAt,
+      timing_clock: "performance.now for initialization and outer call; js_sys Date inside WASM",
+      environment: {
+        href: location.href,
+        user_agent: navigator.userAgent,
+        platform: navigator.platform,
+        ua_platform: navigator.userAgentData?.platform ?? null,
+        ua_mobile: navigator.userAgentData?.mobile ?? null,
+        hardware_concurrency: navigator.hardwareConcurrency ?? null,
+        device_memory_gb: navigator.deviceMemory ?? null,
+        screen_width: screen.width,
+        screen_height: screen.height,
+        device_pixel_ratio: devicePixelRatio,
+        cross_origin_isolated: crossOriginIsolated,
+        headless_ua: /\bHeadlessChrome\b/i.test(navigator.userAgent),
+        webdriver: navigator.webdriver ?? false,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        effective_connection_type: navigator.connection?.effectiveType ?? null,
+      },
+      initialization: {
+        script_start_relative_ms: scriptStart,
+        module_import_relative_ms: importedAt ?? null,
+        wasm_initialized_relative_ms: initializedAt ?? null,
+      },
+      collection: manualCollection,
+      page_load: pageLoad,
+      total_wall_ms: performance.now() - benchmarkStart,
+      results,
+    };
+    const response = await fetch("/results", {
+      method: "POST",
+      headers: {"content-type": "application/json"},
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) throw new Error(`server rejected result: ${await response.text()}`);
+    const filename = await response.text();
+    setStatus(`Saved ${filename}`);
+  } catch (error) {
+    setStatus(`Failed: ${error?.message ?? error}`, true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+button.addEventListener("click", run);
+initialize()
+  .then(() => {
+    if (autoRun) return run();
+    return undefined;
+  })
+  .catch(error => setStatus(`Initialization failed: ${error?.message ?? error}`, true));
+</script>
+</body>
+</html>
