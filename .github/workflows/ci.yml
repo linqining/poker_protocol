@@ -90,6 +90,7 @@ jobs:
       - name: Check Python and JSON syntax
         run: |
           python3 -m py_compile build_paper_docx.py
+          python3 -m py_compile scripts/build_paper_latex.py
           python3 -m json.tool paper/experiments/benchmark_metadata.json >/dev/null
           python3 -m json.tool paper/submission_metadata.json >/dev/null
 

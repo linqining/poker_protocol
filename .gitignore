@@ -33,6 +33,7 @@ paper/experiments/*
 !paper/experiments/benchmark_metadata.json
 !paper/arxiv_independent_review_20260924.md
 !paper/arxiv_eprint_review_20260925.md
+!paper/composable_privacy_preserving_deck_reconstruction.tex
 !paper/submission_checklist.md
 !paper/submission_metadata.json
 __pycache__/

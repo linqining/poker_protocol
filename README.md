@@ -29,6 +29,39 @@ DOCX, a Chinese translation, and `paper/arxiv_submission_fields.txt` for the
 arXiv submission form. The current preprint uses cs.CR as its primary subject
 and arXiv.org perpetual, non-exclusive license 1.0 for the article.
 
+`scripts/build_paper_latex.py` additionally emits a standalone
+XeLaTeX source at
+`paper/composable_privacy_preserving_deck_reconstruction.tex` from the current
+English DOCX. The generated file contains the abstract, all 12 tables, four
+figure references, declarations, appendix, and 49 bibliography entries in one
+`.tex` file. Regenerate it with:
+
+```sh
+python3 scripts/build_paper_latex.py
+```
+
+The repository-local TinyTeX toolchain used for validation is kept under
+`.repro/toolchains/tinytex` (not committed). Compile the generated source with:
+
+```sh
+cd paper
+../.repro/toolchains/tinytex/bin/universal-darwin/xelatex \
+  -interaction=nonstopmode -halt-on-error \
+  -jobname=composable_privacy_preserving_deck_reconstruction_latex \
+  composable_privacy_preserving_deck_reconstruction.tex
+```
+
+The checked local build produces
+`paper/composable_privacy_preserving_deck_reconstruction_latex.pdf` (29 pages).
+The current build log has no missing-character, unresolved-citation,
+undefined-reference, overfull-hbox, or oversized-float warnings. A submission
+source package must include the generated TeX file with `paper/figures/`.
+
+The clean upload folder is `paper/arxiv_upload/`. Its root contains
+`main.tex` and the only required asset directory, `figures/`; it intentionally
+contains no PDF, log, auxiliary, DOCX, or repository-data files. The checked
+ZIP mirror is `paper/arxiv_upload.zip`.
+
 ## Usage
 
 ```toml
