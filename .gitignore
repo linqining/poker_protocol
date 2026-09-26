@@ -39,3 +39,4 @@ paper/experiments/*
 __pycache__/
 .repro/
 poker_protocol/reconstruction_paper.md
+!paper/composable_privacy_preserving_deck_reconstruction.pdf
