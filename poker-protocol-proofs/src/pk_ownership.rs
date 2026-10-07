@@ -21,6 +21,12 @@ pub struct PKOwnershipProof<C: Curve> {
 }
 
 impl<C: Curve> PKOwnershipProof<C> {
+    /// The probabilistic prover (`try_prove`/`prove`) performs rejection
+    /// sampling inside an unbounded `loop`; it is hidden from the
+    /// Charon/Aeneas extraction builds (`skip-prover` feature of the
+    /// `poker-protocol-aeneas` crate), which verify the deterministic
+    /// verification path only. Production builds never enable that feature.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn try_prove(
         secret_key: &C::Scalar,
         public_key: &C::Point,
@@ -52,6 +58,7 @@ impl<C: Curve> PKOwnershipProof<C> {
 
     /// Backward-compatible wrapper; protocol code should prefer
     /// [`Self::try_prove`] and propagate invalid-key errors.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         secret_key: &C::Scalar,
         public_key: &C::Point,

@@ -6,6 +6,94 @@ use rand_core::{CryptoRng, RngCore};
 const PROTOCOL_ID: &[u8] = b"poker/bayer-groth-shuffle/v2";
 const COMMITMENT_H_DOMAIN: &[u8] = b"poker/bg12/v2/H";
 
+/// Assemble all generator domain byte vectors (single loop per function:
+/// Aeneas loop-fixed-point limitation).
+// Used by CommitmentKey::derive; dead-code warnings appear only in
+// extraction feature combinations where the prover (and thus derive) is
+// gated out.
+#[allow(dead_code)]
+fn generator_domains(n: usize) -> Vec<Vec<u8>> {
+    let mut domains: Vec<Vec<u8>> = Vec::with_capacity(n);
+    for i in 0..n {
+        domains.push(generator_domain(n, i));
+    }
+    domains
+}
+
+/// Hash every domain to a curve point (single loop per function).
+#[allow(dead_code)]
+fn hash_generators<C: Curve>(domains: &[Vec<u8>]) -> Vec<C::Point> {
+    let mut generators: Vec<C::Point> = Vec::with_capacity(domains.len());
+    for i in 0..domains.len() {
+        generators.push(C::hash_to_curve(&domains[i]));
+    }
+    generators
+}
+
+/// Validity + pairwise-distinctness of the derived generators (outer loop
+/// only; the pairwise check is a dedicated function).
+#[allow(dead_code)]
+fn generators_valid<C: Curve>(generators: &[C::Point], h: C::Point) -> bool {
+    let mut valid = true;
+    for i in 0..generators.len() {
+        if generators[i].is_identity() || generators[i] == C::base_g() || generators[i] == h {
+            valid = false;
+            break;
+        }
+        if !pairwise_distinct_before::<C>(generators, i) {
+            valid = false;
+            break;
+        }
+    }
+    valid
+}
+
+/// `generators[..=i]` has no duplicate of `generators[i]` among earlier
+/// entries (inner loop extracted as its own function).
+fn pairwise_distinct_before<C: Curve>(generators: &[C::Point], i: usize) -> bool {
+    let mut distinct = true;
+    for j in 0..i {
+        if generators[j] == generators[i] {
+            distinct = false;
+            break;
+        }
+    }
+    distinct
+}
+
+/// Domain bytes for the i-th generator: byte-for-byte identical to
+/// `format!("poker/bg12/v2/G/{n}/{i}")` (decimal, no leading zeros).
+fn generator_domain(n: usize, i: usize) -> Vec<u8> {
+    let mut domain = Vec::with_capacity(32);
+    domain.extend_from_slice(b"poker/bg12/v2/G/");
+    push_decimal(&mut domain, n);
+    domain.push(b'/');
+    push_decimal(&mut domain, i);
+    domain
+}
+
+/// Append the decimal encoding of `value` (no leading zeros) to `out` —
+/// byte-for-byte identical to `usize`'s `Display`, without `format!`.
+fn push_decimal(out: &mut Vec<u8>, value: usize) {
+    if value == 0 {
+        out.push(b'0');
+        return;
+    }
+    let mut digits = [0u8; 20];
+    let mut len = 0usize;
+    let mut v = value;
+    while v != 0 {
+        digits[len] = b'0' + (v % 10) as u8;
+        len += 1;
+        v /= 10;
+    }
+    let mut i = len;
+    while i > 0 {
+        i -= 1;
+        out.push(digits[i]);
+    }
+}
+
 #[derive(Debug, Clone)]
 struct CommitmentKey<C: Curve> {
     h: C::Point,
@@ -15,20 +103,46 @@ struct CommitmentKey<C: Curve> {
 impl<C: Curve> CommitmentKey<C> {
     fn derive(n: usize) -> Result<Self, VerificationError> {
         let h = C::hash_to_curve(COMMITMENT_H_DOMAIN);
-        let generators: Vec<C::Point> = (0..n)
-            .map(|i| C::hash_to_curve(format!("poker/bg12/v2/G/{n}/{i}").as_bytes()))
-            .collect();
+        // Manual byte assembly (no `format!`, index loop, no map/collect):
+        // the shapes the Aeneas extraction supports. The encoding matches
+        // `format!("poker/bg12/v2/G/{n}/{i}")` byte for byte (decimal,
+        // no leading zeros).
+        // Single-purpose loops (Aeneas loop-fixed-point limitation): the
+        // per-generator domain assembly lives in its own function so this
+        // loop body is a single call.
+        let mut domains: Vec<Vec<u8>> = Vec::with_capacity(n);
+        for i in 0..n {
+            domains.push(generator_domain(n, i));
+        }
+        let mut generators: Vec<C::Point> = Vec::with_capacity(n);
+        for i in 0..n {
+            generators.push(C::hash_to_curve(&domains[i]));
+        }
 
         if h.is_identity() || h == C::base_g() {
             return Err(VerificationError::InvalidCommitmentKey);
         }
-        for (i, generator) in generators.iter().enumerate() {
-            if generator.is_identity() || *generator == C::base_g() || *generator == h {
-                return Err(VerificationError::InvalidCommitmentKey);
+        let mut key_valid = true;
+        for i in 0..n {
+            if generators[i].is_identity() || generators[i] == C::base_g() || generators[i] == h {
+                key_valid = false;
+                break;
             }
-            if generators[..i].contains(generator) {
-                return Err(VerificationError::InvalidCommitmentKey);
+            // Inline `generators[..i].contains(...)` as an index loop.
+            let mut duplicate = false;
+            for j in 0..i {
+                if generators[j] == generators[i] {
+                    duplicate = true;
+                    break;
+                }
             }
+            if duplicate {
+                key_valid = false;
+                break;
+            }
+        }
+        if !key_valid {
+            return Err(VerificationError::InvalidCommitmentKey);
         }
         Ok(Self { h, generators })
     }
@@ -92,6 +206,24 @@ pub struct BayerGrothShuffleProof<C: Curve> {
     pub product: ProductArgument<C>,
 }
 
+/// `(challenge^1, …, challenge^n)` in a dedicated single-purpose loop
+/// (calling the generic `scalar_pow` inline inside verify's loops trips an
+/// Aeneas generic-loop-body limitation).
+fn public_powers<C: Curve>(challenge: C::Scalar, n: usize) -> Vec<C::Scalar> {
+    // Recurrence `x^(i+1) = x^i * x` (no per-iteration call into the
+    // generic square-and-multiply, which trips an Aeneas limitation).
+    // Fill-then-index-update (index writes instead of pushes carrying
+    // computed scalars): the Aeneas-supported shape.
+    let mut powers: Vec<C::Scalar> = Vec::with_capacity(n);
+    for _i in 0..n {
+        powers.push(challenge);
+    }
+    for i in 1..n {
+        powers[i] = powers[i - 1] * challenge;
+    }
+    powers
+}
+
 fn scalar_pow<S: CurveScalar>(mut base: S, mut exponent: usize) -> S {
     let mut result = S::one();
     while exponent != 0 {
@@ -104,15 +236,26 @@ fn scalar_pow<S: CurveScalar>(mut base: S, mut exponent: usize) -> S {
     result
 }
 
-fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript, label: &[u8]) -> C::Scalar {
-    let mut challenge = transcript.challenge::<C>(label).scalar;
-    let mut counter = 0u32;
-    while challenge == C::Scalar::zero() {
-        transcript.append_message(b"bg12_zero_challenge_retry", &counter.to_le_bytes());
-        challenge = transcript.challenge::<C>(label).scalar;
-        counter = counter.wrapping_add(1);
+/// Derive a Fiat--Shamir challenge and fail closed on zero.
+///
+/// A zero challenge collapses the round's polynomial-identity check (the
+/// soundness argument needs a nonzero sample), so it is rejected rather
+/// than retried: honest transcripts derive zero with probability
+/// 1/|Scalar| (~2^-250), which becomes the protocol's negligible
+/// completeness error, and both `prove` and `verify` stay straight-line
+/// code with a deterministic transcript schedule. For every nonzero
+/// derivation (the only case ever observed or constructible without
+/// breaking the hash) the byte-level transcript behavior is identical to
+/// the previous retrying implementation.
+fn challenge_nonzero<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+    label: &[u8],
+) -> Result<C::Scalar, VerificationError> {
+    let challenge = transcript.challenge::<C>(label).scalar;
+    if challenge == C::Scalar::zero() {
+        return Err(VerificationError::ZeroChallenge);
     }
-    challenge
+    Ok(challenge)
 }
 
 fn append_ciphertext<C: Curve>(
@@ -125,6 +268,20 @@ fn append_ciphertext<C: Curve>(
     transcript.append_point::<C>(b"bg12_ciphertext_c2", &ciphertext.c2);
 }
 
+/// Append a whole ciphertext vector (single loop per function: Aeneas
+/// loop-fixed-point limitation).
+fn append_ciphertexts<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+    role: &[u8],
+    ciphertexts: &[ElGamalCiphertextGeneric<C>],
+) {
+    for i in 0..ciphertexts.len() {
+        transcript.append_message(b"bg12_ciphertext_label", role);
+        transcript.append_point::<C>(b"bg12_ciphertext_c1", &ciphertexts[i].c1);
+        transcript.append_point::<C>(b"bg12_ciphertext_c2", &ciphertexts[i].c2);
+    }
+}
+
 fn append_statement<C: Curve>(
     transcript: &mut impl CryptoTranscript,
     input: &[ElGamalCiphertextGeneric<C>],
@@ -135,12 +292,10 @@ fn append_statement<C: Curve>(
     transcript.append_message(b"bg12_protocol", PROTOCOL_ID);
     transcript.append_message(b"bg12_deck_size", &(input.len() as u64).to_le_bytes());
     transcript.append_point::<C>(b"bg12_public_key", public_key);
-    for ciphertext in input {
-        append_ciphertext::<C>(transcript, b"input", ciphertext);
-    }
-    for ciphertext in output {
-        append_ciphertext::<C>(transcript, b"output", ciphertext);
-    }
+    // Index loops with direct field appends (Aeneas extraction): pass the
+    // point fields directly instead of a reference to the whole element.
+    append_ciphertexts::<C>(transcript, b"input", input);
+    append_ciphertexts::<C>(transcript, b"output", output);
     transcript.append_point::<C>(b"bg12_c_permutation", c_permutation);
 }
 
@@ -151,8 +306,13 @@ fn ciphertext_msm<C: Curve>(
     if ciphertexts.is_empty() || ciphertexts.len() != scalars.len() {
         return Err(VerificationError::LengthMismatch);
     }
-    let c1_points: Vec<C::Point> = ciphertexts.iter().map(|ciphertext| ciphertext.c1).collect();
-    let c2_points: Vec<C::Point> = ciphertexts.iter().map(|ciphertext| ciphertext.c2).collect();
+    // Index loops with push (no iter/map/collect): Aeneas extraction shapes.
+    let mut c1_points: Vec<C::Point> = Vec::with_capacity(ciphertexts.len());
+    let mut c2_points: Vec<C::Point> = Vec::with_capacity(ciphertexts.len());
+    for i in 0..ciphertexts.len() {
+        c1_points.push(ciphertexts[i].c1);
+        c2_points.push(ciphertexts[i].c2);
+    }
     Ok(ElGamalCiphertextGeneric {
         c1: C::Point::vartime_multiscalar_mul(scalars, &c1_points),
         c2: C::Point::vartime_multiscalar_mul(scalars, &c2_points),
@@ -167,12 +327,30 @@ fn validate_statement<C: Curve>(
     if input.len() < 2 || input.len() != output.len() {
         return Err(VerificationError::InvalidInput);
     }
-    if public_key.is_identity()
-        || input
-            .iter()
-            .chain(output)
-            .any(|ciphertext| ciphertext.c1.is_identity() || ciphertext.c2.is_identity())
-    {
+    // Index loops with flag+break (no iter/chain/any): Aeneas shapes.
+    let mut all_valid = true;
+    if public_key.is_identity() {
+        all_valid = false;
+    }
+    // `is_valid()` (the inherent ElGamal method) instead of per-field
+    // trait-method calls: identical semantics, extraction-friendly shape.
+    if all_valid {
+        for i in 0..input.len() {
+            if !input[i].is_valid() {
+                all_valid = false;
+                break;
+            }
+        }
+    }
+    if all_valid {
+        for i in 0..output.len() {
+            if !output[i].is_valid() {
+                all_valid = false;
+                break;
+            }
+        }
+    }
+    if !all_valid {
         return Err(VerificationError::IdentityBasePoint);
     }
     Ok(())
@@ -188,26 +366,33 @@ fn validate_proof_shape<C: Curve>(
     {
         return Err(VerificationError::LengthMismatch);
     }
-    let points = [
-        proof.c_permutation,
-        proof.c_permuted_powers,
-        proof.multi_exponentiation.c_alpha,
-        proof.multi_exponentiation.c_beta,
-        proof.multi_exponentiation.ciphertext_0.c1,
-        proof.multi_exponentiation.ciphertext_0.c2,
-        proof.multi_exponentiation.ciphertext_1.c1,
-        proof.multi_exponentiation.ciphertext_1.c2,
-        proof.product.c_d,
-        proof.product.c_delta,
-        proof.product.c_capital_delta,
-    ];
-    if points.iter().any(CurvePoint::is_identity) {
+    // Straight-line checks (no `points.iter().any` over a local array of
+    // associated-type elements — an Aeneas unsupported shape); the
+    // acceptance condition is identical.
+    let mexp = &proof.multi_exponentiation;
+    let product = &proof.product;
+    if proof.c_permutation.is_identity()
+        || proof.c_permuted_powers.is_identity()
+        || mexp.c_alpha.is_identity()
+        || mexp.c_beta.is_identity()
+        || mexp.ciphertext_0.c1.is_identity()
+        || mexp.ciphertext_0.c2.is_identity()
+        || mexp.ciphertext_1.c1.is_identity()
+        || mexp.ciphertext_1.c2.is_identity()
+        || product.c_d.is_identity()
+        || product.c_delta.is_identity()
+        || product.c_capital_delta.is_identity()
+    {
         return Err(VerificationError::IdentityBasePoint);
     }
     Ok(())
 }
 
 impl<C: Curve> BayerGrothShuffleProof<C> {
+    /// Hidden from Charon/Aeneas extraction builds (`skip-prover`): the
+    /// prover samples random blinding (and its callers hold rejection
+    /// loops); the deterministic verification path is extracted whole.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         input: &[ElGamalCiphertextGeneric<C>],
         output: &[ElGamalCiphertextGeneric<C>],
@@ -247,7 +432,7 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         let c_permutation = commitment_key.vector_commit(&pi, permutation_blinding)?;
 
         append_statement::<C>(transcript, input, output, public_key, &c_permutation);
-        let powers_challenge = challenge_nonzero::<C>(transcript, b"bg12_powers_challenge");
+        let powers_challenge = challenge_nonzero::<C>(transcript, b"bg12_powers_challenge")?;
         let permuted_powers: Vec<C::Scalar> = permutation
             .iter()
             .map(|index| scalar_pow(powers_challenge, index + 1))
@@ -255,8 +440,8 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         let powers_blinding = C::Scalar::random(rng);
         let c_permuted_powers = commitment_key.vector_commit(&permuted_powers, powers_blinding)?;
         transcript.append_point::<C>(b"bg12_c_permuted_powers", &c_permuted_powers);
-        let product_y = challenge_nonzero::<C>(transcript, b"bg12_product_y");
-        let product_z = challenge_nonzero::<C>(transcript, b"bg12_product_z");
+        let product_y = challenge_nonzero::<C>(transcript, b"bg12_product_y")?;
+        let product_z = challenge_nonzero::<C>(transcript, b"bg12_product_z")?;
 
         let alpha: Vec<C::Scalar> = (0..n).map(|_| C::Scalar::random(rng)).collect();
         let beta = C::Scalar::random(rng);
@@ -282,7 +467,7 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         transcript.append_point::<C>(b"bg12_mexp_c_beta", &c_beta);
         append_ciphertext::<C>(transcript, b"mexp_0", &ciphertext_0);
         append_ciphertext::<C>(transcript, b"mexp_1", &ciphertext_1);
-        let mexp_challenge = challenge_nonzero::<C>(transcript, b"bg12_mexp_challenge");
+        let mexp_challenge = challenge_nonzero::<C>(transcript, b"bg12_mexp_challenge")?;
 
         #[cfg(feature = "debug-print-challenges")]
         {
@@ -336,7 +521,7 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         transcript.append_point::<C>(b"bg12_product_c_d", &c_d);
         transcript.append_point::<C>(b"bg12_product_c_delta", &c_delta);
         transcript.append_point::<C>(b"bg12_product_c_capital_delta", &c_capital_delta);
-        let product_challenge = challenge_nonzero::<C>(transcript, b"bg12_product_challenge");
+        let product_challenge = challenge_nonzero::<C>(transcript, b"bg12_product_challenge")?;
         let a_response: Vec<C::Scalar> = (0..n).map(|i| product_challenge * a[i] + d[i]).collect();
         let b_response: Vec<C::Scalar> = (0..n)
             .map(|i| product_challenge * b[i] + delta[i])
@@ -373,17 +558,17 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         let commitment_key = CommitmentKey::<C>::derive(n)?;
 
         append_statement::<C>(transcript, input, output, public_key, &self.c_permutation);
-        let powers_challenge = challenge_nonzero::<C>(transcript, b"bg12_powers_challenge");
+        let powers_challenge = challenge_nonzero::<C>(transcript, b"bg12_powers_challenge")?;
         transcript.append_point::<C>(b"bg12_c_permuted_powers", &self.c_permuted_powers);
-        let product_y = challenge_nonzero::<C>(transcript, b"bg12_product_y");
-        let product_z = challenge_nonzero::<C>(transcript, b"bg12_product_z");
+        let product_y = challenge_nonzero::<C>(transcript, b"bg12_product_y")?;
+        let product_z = challenge_nonzero::<C>(transcript, b"bg12_product_z")?;
 
         let mexp = &self.multi_exponentiation;
         transcript.append_point::<C>(b"bg12_mexp_c_alpha", &mexp.c_alpha);
         transcript.append_point::<C>(b"bg12_mexp_c_beta", &mexp.c_beta);
         append_ciphertext::<C>(transcript, b"mexp_0", &mexp.ciphertext_0);
         append_ciphertext::<C>(transcript, b"mexp_1", &mexp.ciphertext_1);
-        let mexp_challenge = challenge_nonzero::<C>(transcript, b"bg12_mexp_challenge");
+        let mexp_challenge = challenge_nonzero::<C>(transcript, b"bg12_mexp_challenge")?;
 
         #[cfg(feature = "debug-print-challenges")]
         {
@@ -391,9 +576,8 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
             let _ = &mexp_challenge;
         }
 
-        let public_powers: Vec<C::Scalar> =
-            (1..=n).map(|i| scalar_pow(powers_challenge, i)).collect();
-        let expected_ciphertext_1 = ciphertext_msm::<C>(input, &public_powers)?;
+        let powers = public_powers::<C>(powers_challenge, n);
+        let expected_ciphertext_1 = ciphertext_msm::<C>(input, &powers)?;
         if mexp.ciphertext_1 != expected_ciphertext_1 {
             return Err(VerificationError::InvalidBayerGrothProof);
         }
@@ -424,8 +608,12 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         transcript.append_point::<C>(b"bg12_product_c_d", &product.c_d);
         transcript.append_point::<C>(b"bg12_product_c_delta", &product.c_delta);
         transcript.append_point::<C>(b"bg12_product_c_capital_delta", &product.c_capital_delta);
-        let product_challenge = challenge_nonzero::<C>(transcript, b"bg12_product_challenge");
-        let minus_z = vec![-product_z; n];
+        let product_challenge = challenge_nonzero::<C>(transcript, b"bg12_product_challenge")?;
+        // Manual fill (no `vec![-x; n]`): Aeneas extraction shape.
+        let mut minus_z: Vec<C::Scalar> = Vec::with_capacity(n);
+        for _ in 0..n {
+            minus_z.push(-product_z);
+        }
         let c_minus_z = commitment_key.vector_commit(&minus_z, C::Scalar::zero())?;
         let c_a = self.c_permutation * product_y + self.c_permuted_powers;
         let product_check_1_lhs = product.c_d + (c_a + c_minus_z) * product_challenge;
@@ -434,9 +622,13 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         if product_check_1_lhs != product_check_1_rhs {
             return Err(VerificationError::InvalidBayerGrothProof);
         }
-        let mut recurrence = vec![C::Scalar::zero(); n];
-        for (i, slot) in recurrence.iter_mut().enumerate().take(n - 1) {
-            *slot = product_challenge * product.b_response[i + 1]
+        // Index loop (no iter_mut/enumerate/take): Aeneas extraction shape.
+        let mut recurrence: Vec<C::Scalar> = Vec::with_capacity(n);
+        for _ in 0..n {
+            recurrence.push(C::Scalar::zero());
+        }
+        for i in 0..n - 1 {
+            recurrence[i] = product_challenge * product.b_response[i + 1]
                 - product.b_response[i] * product.a_response[i + 1];
         }
         let product_check_2_lhs = product.c_delta + product.c_capital_delta * product_challenge;
@@ -446,12 +638,16 @@ impl<C: Curve> BayerGrothShuffleProof<C> {
         {
             return Err(VerificationError::InvalidBayerGrothProof);
         }
-        let expected_product = (1..=n)
-            .map(|i| {
-                product_y * C::Scalar::from_u64(i as u64) + scalar_pow(powers_challenge, i)
-                    - product_z
-            })
-            .fold(C::Scalar::one(), |acc, value| acc * value);
+        // Accumulating loop with an inline power recurrence (no map/fold,
+        // no calls into generic scalar_pow): Aeneas extraction shape.
+        let mut expected_product = C::Scalar::one();
+        let mut xpow = C::Scalar::one();
+        for i in 1..=n {
+            xpow = xpow * powers_challenge;
+            let factor =
+                product_y * C::Scalar::from_u64(i as u64) + xpow - product_z;
+            expected_product = expected_product * factor;
+        }
         if product.b_response[n - 1] != product_challenge * expected_product {
             return Err(VerificationError::InvalidBayerGrothProof);
         }

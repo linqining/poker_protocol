@@ -70,22 +70,21 @@ fn append_statement<C: Curve>(
     transcript.append_point::<C>(b"reconstruct_slot_or_c2", &contribution.c2);
 }
 
-fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript) -> C::Scalar {
-    let mut challenge = transcript
+/// Derive a Fiat--Shamir challenge and fail closed on zero (probability
+/// 1/|Scalar| ~2^-250 for honest transcripts: the protocol's negligible
+/// completeness error). Straight-line, deterministic transcript schedule;
+/// byte-identical to the previous retrying implementation whenever the
+/// first derivation is nonzero.
+fn challenge_nonzero<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+) -> Result<C::Scalar, VerificationError> {
+    let challenge = transcript
         .challenge::<C>(b"reconstruct_slot_or_challenge")
         .scalar;
-    let mut counter = 0u32;
-    while challenge == C::Scalar::zero() {
-        transcript.append_message(
-            b"reconstruct_slot_or_zero_challenge_retry",
-            &counter.to_le_bytes(),
-        );
-        challenge = transcript
-            .challenge::<C>(b"reconstruct_slot_or_challenge")
-            .scalar;
-        counter = counter.wrapping_add(1);
+    if challenge == C::Scalar::zero() {
+        return Err(VerificationError::ZeroChallenge);
     }
-    challenge
+    Ok(challenge)
 }
 
 fn validate_statement<C: Curve>(
@@ -106,6 +105,10 @@ fn validate_statement<C: Curve>(
 }
 
 impl<C: Curve> SlotContributionOrProof<C> {
+    /// Hidden from Charon/Aeneas extraction builds (`skip-prover`): the
+    /// prover's rejection-sampling loop is out of scope for the refinement
+    /// pilot; the deterministic verification path is extracted whole.
+    #[cfg(not(feature = "skip-prover"))]
     pub(crate) fn prove(
         card: &C::Point,
         contribution: &ElGamalCiphertextGeneric<C>,
@@ -170,7 +173,7 @@ impl<C: Curve> SlotContributionOrProof<C> {
         for point in &commitment_pk {
             transcript.append_point::<C>(b"reconstruct_slot_or_commitment_pk", point);
         }
-        let challenge = challenge_nonzero::<C>(transcript);
+        let challenge = challenge_nonzero::<C>(transcript)?;
 
         let mut challenges = [C::Scalar::zero(); 2];
         let mut responses = [C::Scalar::zero(); 2];
@@ -200,33 +203,52 @@ impl<C: Curve> SlotContributionOrProof<C> {
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(), VerificationError> {
         validate_statement(card, contribution, aggregate_pk)?;
-        if self.commitment_g.iter().any(CurvePoint::is_identity)
-            || self.commitment_pk.iter().any(CurvePoint::is_identity)
-        {
+        // Index loops with flag+break (no `iter().any`, no returns inside
+        // loops): the shapes the Aeneas extraction supports; behavior
+        // identical.
+        let mut commitments_non_identity = true;
+        for i in 0..2 {
+            if self.commitment_g[i].is_identity() || self.commitment_pk[i].is_identity() {
+                commitments_non_identity = false;
+                break;
+            }
+        }
+        if !commitments_non_identity {
             return Err(VerificationError::InvalidDLEQProof);
         }
 
         append_statement(card, contribution, aggregate_pk, transcript);
-        for point in &self.commitment_g {
-            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_g", point);
+        for i in 0..2 {
+            transcript.append_point::<C>(
+                b"reconstruct_slot_or_commitment_g",
+                &self.commitment_g[i],
+            );
         }
-        for point in &self.commitment_pk {
-            transcript.append_point::<C>(b"reconstruct_slot_or_commitment_pk", point);
+        for i in 0..2 {
+            transcript.append_point::<C>(
+                b"reconstruct_slot_or_commitment_pk",
+                &self.commitment_pk[i],
+            );
         }
-        let challenge = challenge_nonzero::<C>(transcript);
+        let challenge = challenge_nonzero::<C>(transcript)?;
         if self.challenges[0] + self.challenges[1] != challenge {
             return Err(VerificationError::InvalidDLEQProof);
         }
 
         let targets = branch_targets::<C>(card, contribution);
+        let mut branches_hold = true;
         for branch in 0..2 {
             if C::base_g() * self.responses[branch]
                 != self.commitment_g[branch] + contribution.c1 * self.challenges[branch]
                 || *aggregate_pk * self.responses[branch]
                     != self.commitment_pk[branch] + targets[branch] * self.challenges[branch]
             {
-                return Err(VerificationError::InvalidDLEQProof);
+                branches_hold = false;
+                break;
             }
+        }
+        if !branches_hold {
+            return Err(VerificationError::InvalidDLEQProof);
         }
         Ok(())
     }

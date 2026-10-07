@@ -7,6 +7,9 @@ description = "Curve-generic Bayer-Groth shuffle argument"
 
 [features]
 borsh = ["dep:borsh", "poker-protocol-core/borsh"]
+# Never enabled in production: hides the prover from Charon/Aeneas
+# extraction builds of this file (see poker-protocol-aeneas).
+skip-prover = []
 # Debug helper: prints challenge derivations when enabled (used by proof.rs cfg gates).
 debug-print-challenges = []
 

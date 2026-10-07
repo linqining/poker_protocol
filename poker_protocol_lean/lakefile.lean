@@ -16,6 +16,11 @@ require mathlib from git
 require VCVio from git
   "https://github.com/Verified-zkEVM/VCV-io.git" @ "v4.32.0"
 
+-- Vendored Aeneas runtime library (see vendor/aeneas/lakefile.lean for
+-- provenance). Used by the machine-checked Rust→Lean refinement layer
+-- (PokerProtocolLean/Aeneas/).
+require aeneas from "vendor/aeneas"
+
 @[default_target]
 lean_lib PokerProtocolLean where
   roots := #[`PokerProtocolLean]

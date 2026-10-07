@@ -254,25 +254,24 @@ fn print_hand_batch_cairo_vectors() {
         .collect();
     let c_fold = {
         let mut t = KeccakTranscript::new(&hand_proto);
-        let labels = <LeaveKind as DLEqProofKind<Secp256k1Curve>>::labels();
-        t.append_point::<Secp256k1Curve>(labels.pk, &pk_f);
+                t.append_point::<Secp256k1Curve>(b"leave_pk", &pk_f);
         for ct_i in &fold_input {
-            t.append_point::<Secp256k1Curve>(labels.input_c1, &ct_i.c1);
-            t.append_point::<Secp256k1Curve>(labels.input_c2, &ct_i.c2);
+            t.append_point::<Secp256k1Curve>(b"leave_input_c1", &ct_i.c1);
+            t.append_point::<Secp256k1Curve>(b"leave_input_c2", &ct_i.c2);
         }
         for ct_o in &fold_output {
-            t.append_point::<Secp256k1Curve>(labels.output_c1, &ct_o.c1);
-            t.append_point::<Secp256k1Curve>(labels.output_c2, &ct_o.c2);
+            t.append_point::<Secp256k1Curve>(b"leave_output_c1", &ct_o.c1);
+            t.append_point::<Secp256k1Curve>(b"leave_output_c2", &ct_o.c2);
         }
         for a in &fold.per_card_commitments {
-            t.append_point::<Secp256k1Curve>(labels.per_card_commitment, a);
+            t.append_point::<Secp256k1Curve>(b"leave_per_card_commitment", a);
         }
-        t.append_point::<Secp256k1Curve>(labels.commitment_pk, &fold.commitment_pk);
+        t.append_point::<Secp256k1Curve>(b"leave_commitment_pk", &fold.commitment_pk);
         for d2 in &d2s {
-            t.append_point::<Secp256k1Curve>(labels.d2, d2);
+            t.append_point::<Secp256k1Curve>(b"leave_d2", d2);
         }
-        t.append_scalar::<Secp256k1Curve>(labels.nonce, &fold.nonce);
-        t.challenge::<Secp256k1Curve>(labels.challenge).scalar
+        t.append_scalar::<Secp256k1Curve>(b"leave_nonce", &fold.nonce);
+        t.challenge::<Secp256k1Curve>(b"leave_challenge").scalar
     };
     terms.push(Term { coeff: fold.response, point: g });
     terms.push(Term { coeff: neg(&c_fold), point: pk_f });

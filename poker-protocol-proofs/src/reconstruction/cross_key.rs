@@ -65,22 +65,21 @@ fn append_statement<C: Curve>(
     );
 }
 
-fn challenge_nonzero<C: Curve>(transcript: &mut impl CryptoTranscript) -> C::Scalar {
-    let mut challenge = transcript
+/// Derive a Fiat--Shamir challenge and fail closed on zero (probability
+/// 1/|Scalar| ~2^-250 for honest transcripts: the protocol's negligible
+/// completeness error). Straight-line, deterministic transcript schedule;
+/// byte-identical to the previous retrying implementation whenever the
+/// first derivation is nonzero.
+fn challenge_nonzero<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+) -> Result<C::Scalar, VerificationError> {
+    let challenge = transcript
         .challenge::<C>(b"reconstruct_cross_key_challenge")
         .scalar;
-    let mut counter = 0u32;
-    while challenge == C::Scalar::zero() {
-        transcript.append_message(
-            b"reconstruct_cross_key_zero_challenge_retry",
-            &counter.to_le_bytes(),
-        );
-        challenge = transcript
-            .challenge::<C>(b"reconstruct_cross_key_challenge")
-            .scalar;
-        counter = counter.wrapping_add(1);
+    if challenge == C::Scalar::zero() {
+        return Err(VerificationError::ZeroChallenge);
     }
-    challenge
+    Ok(challenge)
 }
 
 fn validate_statement<C: Curve>(
@@ -100,6 +99,9 @@ fn validate_statement<C: Curve>(
 
 impl<C: Curve> CrossKeyNegationProof<C> {
     #[allow(clippy::too_many_arguments)]
+    /// Hidden from Charon/Aeneas extraction builds (skip-prover): the
+    /// prover's blinding sampling is out of scope for the refinement pilot.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         residual_carrier: &ElGamalCiphertextGeneric<C>,
         negative_contribution: &ElGamalCiphertextGeneric<C>,
@@ -171,7 +173,7 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             &commitment_contribution_c1,
         );
         transcript.append_point::<C>(b"reconstruct_cross_key_commitment_c2", &commitment_joint_c2);
-        let challenge = challenge_nonzero::<C>(transcript);
+        let challenge = challenge_nonzero::<C>(transcript)?;
 
         Ok(Self {
             commitment_owner_key,
@@ -218,7 +220,7 @@ impl<C: Curve> CrossKeyNegationProof<C> {
             b"reconstruct_cross_key_commitment_c2",
             &self.commitment_joint_c2,
         );
-        let challenge = challenge_nonzero::<C>(transcript);
+        let challenge = challenge_nonzero::<C>(transcript)?;
 
         let owner_equation = C::base_g() * self.response_owner_sk
             == self.commitment_owner_key + *owner_pk * challenge;

@@ -50,24 +50,88 @@ impl<C: Curve> ReconstructionStatement<C> {
         if self.aggregate_pk.is_identity() || self.owner_pk.is_identity() {
             return Err(VerificationError::InvalidPublicKey);
         }
-        if self.cards.iter().any(CurvePoint::is_identity) {
-            return Err(VerificationError::IdentityBasePoint);
-        }
-        let unique_cards = self
-            .cards
-            .iter()
-            .map(|card| card.compress().as_ref().to_vec())
-            .collect::<HashSet<_>>();
-        if unique_cards.len() != n {
-            return Err(VerificationError::InvalidInput);
-        }
-        if self
-            .residual_carriers
-            .iter()
-            .chain(&self.contributions)
-            .any(|ciphertext| !ciphertext.is_valid())
+        // Pre-compress into concrete byte vectors, then plain index loops
+        // with flag+break (no `iter().any`, no HashSet, no `as_ref` trait
+        // calls inside loops): behavior identical because point compression
+        // is injective and the all-zero encoding is reserved for the
+        // identity (see StarkCurve notes).
+        // Deck-shape checks (identity + uniqueness): every loop shape here
+        // trips upstream Aeneas generic-loop-body bugs, so the checks are
+        // hidden from extraction builds (`skip-prover`) and documented as
+        // outside the extracted model — the cryptographic content of
+        // reconstruction verification lives in the cross-key / slot-OR /
+        // Bayer-Groth equations, which are extracted.
+        #[cfg(not(feature = "skip-prover"))]
         {
+            let cards = &self.cards[..];
+            let mut encodings: Vec<Vec<u8>> = Vec::with_capacity(n);
+            let mut cards_non_identity = true;
+            for i in 0..n {
+                if cards[i].is_identity() {
+                    cards_non_identity = false;
+                    break;
+                }
+                encodings.push(cards[i].compress().as_ref().to_vec());
+            }
+            if !cards_non_identity {
+                return Err(VerificationError::IdentityBasePoint);
+            }
+            self.check_cards_unique(&encodings)?;
+        }
+        let mut ciphertexts_valid = true;
+        for i in 0..k {
+            if !self.residual_carriers[i].is_valid() {
+                ciphertexts_valid = false;
+                break;
+            }
+        }
+        if ciphertexts_valid {
+            for i in 0..n {
+                if !self.contributions[i].is_valid() {
+                    ciphertexts_valid = false;
+                    break;
+                }
+            }
+        }
+        if !ciphertexts_valid {
             return Err(VerificationError::InvalidCiphertext);
+        }
+        Ok(())
+    }
+
+    /// Pairwise-distinctness of the compressed card encodings (see the
+    /// deck-shape note in `validate`).
+    #[cfg(not(feature = "skip-prover"))]
+    fn check_cards_unique(&self, encodings: &[Vec<u8>]) -> Result<(), VerificationError> {
+        let n = encodings.len();
+        let mut cards_unique = true;
+        for i in 0..n {
+            for j in (i + 1)..n {
+                // Byte-wise comparison (u8 equality is concrete; no slice
+                // `==` dispatch in the loop).
+                let mut equal = true;
+                if encodings[i].len() != encodings[j].len() {
+                    equal = false;
+                }
+                if equal {
+                    for b in 0..encodings[i].len() {
+                        if encodings[i][b] != encodings[j][b] {
+                            equal = false;
+                            break;
+                        }
+                    }
+                }
+                if equal {
+                    cards_unique = false;
+                    break;
+                }
+            }
+            if !cards_unique {
+                break;
+            }
+        }
+        if !cards_unique {
+            return Err(VerificationError::InvalidInput);
         }
         Ok(())
     }
@@ -94,15 +158,13 @@ impl<C: Curve> ReconstructionStatement<C> {
         );
         transcript.append_point::<C>(b"reconstruct_aggregate_pk", &self.aggregate_pk);
         transcript.append_point::<C>(b"reconstruct_owner_pk", &self.owner_pk);
-        for card in &self.cards {
-            transcript.append_point::<C>(b"reconstruct_card", card);
-        }
-        for ciphertext in &self.residual_carriers {
-            append_ciphertext::<C>(transcript, b"residual_carrier", ciphertext);
-        }
-        for ciphertext in &self.contributions {
-            append_ciphertext::<C>(transcript, b"contribution", ciphertext);
-        }
+        append_cards_to_transcript::<C>(transcript, &self.cards);
+        append_ciphertexts_to_transcript::<C>(
+            transcript,
+            b"residual_carrier",
+            &self.residual_carriers,
+        );
+        append_ciphertexts_to_transcript::<C>(transcript, b"contribution", &self.contributions);
     }
 }
 
@@ -136,6 +198,30 @@ pub struct ReconstructionProfile {
     pub verify_slot_or_ns: u128,
 }
 
+/// Cards go through a free function: point-transcript loops inside `impl`
+/// methods trip an upstream Aeneas fixed-point bug, while the same loops in
+/// free functions (e.g. dleq_proof::append_dleq_context) translate.
+fn append_cards_to_transcript<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+    cards: &[C::Point],
+) {
+    for i in 0..cards.len() {
+        transcript.append_point::<C>(b"reconstruct_card", &cards[i]);
+    }
+}
+
+/// Whole ciphertext vectors through a free function (same Aeneas note as
+/// `append_cards_to_transcript`).
+fn append_ciphertexts_to_transcript<C: Curve>(
+    transcript: &mut impl CryptoTranscript,
+    role: &[u8],
+    ciphertexts: &[ElGamalCiphertextGeneric<C>],
+) {
+    for i in 0..ciphertexts.len() {
+        append_ciphertext::<C>(transcript, role, &ciphertexts[i]);
+    }
+}
+
 fn append_ciphertext<C: Curve>(
     transcript: &mut impl CryptoTranscript,
     role: &[u8],
@@ -154,10 +240,12 @@ fn deterministic_zero_contributions<C: Curve>(
     aggregate_pk: &C::Point,
 ) -> Result<Vec<(ElGamalCiphertextGeneric<C>, C::Scalar)>, VerificationError> {
     let mut output = Vec::with_capacity(count);
+    let mut all_ok = true;
     for i in 0..count {
         let randomness = C::Scalar::from_u64((i as u64) + 1);
         if randomness == C::Scalar::zero() {
-            return Err(VerificationError::InvalidInput);
+            all_ok = false;
+            break;
         }
         let ciphertext = ElGamalCiphertextGeneric::<C>::encrypt(
             &C::Point::identity(),
@@ -165,9 +253,13 @@ fn deterministic_zero_contributions<C: Curve>(
             &randomness,
         );
         if !ciphertext.is_valid() {
-            return Err(VerificationError::InvalidCiphertext);
+            all_ok = false;
+            break;
         }
         output.push((ciphertext, randomness));
+    }
+    if !all_ok {
+        return Err(VerificationError::InvalidCiphertext);
     }
     Ok(output)
 }
@@ -194,23 +286,26 @@ pub fn canonical_base_deck<C: Curve>(
     if cards.len() < 2 || aggregate_pk.is_identity() {
         return Err(VerificationError::InvalidInput);
     }
-    cards
-        .iter()
-        .enumerate()
-        .map(|(i, card)| {
-            if card.is_identity() {
-                return Err(VerificationError::IdentityBasePoint);
-            }
-            let randomness = C::Scalar::from_u64((i as u64) + 1);
-            let ciphertext =
-                ElGamalCiphertextGeneric::<C>::encrypt(card, aggregate_pk, &randomness);
-            if ciphertext.is_valid() {
-                Ok(ciphertext)
-            } else {
-                Err(VerificationError::InvalidCiphertext)
-            }
-        })
-        .collect()
+    let mut deck = Vec::with_capacity(cards.len());
+    let mut all_ok = true;
+    for i in 0..cards.len() {
+        if cards[i].is_identity() {
+            all_ok = false;
+            break;
+        }
+        let randomness = C::Scalar::from_u64((i as u64) + 1);
+        let ciphertext =
+            ElGamalCiphertextGeneric::<C>::encrypt(&cards[i], aggregate_pk, &randomness);
+        if !ciphertext.is_valid() {
+            all_ok = false;
+            break;
+        }
+        deck.push(ciphertext);
+    }
+    if !all_ok {
+        return Err(VerificationError::InvalidCiphertext);
+    }
+    Ok(deck)
 }
 
 /// Homomorphically apply one verified player's contribution vector to a deck.
@@ -221,11 +316,11 @@ pub fn apply_reconstruction_contributions<C: Curve>(
     if deck.is_empty() || deck.len() != contributions.len() {
         return Err(VerificationError::LengthMismatch);
     }
-    Ok(deck
-        .iter()
-        .zip(contributions)
-        .map(|(card, contribution)| ciphertext_add(card, contribution))
-        .collect())
+    let mut output = Vec::with_capacity(deck.len());
+    for i in 0..deck.len() {
+        output.push(ciphertext_add(&deck[i], &contributions[i]));
+    }
+    Ok(output)
 }
 
 impl<C: Curve> ReconstructProof<C> {
@@ -233,6 +328,7 @@ impl<C: Curve> ReconstructProof<C> {
     /// one pair prevents callers from accidentally proving against a different
     /// contribution vector than the one sent to the verifier/precompile.
     #[allow(clippy::too_many_arguments)]
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         context_digest: [u8; 32],
         reconstruction_epoch: u64,
@@ -262,7 +358,9 @@ impl<C: Curve> ReconstructProof<C> {
 
     /// Prove while optionally collecting stage timings for reproducibility
     /// experiments.  `profile` is deliberately outside the proof object.
+    /// Hidden from Charon/Aeneas extraction builds (`skip-prover`).
     #[allow(clippy::too_many_arguments)]
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove_with_profile(
         context_digest: [u8; 32],
         reconstruction_epoch: u64,
@@ -474,10 +572,15 @@ impl<C: Curve> ReconstructProof<C> {
         statement: &ReconstructionStatement<C>,
         transcript: &mut impl CryptoTranscript,
     ) -> Result<(), VerificationError> {
-        self.verify_with_profile(statement, transcript, None)
+        self.verify_inner(statement, transcript)
     }
 
     /// Verify while optionally collecting component timings for experiments.
+    /// Hidden from extraction builds (`skip-prover`): keeps the ORIGINAL
+    /// staged-timing implementation so benchmark harnesses are unaffected;
+    /// `verify_inner` is the timing-free extraction target with identical
+    /// acceptance behavior.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn verify_with_profile(
         &self,
         statement: &ReconstructionStatement<C>,
@@ -547,6 +650,91 @@ impl<C: Curve> ReconstructProof<C> {
         }
         if let (Some(start), Some(profile)) = (slot_or_start, profile.as_deref_mut()) {
             profile.verify_slot_or_ns = start.elapsed().as_nanos();
+        }
+        Ok(())
+    }
+
+    /// The verification logic, free of timing scaffolding.
+    fn verify_inner(
+        &self,
+        statement: &ReconstructionStatement<C>,
+        transcript: &mut impl CryptoTranscript,
+    ) -> Result<(), VerificationError> {
+        statement.validate()?;
+        let n = statement.cards.len();
+        let k = statement.residual_carriers.len();
+        // Index loop with flag+break (no `iter().any`): Aeneas shape.
+        let mut shape_ok = self.negative_contributions.len() == k
+            && self.cross_key_proofs.len() == k
+            && self.slot_membership_proofs.len() == n;
+        if shape_ok {
+            for i in 0..k {
+                if !self.negative_contributions[i].is_valid() {
+                    shape_ok = false;
+                    break;
+                }
+            }
+        }
+        if !shape_ok {
+            return Err(VerificationError::LengthMismatch);
+        }
+
+        statement.append_to_transcript(transcript);
+        // Cross-key chain: flag+break carrying the failure position (no `?`
+        // inside the loop).
+        let mut cross_key_failure: Option<usize> = None;
+        for j in 0..k {
+            if self
+                .cross_key_proofs[j]
+                .verify(
+                    &statement.residual_carriers[j],
+                    &self.negative_contributions[j],
+                    &statement.owner_pk,
+                    &statement.aggregate_pk,
+                    transcript,
+                )
+                .is_err()
+            {
+                cross_key_failure = Some(j);
+                break;
+            }
+        }
+        if let Some(j) = cross_key_failure {
+            return Err(VerificationError::InvalidProofAtPosition(j));
+        }
+
+        let zero_contributions =
+            deterministic_zero_contributions::<C>(n - k, &statement.aggregate_pk)?;
+        let mut shuffle_input = self.negative_contributions.clone();
+        for i in 0..zero_contributions.len() {
+            shuffle_input.push(zero_contributions[i].0.clone());
+        }
+        self.contribution_shuffle_proof.verify(
+            &shuffle_input,
+            &statement.contributions,
+            &statement.aggregate_pk,
+            transcript,
+        )?;
+
+        // Slot-OR chain: flag+break carrying the failure position.
+        let mut slot_or_failure: Option<usize> = None;
+        for i in 0..n {
+            if self
+                .slot_membership_proofs[i]
+                .verify(
+                    &statement.cards[i],
+                    &statement.contributions[i],
+                    &statement.aggregate_pk,
+                    transcript,
+                )
+                .is_err()
+            {
+                slot_or_failure = Some(i);
+                break;
+            }
+        }
+        if let Some(i) = slot_or_failure {
+            return Err(VerificationError::InvalidProofAtPosition(i));
         }
         Ok(())
     }

@@ -37,6 +37,7 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
     /// This function validates that base points are not identity to prevent
     /// trivial attacks where a base point of zero could compromise the proof.
     #[allow(non_snake_case)]
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         base_points: &[C::Point],
         secrets: &[C::Scalar],
@@ -61,6 +62,7 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
     }
 
     #[allow(non_snake_case)]
+    #[cfg(not(feature = "skip-prover"))]
     fn prove_inner(
         base_points: &[C::Point],
         secrets: &[C::Scalar],
@@ -77,11 +79,18 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
 
         let n = base_points.len();
 
-        // Identity bases create unconstrained witness coordinates.
-        for g_i in base_points.iter() {
-            if g_i.is_identity() {
-                return Err(VerificationError::IdentityBasePoint);
+        // Index loop with flag+break (no returns inside loops, no by-value
+        // iteration): required shapes for the Aeneas extraction; behavior
+        // identical.
+        let mut bases_non_identity = true;
+        for i in 0..base_points.len() {
+            if base_points[i].is_identity() {
+                bases_non_identity = false;
+                break;
             }
+        }
+        if !bases_non_identity {
+            return Err(VerificationError::IdentityBasePoint);
         }
 
         if validate_witness && C::Point::vartime_multiscalar_mul(secrets, base_points) != *R {
@@ -90,8 +99,8 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
 
         // Append public values to transcript
         transcript.append_message(b"gen_schnorr_n", &(n as u64).to_le_bytes());
-        for g_i in base_points {
-            transcript.append_point::<C>(b"gen_schnorr_base", g_i);
+        for i in 0..base_points.len() {
+            transcript.append_point::<C>(b"gen_schnorr_base", &base_points[i]);
         }
         transcript.append_point::<C>(b"gen_schnorr_R", R);
 
@@ -152,11 +161,21 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
 
         let n = base_points.len();
 
-        // Match the strict prover's statement validation.
-        for g_i in base_points.iter() {
-            if g_i.is_identity() {
-                return Err(VerificationError::InvalidDLEQProof);
+        // Match the strict prover's statement validation. A `while` counter
+        // loop with flag+break (no returns inside, no for-range): the
+        // for-range forms trip an Aeneas generic-loop-body bug here.
+        let n_bases = base_points.len();
+        let mut bases_non_identity = true;
+        let mut i = 0usize;
+        while i < n_bases {
+            if base_points[i].is_identity() {
+                bases_non_identity = false;
+                break;
             }
+            i += 1;
+        }
+        if !bases_non_identity {
+            return Err(VerificationError::InvalidDLEQProof);
         }
 
         // The production wire format rejects identity commitments.
@@ -166,8 +185,8 @@ impl<C: Curve> GeneralizedSchnorrProof<C> {
 
         // Append public values to transcript (same as in prove)
         transcript.append_message(b"gen_schnorr_n", &(n as u64).to_le_bytes());
-        for g_i in base_points {
-            transcript.append_point::<C>(b"gen_schnorr_base", g_i);
+        for i in 0..base_points.len() {
+            transcript.append_point::<C>(b"gen_schnorr_base", &base_points[i]);
         }
         transcript.append_point::<C>(b"gen_schnorr_R", R);
 

@@ -428,7 +428,7 @@ fn push_leave(
         if input[i].c1 != output[i].c1 {
             return Err("leave: c1 invariance".into());
         }
-        let d2: Pt = <LeaveKind as DLEqProofKind<C>>::compute_d2(&input[i].c2, &output[i].c2);
+        let d2: Pt = input[i].c2 - output[i].c2;
         if d2.is_identity() {
             return Err("leave: identity d2".into());
         }
@@ -440,26 +440,25 @@ fn push_leave(
         return Err("leave: identity commitment".into());
     }
     // Mirrors dleq_proof::append_dleq_context.
-    let labels = <LeaveKind as DLEqProofKind<C>>::labels();
-    let mut t = MerlinTranscript::new(proto);
-    t.append_point::<C>(labels.pk, pk);
+        let mut t = MerlinTranscript::new(proto);
+    t.append_point::<C>(b"leave_pk", pk);
     for ct in input {
-        t.append_point::<C>(labels.input_c1, &ct.c1);
-        t.append_point::<C>(labels.input_c2, &ct.c2);
+        t.append_point::<C>(b"leave_input_c1", &ct.c1);
+        t.append_point::<C>(b"leave_input_c2", &ct.c2);
     }
     for ct in output {
-        t.append_point::<C>(labels.output_c1, &ct.c1);
-        t.append_point::<C>(labels.output_c2, &ct.c2);
+        t.append_point::<C>(b"leave_output_c1", &ct.c1);
+        t.append_point::<C>(b"leave_output_c2", &ct.c2);
     }
     for a in &proof.per_card_commitments {
-        t.append_point::<C>(labels.per_card_commitment, a);
+        t.append_point::<C>(b"leave_per_card_commitment", a);
     }
-    t.append_point::<C>(labels.commitment_pk, &proof.commitment_pk);
+    t.append_point::<C>(b"leave_commitment_pk", &proof.commitment_pk);
     for d2 in &d2s {
-        t.append_point::<C>(labels.d2, d2);
+        t.append_point::<C>(b"leave_d2", d2);
     }
-    t.append_scalar::<C>(labels.nonce, &proof.nonce);
-    let c = t.challenge::<C>(labels.challenge).scalar;
+    t.append_scalar::<C>(b"leave_nonce", &proof.nonce);
+    let c = t.challenge::<C>(b"leave_challenge").scalar;
     // s*G - B - c*pk = O
     eqs.push(vec![
         (proof.response, C::base_g()),

@@ -709,6 +709,16 @@ name = "poker-protocol-abi"
 version = "0.1.0"
 
 [[package]]
+name = "poker-protocol-aeneas"
+version = "0.1.0"
+dependencies = [
+ "poker-protocol-bg",
+ "poker-protocol-core",
+ "rand_core 0.6.4",
+ "tracing",
+]
+
+[[package]]
 name = "poker-protocol-bg"
 version = "0.1.0"
 dependencies = [

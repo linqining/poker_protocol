@@ -13,6 +13,7 @@ Standalone crates for the mental-poker protocol, extracted from
 | `poker-protocol-proofs/` | `poker-protocol-proofs` | Complete proof suite for the mental-poker protocol |
 | `poker_protocol/` | `poker_protocol` | Protocol request-construction API (Stark curve / Ristretto-AIR epochs) |
 | `client-wasm/` | `client-wasm` | WebAssembly bridge and benchmark for browser-side reconstruction proof verification |
+| `poker-protocol-aeneas/` | `poker-protocol-aeneas` | Charon/Aeneas extraction target compiling the production proof sources verbatim for the machine-checked Rust→Lean refinement |
 | `poker_protocol_lean/` | `PokerProtocolLean` | Lean 4 formalization of the protocol's proofs (Schnorr, Chaum-Pedersen, DLEQ, shuffle, reconstruction) |
 
 The six Rust crates form a Cargo workspace (`cargo check --workspace`); the

@@ -40,3 +40,8 @@ __pycache__/
 .repro/
 poker_protocol/reconstruction_paper.md
 !paper/composable_privacy_preserving_deck_reconstruction.pdf
+
+# Aeneas/Charon extraction intermediates
+*.llbc
+poker-protocol-aeneas/target/
+poker_protocol_lean/vendor/aeneas/.lake/

@@ -53,6 +53,10 @@ pub enum RevealProofError {
 }
 
 impl<C: Curve> RevealTokenProof<C> {
+    /// The prover performs rejection sampling inside an unbounded `loop`;
+    /// hidden from Charon/Aeneas extraction builds (`skip-prover`), which
+    /// verify the deterministic verification path only.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn try_prove(
         sk: &C::Scalar,
         user_pk: &C::Point,
@@ -108,6 +112,7 @@ impl<C: Curve> RevealTokenProof<C> {
 
     /// Backward-compatible wrapper. New protocol code should call
     /// [`Self::try_prove`] so malformed statements are returned as errors.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         sk: &C::Scalar,
         user_pk: &C::Point,

@@ -1,0 +1,33 @@
+[package]
+name = "poker-protocol-aeneas"
+version = "0.1.0"
+edition = "2021"
+license = "BUSL-1.1"
+description = "Charon/Aeneas extraction target for the poker protocol proof suite"
+publish = false
+
+[lib]
+# The #[path]-included sources are unit-tested in their home crate; the
+# extraction crate has no tests of its own (and its cfg(test) modules
+# reference home-crate infrastructure that the re-export shims do not carry).
+test = false
+
+[features]
+# Hides the rejection-sampling prover (`try_prove`/`prove`) from the extracted
+# model: the unbounded sampling loop is out of scope for the refinement pilot
+# (Aeneas cannot translate it, and soundness arguments are verify-side).
+# Production crates never enable this feature, so their code is unchanged.
+# NOT enabled by default: cargo workspace feature unification would leak
+# them into every other crate's builds and tests. scripts/extract_aeneas.sh
+# enables both explicitly.
+skip-prover = []
+skip-tracing = []
+
+[dependencies]
+poker-protocol-core = { path = "../poker-protocol-core" }
+poker-protocol-bg = { path = "../poker-protocol-bg" }
+# Matches the rand_core version used by poker-protocol-proofs so that the
+# #[path]-included pk_ownership.rs compiles verbatim.
+rand_core = "0.6.4"
+# Needed when building without skip-tracing (the dleq_reject_log! expands to it).
+tracing = "0.1"

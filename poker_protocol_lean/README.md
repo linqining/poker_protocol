@@ -24,3 +24,16 @@ bash scripts/count_sorries.sh
 ```
 
 The axiom audit is `PokerProtocolLean/Reconstruct/ReconstructionAxiomAudit.lean`.
+
+## Rust→Lean refinement (Aeneas)
+
+`PokerProtocolLean.Aeneas.PKOwnershipRefinement` links the Charon/Aeneas
+extraction of the *production* Rust `PKOwnershipProof::verify`
+(`poker-protocol-aeneas` compiles `poker-protocol-proofs/src/pk_ownership.rs`
+verbatim) to the abstract Σ-protocol above: under an explicit
+`BackendSpec` interpretation of the curve backend, acceptance by the
+extracted Rust verifier is equivalent to acceptance by the abstract
+`GeneralizedSchnorr.sigma` verifier with the extracted Fiat–Shamir
+challenge. Assumption boundary, provenance and regeneration:
+`AENEAS_REFINEMENT.md`; axiom audit:
+`PokerProtocolLean/Aeneas/AeneasAxiomAudit.lean`.

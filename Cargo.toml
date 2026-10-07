@@ -7,5 +7,6 @@ members = [
     "poker-protocol-proofs",
     "poker-protocol-abi",
     "poker-protocol-bg",
+    "poker-protocol-aeneas",
 ]
 # poker_protocol_lean/ is a Lean 4 (Lake) project, not a Cargo member.

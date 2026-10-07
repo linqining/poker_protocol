@@ -17,31 +17,40 @@ use poker_protocol_core::{Curve, CurvePoint, CurveScalar, ElGamalCiphertextGener
 use rand_core::OsRng;
 use std::marker::PhantomData;
 
-/// Labels used in the Merlin transcript for DLEq proof generation/verification.
-pub struct DLEqProofLabels {
-    pub pk: &'static [u8],
-    pub input_c1: &'static [u8],
-    pub input_c2: &'static [u8],
-    pub output_c1: &'static [u8],
-    pub output_c2: &'static [u8],
-    pub per_card_commitment: &'static [u8],
-    pub commitment_pk: &'static [u8],
-    pub d2: &'static [u8],
-    pub nonce: &'static [u8],
-    pub challenge: &'static [u8],
+
+macro_rules! dleq_reject_log {
+    ($($arg:tt)*) => {{
+        #[cfg(not(feature = "skip-tracing"))]
+        {
+            ::tracing::error!($($arg)*);
+        }
+    }};
+}
+
+/// Which DLEq proof kind: selects the transcript labels and the direction
+/// of the d2 computation. A plain enum (no associated types, no slice
+/// references in the trait surface) so that the Aeneas extraction can
+/// translate calls to `DLEqProofKind::kind`; label byte strings are matched
+/// inline at the transcript call sites, the only form the extraction
+/// supports (see AENEAS_REFINEMENT.md).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DLEqKind {
+    /// Remask: `d2 = output.c2 - input.c2` (adds an encryption layer).
+    Remask,
+    /// Leave: `d2 = input.c2 - output.c2` (removes an encryption layer).
+    Leave,
 }
 
 /// Trait distinguishing different DLEq proof kinds (remask vs leave).
 ///
-/// Each kind provides its own transcript labels and d2 computation direction:
+/// Each kind selects its transcript labels and d2 computation direction via
+/// a plain enum (see `DLEqKind` for why the labels are not part of the
+/// trait surface):
 /// - Remask: d2 = output.c2 - input.c2 (adds encryption layer)
 /// - Leave:  d2 = input.c2 - output.c2 (removes encryption layer)
 pub trait DLEqProofKind<C: Curve> {
-    /// Transcript labels for this proof kind.
-    fn labels() -> &'static DLEqProofLabels;
-
-    /// Compute the d2 value from input and output ciphertext c2 components.
-    fn compute_d2(input_c2: &C::Point, output_c2: &C::Point) -> C::Point;
+    /// The proof kind: selects transcript labels and the d2 direction.
+    fn kind() -> DLEqKind;
 
     /// Whether verification validates output ciphertexts. Both strict Rust
     /// proof kinds return `true`; the hook remains for wire compatibility.
@@ -57,24 +66,8 @@ pub struct RemaskKind;
 pub struct LeaveKind;
 
 impl<C: Curve> DLEqProofKind<C> for RemaskKind {
-    fn labels() -> &'static DLEqProofLabels {
-        static LABELS: DLEqProofLabels = DLEqProofLabels {
-            pk: b"remask_pk",
-            input_c1: b"remask_input_c1",
-            input_c2: b"remask_input_c2",
-            output_c1: b"remask_output_c1",
-            output_c2: b"remask_output_c2",
-            per_card_commitment: b"remask_per_card_commitment",
-            commitment_pk: b"remask_commitment_pk",
-            d2: b"remask_d2",
-            nonce: b"remask_nonce",
-            challenge: b"remask_challenge",
-        };
-        &LABELS
-    }
-
-    fn compute_d2(input_c2: &C::Point, output_c2: &C::Point) -> C::Point {
-        *output_c2 - *input_c2
+    fn kind() -> DLEqKind {
+        DLEqKind::Remask
     }
 
     fn validates_output_ciphertexts() -> bool {
@@ -83,24 +76,8 @@ impl<C: Curve> DLEqProofKind<C> for RemaskKind {
 }
 
 impl<C: Curve> DLEqProofKind<C> for LeaveKind {
-    fn labels() -> &'static DLEqProofLabels {
-        static LABELS: DLEqProofLabels = DLEqProofLabels {
-            pk: b"leave_pk",
-            input_c1: b"leave_input_c1",
-            input_c2: b"leave_input_c2",
-            output_c1: b"leave_output_c1",
-            output_c2: b"leave_output_c2",
-            per_card_commitment: b"leave_per_card_commitment",
-            commitment_pk: b"leave_commitment_pk",
-            d2: b"leave_d2",
-            nonce: b"leave_nonce",
-            challenge: b"leave_challenge",
-        };
-        &LABELS
-    }
-
-    fn compute_d2(input_c2: &C::Point, output_c2: &C::Point) -> C::Point {
-        *input_c2 - *output_c2
+    fn kind() -> DLEqKind {
+        DLEqKind::Leave
     }
 
     fn validates_output_ciphertexts() -> bool {
@@ -156,25 +133,85 @@ where
     C: Curve,
     K: DLEqProofKind<C>,
 {
-    let labels = K::labels();
-    transcript.append_point::<C>(labels.pk, player_pk);
-    for ct in input_cts {
-        transcript.append_point::<C>(labels.input_c1, &ct.c1);
-        transcript.append_point::<C>(labels.input_c2, &ct.c2);
+    let kind = K::kind();
+    // Index loops and inline label matches (byte literals at direct call
+    // sites): the only transcript shapes the Aeneas extraction supports.
+    transcript.append_point::<C>(
+        match kind {
+            DLEqKind::Remask => b"remask_pk",
+            DLEqKind::Leave => b"leave_pk",
+        },
+        player_pk,
+    );
+    for i in 0..input_cts.len() {
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_input_c1",
+                DLEqKind::Leave => b"leave_input_c1",
+            },
+            &input_cts[i].c1,
+        );
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_input_c2",
+                DLEqKind::Leave => b"leave_input_c2",
+            },
+            &input_cts[i].c2,
+        );
     }
-    for ct in output_cts {
-        transcript.append_point::<C>(labels.output_c1, &ct.c1);
-        transcript.append_point::<C>(labels.output_c2, &ct.c2);
+    for i in 0..output_cts.len() {
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_output_c1",
+                DLEqKind::Leave => b"leave_output_c1",
+            },
+            &output_cts[i].c1,
+        );
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_output_c2",
+                DLEqKind::Leave => b"leave_output_c2",
+            },
+            &output_cts[i].c2,
+        );
     }
-    for a_i in per_card_commitments {
-        transcript.append_point::<C>(labels.per_card_commitment, a_i);
+    for i in 0..per_card_commitments.len() {
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_per_card_commitment",
+                DLEqKind::Leave => b"leave_per_card_commitment",
+            },
+            &per_card_commitments[i],
+        );
     }
-    transcript.append_point::<C>(labels.commitment_pk, commitment_pk);
-    for d2 in d2_values {
-        transcript.append_point::<C>(labels.d2, d2);
+    transcript.append_point::<C>(
+        match kind {
+            DLEqKind::Remask => b"remask_commitment_pk",
+            DLEqKind::Leave => b"leave_commitment_pk",
+        },
+        commitment_pk,
+    );
+    for i in 0..d2_values.len() {
+        transcript.append_point::<C>(
+            match kind {
+                DLEqKind::Remask => b"remask_d2",
+                DLEqKind::Leave => b"leave_d2",
+            },
+            &d2_values[i],
+        );
     }
-    transcript.append_scalar::<C>(labels.nonce, nonce);
-    transcript.challenge::<C>(labels.challenge).scalar
+    transcript.append_scalar::<C>(
+        match kind {
+            DLEqKind::Remask => b"remask_nonce",
+            DLEqKind::Leave => b"leave_nonce",
+        },
+        nonce,
+    );
+    transcript.challenge::<C>(match kind {
+        DLEqKind::Remask => b"remask_challenge",
+        DLEqKind::Leave => b"leave_challenge",
+    })
+    .scalar
 }
 
 impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
@@ -199,6 +236,7 @@ impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
 
     /// Strictly generate a DLEq proof that the same non-zero secret key was
     /// used across every card.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn try_prove(
         input_cts: &[ElGamalCiphertextGeneric<C>],
         output_cts: &[ElGamalCiphertextGeneric<C>],
@@ -225,7 +263,10 @@ impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
             if input_cts[i].c1 != output_cts[i].c1 {
                 return Err(poker_protocol_core::VerificationError::InvalidInput);
             }
-            let d2 = K::compute_d2(&input_cts[i].c2, &output_cts[i].c2);
+            let d2 = match K::kind() {
+                DLEqKind::Remask => output_cts[i].c2 - input_cts[i].c2,
+                DLEqKind::Leave => input_cts[i].c2 - output_cts[i].c2,
+            };
             // This check is the prover-side witness contract.  Without it the
             // API can silently create a proof for a different key or operation.
             if d2.is_identity() || d2 != input_cts[i].c1 * *player_sk {
@@ -284,6 +325,7 @@ impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
     /// New protocol code should call [`Self::try_prove`] and propagate the
     /// error.  This wrapper remains for downstream source compatibility and
     /// treats an invalid witness/statement pair as a programmer error.
+    #[cfg(not(feature = "skip-prover"))]
     pub fn prove(
         input_cts: &[ElGamalCiphertextGeneric<C>],
         output_cts: &[ElGamalCiphertextGeneric<C>],
@@ -308,68 +350,90 @@ impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
 
         // An empty batch proves no card transition and is rejected.
         if n == 0 {
-            tracing::error!("Invalid proof: n == 0");
+            dleq_reject_log!("Invalid proof: n == 0");
             return false;
         }
 
         // Every public vector must match the proof shape exactly.
         if n != input_cts.len() {
-            tracing::error!("Invalid input_cts length: {} != {}", n, input_cts.len());
+            dleq_reject_log!("Invalid input_cts length: {} != {}", n, input_cts.len());
             return false;
         }
         if n != output_cts.len() {
-            tracing::error!("Invalid output_cts length: {} != {}", n, output_cts.len());
+            dleq_reject_log!("Invalid output_cts length: {} != {}", n, output_cts.len());
             return false;
         }
 
         // Reject the trivial zero-key/no-op statement.
         if player_pk.is_identity() {
-            tracing::error!("Invalid player_pk: identity");
+            dleq_reject_log!("Invalid player_pk: identity");
             return false;
         }
 
         // Validate both sides, enforce c1 invariance, and derive each claim.
+        // flag+break instead of early `return` (the Aeneas extraction does
+        // not support returns from inside nested loops); behavior identical.
+        let mut inputs_valid = true;
         let mut d2_values: Vec<C::Point> = Vec::with_capacity(n);
+        // Hoisted direction sign: any value-producing branch inside the loop
+        // (match or if/else) is a context-join shape the Aeneas extraction
+        // cannot handle. Multiplying the difference by a ±1 scalar chosen
+        // before the loop is branch-free inside it and algebraically exact:
+        // remask wants output - input; leave wants input - output = the
+        // negation.
+        let d2_sign = if matches!(K::kind(), DLEqKind::Remask) {
+            C::Scalar::one()
+        } else {
+            -C::Scalar::one()
+        };
         for i in 0..n {
             if !input_cts[i].is_valid() {
-                tracing::error!("Invalid input ciphertext at index {}", i);
-                return false;
+                dleq_reject_log!("Invalid input ciphertext at index {}", i);
+                inputs_valid = false;
+                break;
             }
             // Both remask and leave outputs are required to remain valid
             // ciphertexts in the Rust verifier.
             if K::validates_output_ciphertexts() && !output_cts[i].is_valid() {
-                tracing::error!("Invalid output ciphertext at index {}", i);
-                return false;
+                dleq_reject_log!("Invalid output ciphertext at index {}", i);
+                inputs_valid = false;
+                break;
             }
             if input_cts[i].c1 != output_cts[i].c1 {
-                tracing::error!(
+                dleq_reject_log!(
                     "c1 mismatch at index {} (n={}): input_c1={:?} output_c1={:?}",
                     i,
                     n,
                     input_cts[i].c1,
                     output_cts[i].c1
                 );
-                return false;
+                inputs_valid = false;
+                break;
             }
-            let d2 = K::compute_d2(&input_cts[i].c2, &output_cts[i].c2);
+            let d2 = (output_cts[i].c2 - input_cts[i].c2) * d2_sign;
             if d2.is_identity() {
-                tracing::error!("Invalid d2 at index {}: identity", i);
-                return false;
+                dleq_reject_log!("Invalid d2 at index {}: identity", i);
+                inputs_valid = false;
+                break;
+            }
+            // Folded in from the separate per-card-commitment pass (a
+            // standalone loop over the Vec field trips an Aeneas
+            // generic-loop-body bug): the acceptance conditions are the
+            // same conjunction, only the diagnostic order changes.
+            if self.per_card_commitments[i].is_identity() {
+                dleq_reject_log!("Invalid per-card commitment: identity");
+                inputs_valid = false;
+                break;
             }
             d2_values.push(d2);
+        }
+        if !inputs_valid {
+            return false;
         }
 
         // Identity commitments are not accepted by the strict wire verifier.
         if self.commitment_pk.is_identity() {
-            tracing::error!("Invalid commitment_pk: identity");
-            return false;
-        }
-        if self
-            .per_card_commitments
-            .iter()
-            .any(CurvePoint::is_identity)
-        {
-            tracing::error!("Invalid per-card commitment: identity");
+            dleq_reject_log!("Invalid commitment_pk: identity");
             return false;
         }
 
@@ -389,22 +453,25 @@ impl<C: Curve, K: DLEqProofKind<C>> DLEqProof<C, K> {
 
         // Public-key equation: G * response = commitment_pk + c * pk.
         if C::base_g() * self.response != self.commitment_pk + *player_pk * c {
-            tracing::error!("Invalid response: {:?}", self.response);
+            dleq_reject_log!("Invalid response: {:?}", self.response);
             return false;
         }
 
         // Per-card equations share the same response and extracted key.
+        // flag+break instead of early `return` (Aeneas; see above).
+        let mut equations_hold = true;
         for i in 0..n {
             if input_cts[i].c1 * self.response != self.per_card_commitments[i] + d2_values[i] * c {
-                tracing::error!(
+                dleq_reject_log!(
                     "Invalid per-card commitment: {:?}",
                     self.per_card_commitments[i]
                 );
-                return false;
+                equations_hold = false;
+                break;
             }
         }
 
-        true
+        equations_hold
     }
 }
 

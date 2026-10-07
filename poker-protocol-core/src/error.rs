@@ -24,6 +24,13 @@ pub enum VerificationError {
     InvalidRerandomizerCount,
     InvalidCommitmentKey,
     InvalidBayerGrothProof,
+    /// A Fiat--Shamir challenge derived as the zero scalar. The verifiers
+    /// fail closed on it instead of retrying: a zero challenge collapses
+    /// the round's polynomial-identity check (the soundness argument
+    /// requires nonzero challenges), and honest transcripts only ever hit
+    /// it with probability 1/|Scalar| (the protocol's negligible
+    /// completeness error).
+    ZeroChallenge,
 }
 
 impl std::fmt::Display for VerificationError {
@@ -53,6 +60,7 @@ impl std::fmt::Display for VerificationError {
             Self::InvalidRerandomizerCount => write!(f, "invalid rerandomizer count"),
             Self::InvalidCommitmentKey => write!(f, "invalid Bayer-Groth commitment key"),
             Self::InvalidBayerGrothProof => write!(f, "invalid Bayer-Groth shuffle proof"),
+            Self::ZeroChallenge => write!(f, "Fiat-Shamir challenge derived as zero"),
         }
     }
 }

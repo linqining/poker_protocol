@@ -6,6 +6,15 @@ license = "BUSL-1.1"
 description = "Complete proof suite for the mental-poker protocol"
 
 [features]
+# Never enabled in production: a no-op feature declaration so the
+# `skip-prover` cfg gate on the prover entry points (used by the
+# poker-protocol-aeneas extraction crate, which compiles this crate's
+# pk_ownership.rs via #[path] under its own identically-named feature)
+# passes cargo's check-cfg lint.
+skip-prover = []
+# Never enabled in production: no-ops the `dleq_reject_log!` diagnostics in
+# extraction builds (see pk_ownership/dleq_proof sources).
+skip-tracing = []
 borsh = [
     "dep:borsh",
     "poker-protocol-core/borsh",
